@@ -5,6 +5,7 @@ require 'json'
 require 'net/http'
 require 'logger'
 require 'set'
+require 'open-uri'
 
 # Mongo preparation
 
@@ -46,6 +47,10 @@ class GithubAnalysis
 
   def owner_col
     @db.collection(@settings['mongo']['owners'])
+  end
+
+  def events_col
+    @db.collection(@settings['mongo']['events'])
   end
 
   # Specific API call functions and caches
@@ -131,8 +136,6 @@ class GithubAnalysis
     project
   end
 
-  private
-
   def api_request url
     #Rate limiting to avoid error requests
     if Time.now().tv_sec() - @ts < 60 then
@@ -148,8 +151,8 @@ class GithubAnalysis
     end
 
     @num_api_calls += 1
-
-    resp = Net::HTTP.get_response(URI.parse(url))
-    return JSON.parse(resp.body)
+    uri = open("https://api.github.com/events").read
+    #resp = Net::HTTP.get_response(URI.parse(url))
+    return JSON.parse(uri)
   end
 end
