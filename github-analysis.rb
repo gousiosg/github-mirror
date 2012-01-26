@@ -69,7 +69,7 @@ class GithubAnalysis
         @log.info "Added #{sha}"
     end
   end
-  
+
   def get_project_owner project
     # Check the cache
     project_owners = @db.collection(@settings['mongo']['owners'])
