@@ -57,11 +57,18 @@ meta()
 	meta commits
 	meta events
 ) |
-tee README.$dateName.txt >dump/github/README.txt
+tee README.$dateName.txt >dump/github/README.txt || exit 1
 
 # Create an archive of the dumped files
-mv dump/github github-dump.$dateName
-tar -cf - github-dump.$dateName | bzip2 -c >github-dump.$dateName.tar.bz2
+mv dump/github github-dump.$dateName || exit 1
+if ! tar -cf - github-dump.$dateName | bzip2 -c >github-dump.$dateName.tar.bz2 
+then
+	rm -f github-dump.$dateName.tar.bz2 README.$dateName.txt
+	exit 1
+fi
 
 # Update last run info
-echo $timeEnd >lastrun
+echo $timeEnd >lastrun || exit 1
+
+# Clean up
+rm -rf github-dump.$dateName dump
