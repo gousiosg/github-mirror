@@ -23,7 +23,7 @@ else
 fi
 
 # Name used for the files
-dateName=`date -d @$timeEnd -u +'%Y-%m-%dT%H%M%SZ'`
+dateName=`date -d @$timeEnd -u +'%Y-%m-%d'`
 
 # _id example:
 # 4f208c3e08d69a1835000077
