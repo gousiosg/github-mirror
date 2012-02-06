@@ -61,7 +61,7 @@ class GithubAnalysis
     end
 
     if commits_col.find({'commit.id' => "#{sha}"}).has_next? then
-        puts "Already got #{sha}"
+        @log.info "Already got #{sha}"
     else
         url = "http://github.com/api/v2/json/commits/show/#{user}/#{repo}/#{sha}"
         result = api_request url
@@ -151,7 +151,7 @@ class GithubAnalysis
     end
 
     @num_api_calls += 1
-    uri = open("https://api.github.com/events").read
+    uri = open(url).read
     #resp = Net::HTTP.get_response(URI.parse(url))
     return JSON.parse(uri)
   end
