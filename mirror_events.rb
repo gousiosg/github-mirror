@@ -6,6 +6,7 @@ require 'yaml'
 require 'amqp'
 require 'eventmachine'
 require 'github-analysis'
+require 'json'
 
 GH = GithubAnalysis.new
 
@@ -30,7 +31,7 @@ def retrieve exchange
       GH.events_col.insert(e)
       GH.log.info "Added #{e['id']}"
 
-      msg = e['payload']
+      msg = JSON.dump(e)
       key = "evt.%s" % e['type']
       exchange.publish msg, :persistent => true, :routing_key => key
     end
