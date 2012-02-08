@@ -3,30 +3,99 @@
 
 require 'rubygems'
 require 'yaml'
+require 'amqp'
 require 'eventmachine'
 require 'github-analysis'
 
-settings = YAML::load_file "config.yaml"
-github = GithubAnalysis.new
+GH = GithubAnalysis.new
 
-EventMachine.run do
-  EventMachine.add_periodic_timer(5) do
-      begin
-        ts = Time.now().tv_sec()
-        events = github.api_request "https://api.github.com/events"
+# Graceful exit
+Signal.trap('INT') { AMQP.stop{ EM.stop } }
+Signal.trap('TERM'){ AMQP.stop{ EM.stop } }
 
-        events.each do |e|
-          #next if e['type'] != "WatchEvent"
-          if github.events_col.find({'id' => e['id']}).has_next? then
-            puts "#{ts}: Already got #{e['id']}"
-          else
-            github.events_col.insert(e)
-            puts "#{ts}: Added #{e['id']}"
-          end
-        end
-      rescue
-        # Ignore all exceptions, just retry next time
+# Method used to perform the Github request for retrieving events
+def retrieve exchange
+  begin
+    new = dupl = 0
+    events = GH.get_events
+
+    events.each do |e|
+      if GH.events_col.find({'id' => e['id']}).has_next? then
+        GH.log.info "Already got #{e['id']}"
+        dupl += 1
+        next
       end
+
+      new += 1
+      GH.events_col.insert(e)
+      GH.log.info "Added #{e['id']}"
+
+      msg = e['payload']
+      key = "evt.%s" % e['type']
+      exchange.publish msg, :persistent => true, :routing_key => key
+    end
+    return new, dupl
+  rescue Exception => e
+    puts e.backtrace
+    #GH.log.error e.backtrace
   end
 end
 
+# The event loop
+AMQP.start(:host     => GH.settings['amqp']['host'],
+           :username => GH.settings['amqp']['username'],
+           :password => GH.settings['amqp']['password']) do |connection|
+
+  # Statistics used to recalibrate event delays
+  dupl_msgs = new_msgs = 1
+
+  GH.log.debug "connected to rabbit"
+
+  channel = AMQP::Channel.new(connection)
+  exchange = channel.topic("#{GH.settings['amqp']['exchange']}",
+                            :durable => true, :auto_delete => false)
+
+  # Initial delay for the retrieve event loop
+  retrieval_delay = GH.settings['mirror']['events']['pollevery']
+
+  # Retrieve commits.
+  retriever = EventMachine.add_periodic_timer(retrieval_delay) do
+    (new, dupl) = retrieve exchange
+    dupl_msgs += dupl
+    new_msgs += new
+  end
+
+  # Adjust event retrieval delay time to reduce load to Github
+  EventMachine.add_periodic_timer(120) do
+    ratio = (dupl_msgs.to_f / (dupl_msgs + new_msgs).to_f)
+
+    GH.log.info("Stats: #{new_msgs} new, #{dupl_msgs} duplicate, ratio: #{ratio}")
+
+    new_delay = if ratio >= 0 and ratio < 0.3 then
+      - 1
+    elsif ratio >= 0.3 and ratio <= 0.5 then
+      0
+    elsif ratio > 0.5 and ratio < 1 then
+      + 1
+    end
+
+    # Reset counters for new loop
+    dupl_msgs = new_msgs = 0
+
+    # Update the retrieval delay and restart the event retriever
+    if new_delay != 0 then
+
+      # Stop the retriever task and adjust retrieval delay
+      retriever.cancel
+      retrieval_delay = retrieval_delay + new_delay
+      GH.log.info("Setting event retrieval delay to #{retrieval_delay} secs")
+
+      # Restart the retriever
+      retriever = EventMachine.add_periodic_timer(retrieval_delay) do
+        (new, dupl) = retrieve exchange
+        dupl_msgs += dupl
+        new_msgs += new
+      end
+    end
+  end
+end
