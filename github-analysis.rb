@@ -1,3 +1,5 @@
+
+
 require 'rubygems'
 require 'mongo'
 require 'yaml'
@@ -18,6 +20,7 @@ class GithubAnalysis
 
   attr_reader :num_api_calls
   attr_reader :settings
+  attr_reader :log
 
   def initialize
     @settings = YAML::load_file "config.yaml"
@@ -139,6 +142,10 @@ class GithubAnalysis
     end
 
     project
+  end
+
+  def get_events
+    api_request "https://api.github.com/events"
   end
 
   private
