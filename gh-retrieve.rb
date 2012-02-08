@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 #
 
+require 'github-analysis'
 require 'rubygems'
 require 'hpricot'
 require 'open-uri'
@@ -9,6 +10,8 @@ require 'amqp'
 require 'yaml'
 
 OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
+
+github = GithubAnalysis.new
 
 # Get the github timeline from the RSS feed. Used to work
 def get_timeline_rss
@@ -38,28 +41,27 @@ def get_timeline_html
      .map{|x| [x[1], x[2], x[4]] if not x[4].nil?}
 end
 
-settings = YAML::load_file "config.yaml"
-
 Signal.trap('INT') { AMQP.stop{ EM.stop } }
 Signal.trap('TERM'){ AMQP.stop{ EM.stop } }
 
 mirror_method =
-    if settings['mirror']['method'] == "rss" then
+    if github.settings['mirror']['method'] == "rss" then
       "get_timeline_rss"
     else
       "get_timeline_html"
     end
 
-AMQP.start(:host => settings['amqp']['host'],
-           :username => settings['amqp']['username'],
-           :password => settings['amqp']['password']) do |connection|
+AMQP.start(:host => github.settings['amqp']['host'],
+           :username => github.settings['amqp']['username'],
+           :password => github.settings['amqp']['password']) do |connection|
 
   puts "connected to rabbit"
 
   channel = AMQP::Channel.new(connection)
-  exchange = channel.topic("commits", {:durable => true})
+  exchange = channel.fanout("#{github.settings['amqp']['exchange-commits']}",
+                            :durable => true, :auto_delete => false)
 
-  EventMachine.add_periodic_timer(20) do
+  EventMachine.add_periodic_timer(github.settings['amqp']['pollevery']) do
     begin
       commits = send(mirror_method)
 
