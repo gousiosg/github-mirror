@@ -3,7 +3,8 @@
 require 'rubygems'
 require 'amqp'
 require 'github-analysis'
-require 'optparse'
+require 'json'
+require 'pp'
 
 GH = GithubAnalysis.new
 
@@ -11,12 +12,28 @@ GH = GithubAnalysis.new
 Signal.trap('INT') { AMQP.stop{ EM.stop } }
 Signal.trap('TERM'){ AMQP.stop{ EM.stop } }
 
+def parse msg
+  JSON.parse(msg)
+end
+
 def PushEvent evt
-  puts "PushEvent"
+  api_version = GH.settings['mirror']['commits']['apiversion']
+
+  data = parse evt
+  data['payload']['commits'].each do |c|
+    url = c['url'].split(/\//)
+    if api_version == 2
+      GH.get_commit_v2 url[4], url[5], url[7]
+    else
+      GH.get_commit_v3 url[4], url[5], url[7]
+    end
+  end
 end
 
 def WatchEvent evt
-  puts "WatchEvent"
+  data = parse evt
+  user = data['actor']['login']
+  GH.get_watched user
 end
 
 handlers = ['PushEvent', 'WatchEvent']

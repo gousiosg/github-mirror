@@ -48,6 +48,10 @@ class GithubAnalysis
     @db.collection(@settings['mongo']['commitsv3'])
   end
 
+  def watched_col
+    @db.collection(@settings['mongo']['watched'])
+  end
+
   def events_col
     @db.collection(@settings['mongo']['events'])
   end
@@ -55,8 +59,7 @@ class GithubAnalysis
   # Specific API call functions and caches
 
   # Get commit information.
-  # This method uses the v2 API for retrieving commits as v3 does not include
-  # the commit diff.
+  # This method uses the v2 API for retrieving commits
   def get_commit_v2 user, repo, sha
     url = "http://github.com/api/v2/json/commits/show/%s/%s/%s"
     get_commit url, commits_col, 'commit.id', user, repo, sha
@@ -69,6 +72,15 @@ class GithubAnalysis
     get_commit url, commits_col_v3, 'sha', user, repo, sha
   end
 
+  # Get watched repositories for user
+  def get_watched user
+    url = @settings['mirror']['urlbase'] + "users/%s/watched"
+    data = api_request(url % user)
+    watched_col.insert(data)
+    @log.info "Watched #{user}"
+  end
+
+  # Get current Github events
   def get_events
     api_request "https://api.github.com/events"
   end
@@ -86,15 +98,18 @@ class GithubAnalysis
     else
         result = api_request urltmpl%[user, repo, sha]
         col.insert(result)
-        @log.info "Added #{sha}"
+        @log.info "Commit #{sha}"
     end
   end
 
-
   def api_request url
+    JSON.parse(api_request_raw(url))
+  end
+
+  def api_request_raw url
     #Rate limiting to avoid error requests
     if Time.now().tv_sec() - @ts < 60 then
-      if @num_api_calls >= 50 then
+      if @num_api_calls >= @settings['mirror']['reqrate'].to_i then
         @log.debug "Sleeping for #{Time.now().tv_sec() - @ts}"
         sleep (Time.now().tv_sec() - @ts)
         @num_api_calls = 0
@@ -106,9 +121,9 @@ class GithubAnalysis
     end
 
     @num_api_calls += 1
-    @log.debug("Opening URL: #{url}")
-    uri = open(url).read
+    @log.debug("Request: #{url}")
+    data = open(url).read
     #resp = Net::HTTP.get_response(URI.parse(url))
-    return JSON.parse(uri)
+    return data
   end
 end
