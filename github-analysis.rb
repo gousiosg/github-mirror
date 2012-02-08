@@ -17,8 +17,10 @@ require 'open-uri'
 class GithubAnalysis
 
   attr_reader :num_api_calls
+  attr_reader :settings
 
   def initialize
+    @settings = YAML::load_file "config.yaml"
     get_mongo
     @ts = Time.now().tv_sec()
     @num_api_calls = 0
@@ -27,8 +29,6 @@ class GithubAnalysis
 
   # Mongo related functions
   def get_mongo
-    @settings = YAML::load_file "config.yaml"
-
     @db = Mongo::Connection.new(@settings['mongo']['host'],
                                 @settings['mongo']['port'])\
                            .db(@settings['mongo']['db'])
@@ -39,6 +39,10 @@ class GithubAnalysis
 
   def commits_col
     @db.collection(@settings['mongo']['commits'])
+  end
+
+  def commits_col_v3
+    @db.collection(@settings['mongo']['commitsv3'])
   end
 
   def commitlength_col
@@ -54,22 +58,23 @@ class GithubAnalysis
   end
 
   # Specific API call functions and caches
-  def get_commit user, repo, sha
-    if not sha.match(/[a-f0-9]{40}$/) then
-        @log.warn "Ignoring #{line}"
-        return
-    end
 
-    if commits_col.find({'commit.id' => "#{sha}"}).has_next? then
-        @log.info "Already got #{sha}"
-    else
-        url = "http://github.com/api/v2/json/commits/show/#{user}/#{repo}/#{sha}"
-        result = api_request url
-        commits_col.insert(result)
-        @log.info "Added #{sha}"
-    end
+  # Get commit information.
+  # This method uses the v2 API for retrieving commits as v3 does not include
+  # the commit diff.
+  def get_commit_v2 user, repo, sha
+    url = "http://github.com/api/v2/json/commits/show/%s/%s/%s"
+    get_commit url, commits_col, 'commit.id', user, repo, sha
   end
 
+  # Get commit information.
+  # This method uses the v3 API for retrieving commits
+  def get_commit_v3 user, repo, sha
+    url = @settings['mirror']['urlbase'] + "repos/%s/%s/commits/%s"
+    get_commit url, commits_col_v3, 'sha', user, repo, sha
+  end
+
+  # Retrieve and
   def get_project_owner project
     # Check the cache
     project_owners = @db.collection(@settings['mongo']['owners'])
@@ -95,7 +100,7 @@ class GithubAnalysis
     end
   end
 
-  def get_commit_ids
+  def get_duplicate_commit_ids
     results = commits_col.find({'error' => {'$exists' => FALSE}},
                                          :fields => ['commit.id'])
     uniq = Set.new
@@ -136,6 +141,24 @@ class GithubAnalysis
     project
   end
 
+  private
+
+  def get_commit urltmpl, col, commit_id, user, repo, sha
+    if not sha.match(/[a-f0-9]{40}$/) then
+        @log.warn "Ignoring #{line}"
+        return
+    end
+
+    if col.find({"#{commit_id}" => "#{sha}"}).has_next? then
+        @log.info "Already got #{sha}"
+    else
+        result = api_request urltmpl%[user, repo, sha]
+        col.insert(result)
+        @log.info "Added #{sha}"
+    end
+  end
+
+
   def api_request url
     #Rate limiting to avoid error requests
     if Time.now().tv_sec() - @ts < 60 then
@@ -151,6 +174,7 @@ class GithubAnalysis
     end
 
     @num_api_calls += 1
+    @log.debug("Opening URL: #{url}")
     uri = open(url).read
     #resp = Net::HTTP.get_response(URI.parse(url))
     return JSON.parse(uri)
