@@ -10,6 +10,61 @@ require 'github-analysis'
 analysis = GithubAnalysis.new
 $commits = analysis.commits_col
 
+# Retrieve and
+def get_project_owner project
+  # Check the cache
+  project_owners = @db.collection(@settings['mongo']['owners'])
+  result = project_owners.find({'pr' => "#{project}"})
+
+  if result.has_next? then
+    result.each do |x|
+      return x['own']
+    end
+  else
+    repo = search_project project
+    if repo.nil? then
+      @log.error "Cannot find project: #{project}"
+      return NIL
+    end
+
+    owner = repo['owner']
+    entry = {'pr' => project, 'own' => owner}
+    project_owners.insert(entry)
+
+    @log.info "Added #{project} -> #{owner}"
+    owner
+  end
+end
+
+def search_project name
+  search_name = name.gsub(/\./, "+")
+
+  page = 1
+  project = NIL
+  while project.nil? do
+    url = "http://github.com/api/v2/json/repos/search/#{search_name}?start_page=#{page}"
+    repos = api_request url
+
+    @log.debug url
+
+    # Search returned zero results
+    if repos['repositories'].size == 0
+      break
+    end
+
+    repos['repositories'].each do |repo|
+      if repo['name'].casecmp(name) == 0 then
+        project = repo
+        break
+      end
+    end
+    page += 1
+  end
+
+  project
+end
+
+
 project_authors = Hash.new
 i = 0
 
@@ -77,3 +132,4 @@ File.open('project.dot', 'w') do |f|
   end
   f.puts "}"
 end
+

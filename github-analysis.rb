@@ -48,14 +48,6 @@ class GithubAnalysis
     @db.collection(@settings['mongo']['commitsv3'])
   end
 
-  def commitlength_col
-    @db.collection(@settings['mongo']['commitlength'])
-  end
-
-  def owner_col
-    @db.collection(@settings['mongo']['owners'])
-  end
-
   def events_col
     @db.collection(@settings['mongo']['events'])
   end
@@ -75,73 +67,6 @@ class GithubAnalysis
   def get_commit_v3 user, repo, sha
     url = @settings['mirror']['urlbase'] + "repos/%s/%s/commits/%s"
     get_commit url, commits_col_v3, 'sha', user, repo, sha
-  end
-
-  # Retrieve and
-  def get_project_owner project
-    # Check the cache
-    project_owners = @db.collection(@settings['mongo']['owners'])
-    result = project_owners.find({'pr' => "#{project}"})
-
-    if result.has_next? then
-      result.each do |x|
-        return x['own']
-      end
-    else
-      repo = search_project project
-      if repo.nil? then
-        @log.error "Cannot find project: #{project}"
-        return NIL
-      end
-
-      owner = repo['owner']
-      entry = {'pr' => project, 'own' => owner}
-      project_owners.insert(entry)
-
-      @log.info "Added #{project} -> #{owner}"
-      owner
-    end
-  end
-
-  def get_duplicate_commit_ids
-    results = commits_col.find({'error' => {'$exists' => FALSE}},
-                                         :fields => ['commit.id'])
-    uniq = Set.new
-    i = 0
-    results.each do |x|
-      uniq << x['commit']['id']
-      i += 1
-    end
-    @log.debug "Duplicate commits: #{i - uniq.size}"
-    uniq
-  end
-
-  def search_project name
-    search_name = name.gsub(/\./, "+")
-
-    page = 1
-    project = NIL
-    while project.nil? do
-      url = "http://github.com/api/v2/json/repos/search/#{search_name}?start_page=#{page}"
-      repos = api_request url
-
-      @log.debug url
-
-      # Search returned zero results
-      if repos['repositories'].size == 0
-        break
-      end
-
-      repos['repositories'].each do |repo|
-        if repo['name'].casecmp(name) == 0 then
-          project = repo
-          break
-        end
-      end
-      page += 1
-    end
-
-    project
   end
 
   def get_events
