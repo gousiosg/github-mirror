@@ -68,5 +68,8 @@ tee README.$dateName.txt >dump/github/README.txt
 mv dump/github github-dump.$dateName
 tar -cf - github-dump.$dateName | bzip2 -c >github-dump.$dateName.tar.bz2
 
+# Create a .torrent file. Requires installed bittornado 
+btmakemetafile http://www.sumotracker.com/announce github-dump.$dateName.tar.bz2 --target github-dump.$dateName.torrent --announce_list "http://www.sumotracker.com/announce|udp://tracker.openbittorrent.com:80|http://tracker.prq.to/announce|udp://tracker.publicbt.com:80/announce"
+
 # Update last run info
 echo $timeEnd >lastrun
