@@ -54,14 +54,19 @@ AMQP.start(:host => GH.settings['amqp']['host'],
       GH.log.info("Binding handler #{h} to routing key evt.#{h}")
 
       queue.subscribe(:ack => true) do |headers, msg|
-        begin
-          send(h, msg)
-        rescue Exception => e
-          pp JSON.parse(msg)
-          GH.log.error e
-        ensure
-          headers.ack
+        tries = 0
+        while tries < 3
+          begin
+            send(h, msg)
+            break
+          rescue Exception => e
+            tries += 1
+            pp JSON.parse(msg)
+            GH.log.error e
+          end
+          GH.log.warn "Error processing request, retrying (try = #{tries})"
         end
+        headers.ack
       end
     }
 end

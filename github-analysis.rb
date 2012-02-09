@@ -116,12 +116,13 @@ class GithubAnalysis
         @ts = Time.now().tv_sec()
       end
     else
+      @log.debug "Tick, num_calls = #{@num_api_calls}, zeroing"
       @num_api_calls = 0
       @ts = Time.now().tv_sec()
     end
 
     @num_api_calls += 1
-    @log.debug("Request: #{url}")
+    @log.debug("Request: #{url} (num_calls = #{num_api_calls})")
     data = open(url).read
     #resp = Net::HTTP.get_response(URI.parse(url))
     return data
