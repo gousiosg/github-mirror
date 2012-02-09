@@ -36,10 +36,14 @@ startId=`printf '%08x0000000000000000' $timeStart`
 
 echo "Dumping database from `date -d @$timeStart` to `date -d @$timeEnd`"
 
-# Dump events and commits
+collections=`echo "show collections"|mongo --quiet github|egrep -v "system|bye"`
+	
 rm -rf dump
-mongodump --db github --collection events -q '{"_id" : {"$gte" : ObjectId("'$startId'"), "$lt"  : ObjectId("'$endId'")} }' || exit 1
-mongodump --db github --collection commits -q '{"_id" : {"$gte" : ObjectId("'$startId'"), "$lt"  : ObjectId("'$endId'")} }' || exit 1
+for col in $collections; do
+
+	echo "Dumping $col"
+	mongodump --db github --collection $col -q '{"_id" : {"$gte" : ObjectId("'$startId'"), "$lt"  : ObjectId("'$endId'")} }' || exit 1
+done
 
 # Report the metadata for the given database
 meta()
@@ -51,12 +55,13 @@ meta()
 	du -h dump/github/$1.bson | awk '{print " (" $1 ")" }'
 }
 
+for col in $collections; do
 (
 	echo "Start date: `date -u -d @$timeStart +'%Y-%m-%dT%H:%M:%SZ'`"
 	echo "End date: `date -u -d @$timeEnd +'%Y-%m-%dT%H:%M:%SZ'`"
-	meta commits
-	meta events
-) |
+	meta $col 
+) 
+done|
 tee README.$dateName.txt >dump/github/README.txt
 
 # Create an archive of the dumped files
