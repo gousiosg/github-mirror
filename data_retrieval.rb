@@ -28,6 +28,7 @@ def PushEvent evt
       GH.get_commit_v3 url[4], url[5], url[7]
     end
   end
+
 end
 
 def WatchEvent evt
@@ -42,7 +43,7 @@ AMQP.start(:host => GH.settings['amqp']['host'],
            :username => GH.settings['amqp']['username'],
            :password => GH.settings['amqp']['password']) do |connection|
 
-    channel  = AMQP::Channel.new(connection)
+    channel  = AMQP::Channel.new(connection, :prefetch => 5)
     exchange = channel.topic(GH.settings['amqp']['exchange'],
                              :durable => true, :auto_delete => false)
 
@@ -52,8 +53,15 @@ AMQP.start(:host => GH.settings['amqp']['host'],
 
       GH.log.info("Binding handler #{h} to routing key evt.#{h}")
 
-      queue.subscribe do |headers, msg|
-        send(h, msg)
+      queue.subscribe(:ack => true) do |headers, msg|
+        begin
+          send(h, msg)
+        rescue Exception => e
+          pp JSON.parse(msg)
+          GH.log.error e
+        ensure
+          headers.ack
+        end
       end
     }
 end
