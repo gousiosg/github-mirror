@@ -1,0 +1,37 @@
+<html>
+<head>
+  <title>The GHTorrent project - Github's data for research</title>
+  <meta name="author" content="Georgios Gousios"/>
+  <meta name="author" content="Diomidis Spinellis"/>
+  <meta http-equiv="Content-type" content="text/html; charset=UTF-8"/>
+</head>
+<body>
+  <h1>The GHTorrent project</h1>
+  <hr/>
+
+   List of available torrents (Last update: <%= @last_update %>)
+
+   <table>
+     <thead>
+        <tr>
+          <td></td>
+          <% @collections.sort.each do |c| %>
+            <td><%= c %> <a href="<%= c %>.rss"><img src="http://istlab.dmst.aueb.gr/~george/img/rss.png"></a></td>
+          <% end %>
+        </tr>
+     </thead>
+     <tbody>
+        <% @dumps.each do |d| %>
+            <tr>
+              <td><%= @dumps.date %></td>
+              <% d.collections.map{|c| c.name}.sort.each do |t| %>
+                <td><a href="<%= t.url %>"><%= t.name %> (<%= t.size%> MB)</a></td>
+              <% end %>
+            </tr>
+        <% end %>
+     </tbody>
+   </table>
+<hr/>
+
+</body>
+</html>
