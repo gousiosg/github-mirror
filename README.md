@@ -13,8 +13,11 @@ The scripts are written in Ruby (tested with 1.8). To install the required
 library dependencies, do the following:
 
 <code>
-sudo gem install amqp hpricot mongo
+sudo gem install amqp mongo
 </code>
+
+#### Running 
+
 
 
 #### Author

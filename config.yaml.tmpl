@@ -1,18 +1,29 @@
 amqp:
   host:   1.2.3.4 # Queue's IP address
   username: foo   # Username to connect to the queue
-  password: bar   # password 
+  password: bar   # password
+  exchangecommits: commits
+  queuecommits: commits
 
 mongo:
-  host: 1.2.3.4        #Mongo's IP addr 
-  port: 27017          #Mongo's port
-  db: 'github'         #DB name to store commits to
-  username: foo        #User name to connect to Mongo
-  password: bar        #Passwrod for mongo
-  # Don't touch the following
-  commits: 'commits'   
-  owners: 'owners'     
-  commitlength: 'mapreduce.commitlength' 
+  host: 1.2.3.4        # Mongo's IP addr
+  port: 27017          # Mongo's port
+  db: 'github'         # DB name to store commits to
+  username: foo        # User name to connect to Mongo
+  password: bar        # Password for mongo
+
+  # Names for collections to save the retrieved data to
+  commits: 'commits'
+  owners: 'owners'
+  commitsv3: 'commitsv3'
+  events: 'events'
+  watched: 'watched'
 
 mirror:
-  method: html #or rss
+  urlbase: "https://api.github.com/"
+  commits:
+    shamethod: event #or html or rss   # Method to use to retrieve commit SHA-1
+    apiversion: 2 #or 3
+    pollevery: 10 #sec
+  events:
+    pollevery: 5 #sec
