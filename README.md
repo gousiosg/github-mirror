@@ -32,11 +32,11 @@ posts them to the `github` exchange in RabbitMQ
 functions which retrieve
 
 You can run both scripts concurrently on more than one hosts, for resilience
-and performance reasons. To catch up with Github's event stream,  
-it is enough to run `mirror_events.rb` on one host. To collect all data pointed
-by each event, one instance of `data_retrieval.rb` is not enough. Both scripts
-employ throttling mechanisms to keep API usage whithin the limits imposed by 
-Github (currently 5000 reqs/hr).
+and performance reasons. To catch up with Github's event stream, it is enough
+to run `mirror_events.rb` on one host. To collect all data pointed by each
+event, one instance of `data_retrieval.rb` is not enough. Both scripts employ
+throttling mechanisms to keep API usage whithin the limits imposed by Github
+(currently 5000 reqs/hr).
 
 #### Authors
 
