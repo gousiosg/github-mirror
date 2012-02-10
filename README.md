@@ -29,7 +29,8 @@ To mirror Github's commit stream
 posts them to the `github` exchange in RabbitMQ
 
 * `data_retrieval.rb` creates queues that route posted events to processor
-functions which retrieve
+functions, which in turn use the appropriate Github API call to retrieve the
+linked contents.
 
 You can run both scripts concurrently on more than one hosts, for resilience
 and performance reasons. To catch up with Github's event stream, it is enough
@@ -41,6 +42,7 @@ throttling mechanisms to keep API usage whithin the limits imposed by Github
 #### Authors
 
 Georgios Gousios <gousiosg@gmail.com>
+
 Diomidis Spinellis
 
 #### License
