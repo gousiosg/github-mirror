@@ -1,4 +1,4 @@
-github-mirror: Mirror and process the Github commit steam
+github-mirror: Mirror and process the Github event steam
 =========================================================
 
 A collection of scripts used to mirror the Github event stream, for 
