@@ -39,8 +39,8 @@ require 'json'
 GH = GithubAnalysis.new
 
 # Graceful exit
-Signal.trap('INT') { AMQP.stop{ EM.stop } }
-Signal.trap('TERM'){ AMQP.stop{ EM.stop } }
+Signal.trap('INT') { AMQP.stop { EM.stop } }
+Signal.trap('TERM') { AMQP.stop { EM.stop } }
 
 # Method used to perform the Github request for retrieving events
 def retrieve exchange
@@ -71,7 +71,7 @@ def retrieve exchange
 end
 
 # The event loop
-AMQP.start(:host     => GH.settings['amqp']['host'],
+AMQP.start(:host => GH.settings['amqp']['host'],
            :username => GH.settings['amqp']['username'],
            :password => GH.settings['amqp']['password']) do |connection|
 
@@ -82,7 +82,7 @@ AMQP.start(:host     => GH.settings['amqp']['host'],
 
   channel = AMQP::Channel.new(connection)
   exchange = channel.topic("#{GH.settings['amqp']['exchange']}",
-                            :durable => true, :auto_delete => false)
+                           :durable => true, :auto_delete => false)
 
   # Initial delay for the retrieve event loop
   retrieval_delay = GH.settings['mirror']['events']['pollevery']
@@ -101,12 +101,12 @@ AMQP.start(:host     => GH.settings['amqp']['host'],
     GH.log.info("Stats: #{new_msgs} new, #{dupl_msgs} duplicate, ratio: #{ratio}")
 
     new_delay = if ratio >= 0 and ratio < 0.3 then
-      - 1
-    elsif ratio >= 0.3 and ratio <= 0.5 then
-      0
-    elsif ratio > 0.5 and ratio < 1 then
-      + 1
-    end
+                  -1
+                elsif ratio >= 0.3 and ratio <= 0.5 then
+                  0
+                elsif ratio > 0.5 and ratio < 1 then
+                  +1
+                end
 
     # Reset counters for new loop
     dupl_msgs = new_msgs = 0

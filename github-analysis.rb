@@ -115,16 +115,16 @@ class GithubAnalysis
 
   def get_commit urltmpl, col, commit_id, user, repo, sha
     if not sha.match(/[a-f0-9]{40}$/) then
-        @log.warn "Ignoring #{line}"
-        return
+      @log.warn "Ignoring #{line}"
+      return
     end
 
     if col.find({"#{commit_id}" => "#{sha}"}).has_next? then
-        @log.info "Already got #{sha}"
+      @log.info "Already got #{sha}"
     else
-        result = api_request urltmpl%[user, repo, sha]
-        col.insert(result)
-        @log.info "Commit #{sha}"
+      result = api_request urltmpl%[user, repo, sha]
+      col.insert(result)
+      @log.info "Commit #{sha}"
     end
   end
 
