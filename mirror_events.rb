@@ -1,5 +1,33 @@
 #!/usr/bin/env ruby
 #
+# Copyright 2012 Georgios Gousios <gousiosg@gmail.com>
+#
+# Redistribution and use in source and binary forms, with or
+# without modification, are permitted provided that the following
+# conditions are met:
+#
+#   1. Redistributions of source code must retain the above
+#      copyright notice, this list of conditions and the following
+#      disclaimer.
+#
+#   2. Redistributions in binary form must reproduce the above
+#      copyright notice, this list of conditions and the following
+#      disclaimer in the documentation and/or other materials
+#      provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+# USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
 
 require 'rubygems'
 require 'yaml'
@@ -11,8 +39,8 @@ require 'json'
 GH = GithubAnalysis.new
 
 # Graceful exit
-Signal.trap('INT') { AMQP.stop{ EM.stop } }
-Signal.trap('TERM'){ AMQP.stop{ EM.stop } }
+Signal.trap('INT') { AMQP.stop { EM.stop } }
+Signal.trap('TERM') { AMQP.stop { EM.stop } }
 
 # Method used to perform the Github request for retrieving events
 def retrieve exchange
@@ -43,7 +71,7 @@ def retrieve exchange
 end
 
 # The event loop
-AMQP.start(:host     => GH.settings['amqp']['host'],
+AMQP.start(:host => GH.settings['amqp']['host'],
            :username => GH.settings['amqp']['username'],
            :password => GH.settings['amqp']['password']) do |connection|
 
@@ -54,7 +82,7 @@ AMQP.start(:host     => GH.settings['amqp']['host'],
 
   channel = AMQP::Channel.new(connection)
   exchange = channel.topic("#{GH.settings['amqp']['exchange']}",
-                            :durable => true, :auto_delete => false)
+                           :durable => true, :auto_delete => false)
 
   # Initial delay for the retrieve event loop
   retrieval_delay = GH.settings['mirror']['events']['pollevery']
@@ -73,12 +101,12 @@ AMQP.start(:host     => GH.settings['amqp']['host'],
     GH.log.info("Stats: #{new_msgs} new, #{dupl_msgs} duplicate, ratio: #{ratio}")
 
     new_delay = if ratio >= 0 and ratio < 0.3 then
-      - 1
-    elsif ratio >= 0.3 and ratio <= 0.5 then
-      0
-    elsif ratio > 0.5 and ratio < 1 then
-      + 1
-    end
+                  -1
+                elsif ratio >= 0.3 and ratio <= 0.5 then
+                  0
+                elsif ratio > 0.5 and ratio < 1 then
+                  +1
+                end
 
     # Reset counters for new loop
     dupl_msgs = new_msgs = 0
