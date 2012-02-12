@@ -14,19 +14,19 @@
    <table>
      <thead>
         <tr>
-          <td></td>
+          <th>Dump date</th>
           <% @collections.sort.each do |c| %>
-            <td><%= c %> <a href="<%= c %>.rss"><img src="http://istlab.dmst.aueb.gr/~george/img/rss.png"></a></td>
+            <th><%= c %> <a href="<%= c %>.rss"><img width="16px" src="http://istlab.dmst.aueb.gr/~george/img/rss.png"></a></th>
           <% end %>
         </tr>
      </thead>
      <tbody>
-        <% @dumps.each do |d| %>
+        <% for @d in @dumps.each %>
             <tr>
-              <td><%= @dumps.date %></td>
-              <% d.collections.map{|c| c.name}.sort.each do |t| %>
-                <td><a href="<%= t.url %>"><%= t.name %> (<%= t.size%> MB)</a></td>
-              <% end %>
+              <td><%= @d.date %></td>
+            <% for @t in @d.torrents %>
+              <td><a href="<%= @t.url %>"><%= @t.name %> (<%= @t.size%> MB)</a></td>
+            <% end %>
             </tr>
         <% end %>
      </tbody>

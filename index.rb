@@ -30,12 +30,13 @@
 
 require 'rubygems'
 require 'erb'
+require 'set'
 
 class GHTorrent
   def initialize(last_update)
     @last_update = last_update
-    @dumps = []
-    @collections = []
+    @dumps = Set.new
+    @collections = Set.new
   end
 
   def add_dump(dump)
@@ -46,36 +47,78 @@ class GHTorrent
     @collections << col
   end
 
+  # Expose private binding() method.
+  def get_binding
+    binding()
+  end
+
 end
 
 class Dump
-  def initialize(collections, date)
-    @collections = collections
+  attr_reader :torrents
+  attr_reader :date
+  def initialize(torrents, date)
+    @torrents = torrents
     @date = date
   end
 end
 
-class Collection
-  def initialize(url, name, size)
+class Torrent
+  attr_reader :url
+  attr_reader :name
+  attr_reader :size
+  attr_reader :date
+  def initialize(url, name, size, date)
     @url = url
     @name = name
     @size = size
+    @date = date
   end
 end
 
-file = File.open("index.rb").read
+# Load the template
+file = File.open("index.erb").read
 rhtml = ERB.new(file)
 
+# Open the dir to read entries from
 dir = ARGV.shift
 
 if dir.nil?
   dir = "."
 end
 
-print STDERR "Using dir #{dir}"
+print STDERR, "Using dir #{dir}\n"
 
-Dir.entries("dir").each do |f|
-    
-end
+torrents = Dir.entries("#{dir}").map do |f|
 
-# rhtml.run(github)
+  # Go through all torrent files and extract name of
+  # dumped collection and dump date
+  matches = /([a-z]+)-[a-z]+\.(.*)\.torrent/.match(f)
+  next if matches.nil?
+
+  # Calculate original file size
+  dump = f.gsub(/.torrent/, ".tar.bz2")
+  size = File.stat(File.join(dir, dump)).size / 1024 / 1024
+
+  Torrent.new(f, matches[1], size, matches[2])
+end.select{|x| !x.nil?}
+
+all_dates = torrents.inject(Set.new){|acc, t| acc << t.date}
+
+all_dumps = all_dates.map{ |d|
+  date_torrents = torrents.select{|t| t.date == d}
+  Dump.new(date_torrents, d)
+}
+
+max_date = all_dates.max{|a,b| a <=> b}
+
+ghtorrent = GHTorrent.new(max_date)
+all_dumps.each {|x|
+  ghtorrent.add_dump x
+  x.torrents.each {|t|
+    ghtorrent.add_collection t.name
+  }
+}
+
+rhtml.run(ghtorrent.get_binding)
+rhtml.result()
