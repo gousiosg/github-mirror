@@ -76,6 +76,8 @@ class Torrent
   end
 end
 
+url_prefix="http://ikaria.dmst.aueb.gr/ghtorrent"
+
 # Load the template
 file = File.open("index.erb").read
 rhtml = ERB.new(file)
@@ -95,10 +97,11 @@ torrents = Dir.entries("#{dir}").map do |f|
   next if matches.nil?
 
   # Calculate original file size
-  dump = f.gsub(/.torrent/, ".tar.bz2")
+  dump = f.gsub(/.torrent/, ".tar.gz")
   size = File.stat(File.join(dir, dump)).size / 1024 / 1024
-
-  Torrent.new(f, matches[1], size, matches[2])
+  if size > 0
+    Torrent.new(url_prefix + "/" + f, matches[1], size, matches[2])
+  end
 end.select{|x| !x.nil?}
 
 all_dates = torrents.inject(Set.new){|acc, t| acc << t.date}

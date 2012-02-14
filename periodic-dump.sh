@@ -3,8 +3,8 @@
 # Create the periodic database dump files
 #
 
-# Directory where the script must run
-RUNDIR=/home/dds/src/github-mirror
+# Directory to place compressed files and torrents
+OUTDIR=/home/data/github-mirror/dumps
 
 # Time to start dumping from
 if [ -r lastrun ]
@@ -66,24 +66,24 @@ tee README.$dateName.txt >dump/github/README.txt || exit 1
 
 # Create an archive of all dumped files
 echo "Archiving all files"
-if ! tar -cf - dump/github/| bzip2 -c >all-dump.$dateName.tar.bz2 
+if ! tar zcf $OUTDIR/all-dump.$dateName.tar.gz dump/github
 then
-	rm -f all-dump.$dateName.tar.bz2 README.$dateName.txt
+	rm -f $OUTDIR/all-dump.$dateName.tar.gz README.$dateName.txt
 	exit 1
 fi
 
 # Create a .torrent file. Requires installed bittornado 
-btmakemetafile http://www.sumotracker.com/announce all-dump.$dateName.tar.bz2 --target all-dump.$dateName.torrent --announce_list "http://www.sumotracker.com/announce|udp://tracker.openbittorrent.com:80|http://tracker.prq.to/announce|udp://tracker.publicbt.com:80/announce"
+btmakemetafile http://www.sumotracker.com/announce $OUTDIR/all-dump.$dateName.tar.gz --target $OUTDIR/all-dump.$dateName.torrent --announce_list "http://www.sumotracker.com/announce|udp://tracker.openbittorrent.com:80|http://tracker.prq.to/announce|udp://tracker.publicbt.com:80/announce"
 
 # Do the same per collection
 for col in $collections; do
 	echo "Archiving $col.bson"
-	if ! tar -cf - dump/github/$col.bson | bzip2 -c > $col-dump.$dateName.tar.bz2
+	if ! tar zcf $OUTDIR/$col-dump.$dateName.tar.gz dump/github/$col.bson
 	then
-		rm -f $col-dump.$dateName.tar.bz2
+		rm -f $OUTDIR/$col-dump.$dateName.tar.gz
 		exit 1
 	fi
-btmakemetafile http://www.sumotracker.com/announce $col-dump.$dateName.tar.bz2 --target $col-dump.$dateName.torrent --announce_list "http://www.sumotracker.com/announce|udp://tracker.openbittorrent.com:80|http://tracker.prq.to/announce|udp://tracker.publicbt.com:80/announce"
+	btmakemetafile http://www.sumotracker.com/announce $OUTDIR/$col-dump.$dateName.tar.gz --target $OUTDIR/$col-dump.$dateName.torrent --announce_list "http://www.sumotracker.com/announce|udp://tracker.openbittorrent.com:80|http://tracker.prq.to/announce|udp://tracker.publicbt.com:80/announce"
 done
 
 # Update last run info
