@@ -25,7 +25,7 @@
             <tr>
               <td><%= @d.date %></td>
             <% for @t in @d.torrents %>
-              <td><a href="<%= @t.url %>"><%= @t.name %> (<%= @t.size%> MB)</a></td>
+              <td><a href="<%= @t.url %>"><%= @t.name %></a> (<%= @t.size%> MB)</td>
             <% end %>
             </tr>
         <% end %>

@@ -2,8 +2,7 @@ amqp:
   host:   1.2.3.4 # Queue's IP address
   username: foo   # Username to connect to the queue
   password: bar   # password
-  exchangecommits: commits
-  queuecommits: commits
+  exchange: github
 
 mongo:
   host: 1.2.3.4        # Mongo's IP addr
@@ -15,12 +14,12 @@ mongo:
   # Names for collections to save the retrieved data to
   commits: 'commits'
   owners: 'owners'
-  commitsv3: 'commitsv3'
   events: 'events'
   watched: 'watched'
 
 mirror:
   urlbase: "https://api.github.com/"
+  reqrate: 80 #per minute
   commits:
     shamethod: event #or html or rss   # Method to use to retrieve commit SHA-1
     apiversion: 2 #or 3
