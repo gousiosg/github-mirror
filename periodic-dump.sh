@@ -5,6 +5,7 @@
 
 # Directory to place compressed files and torrents
 OUTDIR=/home/data/github-mirror/dumps
+WEBSEED=http://ikaria.dmst.aueb.gr/ghtorrent/
 
 # Time to start dumping from
 if [ -r lastrun ]
@@ -64,26 +65,21 @@ for col in $collections; do
 done |
 tee README.$dateName.txt >dump/github/README.txt || exit 1
 
-# Create an archive of all dumped files
-echo "Archiving all files"
-if ! tar zcf $OUTDIR/all-dump.$dateName.tar.gz dump/github
-then
-	rm -f $OUTDIR/all-dump.$dateName.tar.gz README.$dateName.txt
-	exit 1
-fi
-
-# Create a .torrent file. Requires installed bittornado 
-btmakemetafile http://www.sumotracker.com/announce $OUTDIR/all-dump.$dateName.tar.gz --target $OUTDIR/all-dump.$dateName.torrent --announce_list "http://www.sumotracker.com/announce|udp://tracker.openbittorrent.com:80|http://tracker.prq.to/announce|udp://tracker.publicbt.com:80/announce"
-
 # Do the same per collection
 for col in $collections; do
 	echo "Archiving $col.bson"
+	if [ ! -s dump/github/$col.bson ];then
+		echo "Collection empty, skipping"
+		continue
+	fi
+
 	if ! tar zcf $OUTDIR/$col-dump.$dateName.tar.gz dump/github/$col.bson
 	then
 		rm -f $OUTDIR/$col-dump.$dateName.tar.gz
 		exit 1
 	fi
-	btmakemetafile http://www.sumotracker.com/announce $OUTDIR/$col-dump.$dateName.tar.gz --target $OUTDIR/$col-dump.$dateName.torrent --announce_list "http://www.sumotracker.com/announce|udp://tracker.openbittorrent.com:80|http://tracker.prq.to/announce|udp://tracker.publicbt.com:80/announce"
+
+	mktorrent -a udp://tracker.openbittorrent.com:80 -a udp://tracker.publicbt.com:80/announce -a http://tracker.bittorrent.am/announce -w $WEBSEED/$col-dump.$dateName.tar.gz -o $OUTDIR/$col-dump.$dateName.torrent $OUTDIR/$col-dump.$dateName.tar.gz
 done
 
 # Update last run info
