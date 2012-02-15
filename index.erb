@@ -1,37 +1,20 @@
-<html>
-<head>
-  <title>The GHTorrent project - Github's data for research</title>
-  <meta name="author" content="Georgios Gousios"/>
-  <meta name="author" content="Diomidis Spinellis"/>
-  <meta http-equiv="Content-type" content="text/html; charset=UTF-8"/>
-</head>
-<body>
-  <h1>The GHTorrent project</h1>
-  <hr/>
 
-   List of available torrents (Last update: <%= @last_update %>)
+List of available torrents (Last dump date: <%= @last_update %>)
 
-   <table>
-     <thead>
-        <tr>
-          <th>Dump date</th>
-          <% @collections.sort.each do |c| %>
-            <th><%= c %> <a href="<%= c %>.rss"><img width="16px" src="http://istlab.dmst.aueb.gr/~george/img/rss.png"></a></th>
-          <% end %>
-        </tr>
-     </thead>
-     <tbody>
-        <% for @d in @dumps.each %>
-            <tr>
-              <td><%= @d.date %></td>
-            <% for @t in @d.torrents %>
-              <td><a href="<%= @t.url %>"><%= @t.name %></a> (<%= @t.size%> MB)</td>
-            <% end %>
-            </tr>
-        <% end %>
-     </tbody>
-   </table>
-<hr/>
+<table>
+  <tr>
+   <th>Dump date</th>
+   <% @collections.sort.each do |c| %>
+   <th><%= c %> <a href="<%= c %>.rss"><img width="16px" src="http://istlab.dmst.aueb.gr/~george/img/rss.png"></a></th>
+     <% end %>
+  </tr>
+  <% for @d in @dumps.each %>
+  <tr>
+    <td><%= @d.date %></td>
+    <% for @t in @d.torrents %>
+    <td><a href="<%= @t.url %>"><%= @t.name %></a> (<%= @t.size%> MB)</td>
+    <% end %>
+  </tr>
+  <% end %>
+</table>
 
-</body>
-</html>

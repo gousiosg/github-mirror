@@ -33,6 +33,9 @@ require 'erb'
 require 'set'
 
 class GHTorrent
+  attr_reader :collections
+  attr_reader :dumps
+  
   def initialize(last_update)
     @last_update = last_update
     @dumps = Set.new
@@ -57,6 +60,7 @@ end
 class Dump
   attr_reader :torrents
   attr_reader :date
+  
   def initialize(torrents, date)
     @torrents = torrents
     @date = date
@@ -111,15 +115,16 @@ all_dumps = all_dates.map{ |d|
   Dump.new(date_torrents, d)
 }
 
-max_date = all_dates.max{|a,b| a <=> b}
+max_date = all_dates.max{ |a,b| a <=> b}
 
 ghtorrent = GHTorrent.new(max_date)
-all_dumps.each {|x|
+all_dumps.each { |x|
   ghtorrent.add_dump x
-  x.torrents.each {|t|
+  x.torrents.each { |t|
     ghtorrent.add_collection t.name
   }
 }
 
 rhtml.run(ghtorrent.get_binding)
-rhtml.result()
+
+# vim: set sta sts=2 shiftwidth=2 sw=2 et ai :
