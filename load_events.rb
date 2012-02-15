@@ -46,25 +46,45 @@ Signal.trap('TERM') { AMQP.stop { EM.stop } }
 events = GH.events_col
 counter = 0
 
+# Selectively load event types
+evt_type = ARGV.shift
+
+valid_types = ["CommitComment", "CreateEvent", "DeleteEvent", "DownloadEvent",
+"FollowEvent", "ForkEvent", "ForkApplyEvent", "GistEvent", "GollumEvent",
+"IssueCommentEvent", "IssuesEvent", "MemberEvent", "PublicEvent",
+"PullRequestEvent", "PushEvent", "TeamAddEvent", "WatchEvent"]
+
+q = if evt_type.nil?
+  {}
+else
+  if valid_types.include? evt_type
+    {"type" => evt_type}
+  else
+    puts "No valid event type #{evt_type}"
+    puts "Valid event types are :"
+    valid_types.each{|x| puts "\t", x, "\n"}
+    exit 1
+  end
+end
+
 AMQP.start(:host => GH.settings['amqp']['host'],
            :port => GH.settings['amqp']['port'],
-	   :username => GH.settings['amqp']['username'],
-	   :password => GH.settings['amqp']['password']) do |connection|
+           :username => GH.settings['amqp']['username'],
+           :password => GH.settings['amqp']['password']) do |connection|
 
-  channel = AMQP::Channel.new(connection)
+  channel = AMQP::Channel.new(connection, :prefetch => 5)
   exchange = channel.topic(GH.settings['amqp']['exchange'],
                           :durable => true, :auto_delete => false)
 
-  events.find('{"type": "PushEvent"}').each do |e|
-    msg = e.to_json 
-    key = "evt.%s" %  e['type']
-    exchange.publish msg, :persistent => true, :routing_key => key 
+  events.find(q).each do |e|
+    msg = e.json
+    key = "evt.%s" % e['type']
+    exchange.publish msg, :persistent => true, :routing_key => key
     counter += 1
+    print "\r #{counter} events loaded"
   end
 
   AMQP.stop
 end
-
-puts "Loaded #{counter} events"
 
 # vim: set sta sts=2 shiftwidth=2 sw=2 et ai :

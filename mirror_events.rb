@@ -72,6 +72,7 @@ end
 
 # The event loop
 AMQP.start(:host => GH.settings['amqp']['host'],
+           :port => GH.settings['amqp']['port'],
            :username => GH.settings['amqp']['username'],
            :password => GH.settings['amqp']['password']) do |connection|
 

@@ -165,7 +165,7 @@ class BSON::OrderedHash
     end
   end
 
-  def to_json
+  def json
     to_h.to_json
   end
 end
