@@ -8,11 +8,17 @@ List of available torrents (Last dump date: <%= @last_update %>)
    <th><%= c %> <a href="<%= c %>.rss"><img width="16px" src="http://istlab.dmst.aueb.gr/~george/img/rss.png"></a></th>
      <% end %>
   </tr>
-  <% for @d in @dumps.each %>
+  <% for @d in @dumps.sort{ |a,b| a.date <=> b.date} %>
   <tr>
     <td><%= @d.date %></td>
-    <% for @t in @d.torrents %>
-    <td><a href="<%= @t.url %>"><%= @t.name %></a> (<%= @t.size%> MB)</td>
+    <% for @col in @collections.sort %>
+    <% @t = @d.torrents[@col] %>
+      <td><% if @t.nil? %>
+    	 ---
+        <% else %>
+    	  <a href="<%= @t.url %>"><%= @t.name %></a> (<%= @t.size%> MB)
+        <% end %>
+      </td>
     <% end %>
   </tr>
   <% end %>
