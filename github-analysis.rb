@@ -154,3 +154,21 @@ class GithubAnalysis
     return data
   end
 end
+
+class BSON::OrderedHash
+
+  def to_h
+    inject({}) do |acc, element| 
+      k,v = element; 
+      acc[k] = (if v.class == BSON::OrderedHash then v.to_h else v end)
+      acc 
+    end
+  end
+
+  def to_json
+    to_h.to_json
+  end
+end
+
+# vim: set sta sts=2 shiftwidth=2 sw=2 et ai :
+
