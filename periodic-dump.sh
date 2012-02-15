@@ -5,6 +5,8 @@
 
 # Directory to place compressed files and torrents
 OUTDIR=/home/data/github-mirror/dumps
+
+# Base URL for HTTP dir containing torrents and data 
 WEBSEED=http://ikaria.dmst.aueb.gr/ghtorrent/
 
 # Time to start dumping from
@@ -68,7 +70,7 @@ tee README.$dateName.txt >dump/github/README.txt || exit 1
 # Do the same per collection
 for col in $collections; do
 	echo "Archiving $col.bson"
-	if [ ! -s dump/github/$col.bson ];then
+	if [ ! -s dump/github/$col.bson ]; then
 		echo "Collection empty, skipping"
 		continue
 	fi
