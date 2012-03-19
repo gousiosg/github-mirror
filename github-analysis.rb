@@ -111,6 +111,32 @@ class GithubAnalysis
     api_request "https://api.github.com/events"
   end
 
+  # Read a hierarchical value of the type  "foo.bar.baz"
+  # from a hierarchial map (the result of a JSON parse
+  # or a Mongo query)
+  def read_value(from, key)
+    key.split(/\./).reduce({}) do |acc, x|
+      if not acc.nil?
+        if acc.empty?
+          # Initial run
+          acc = from[x]
+        else
+          if acc.has_key?(x)
+            acc = acc[x]
+          else
+            # Some intermediate key does not exist
+            return ""
+          end
+        end
+      else
+        # Some intermediate key returned a null value
+        # This indicates a malformed entry
+        return ""
+      end
+    end
+  end
+
+
   private
 
   def get_commit urltmpl, col, commit_id, user, repo, sha

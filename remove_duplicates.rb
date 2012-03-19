@@ -41,38 +41,12 @@ per_col = {
     :commits => {
         :unq => "commit.id",
         :col => GH.commits_col,
-        :rm  => ""
     },
     :events => {
         :unq => "id",
         :col => GH.events_col,
-        :rm  => ""
     }
 }
-
-# Read a hierarchical value of the type  "foo.bar.baz"
-# from a hierarchial map
-def read_value(from, key)
-  key.split(/\./).reduce({}) do |acc, x|
-    if not acc.nil?
-      if acc.empty?
-        # Initial run
-        acc = from[x]
-      else
-        if acc.has_key?(x)
-          acc = acc[x]
-        else
-          # Some intermediate key does not exist
-          return ""
-        end
-      end
-    else
-      # Some intermediate key returned a null value
-      # This indicates a malformed entry
-      return ""
-    end
-  end
-end
 
 # Print MongoDB remove statements that
 # remove all but one entries for each commit.
@@ -80,7 +54,6 @@ def remove_duplicates(data, col)
   removed = 0
   data.select { |k, v| v.size > 1 }.each do |k, v|
     v.slice(0..(v.size - 2)).map do |x|
-      #print "db.#{name}.remove({_id : ObjectId('#{x}')})\n"
       removed += 1 if delete_by_id col, x
     end
   end
@@ -120,7 +93,7 @@ data = Hash.new
 # with large datasets
 per_col[which][:col].find(from, :fields => per_col[which][:unq]).each do |r|
   _id = r["_id"]
-  commit = read_value(r, per_col[which][:unq])
+  commit = GH.read_value(r, per_col[which][:unq])
 
   # If entries cannot be parsed, remove them
   if commit.empty?

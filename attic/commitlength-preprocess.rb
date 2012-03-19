@@ -134,9 +134,4 @@ AMQP.start(:host => settings['amqp']['host'],
 end
 
 
-# m = function () {emit(this.lang, {'add':this.add, 'del':this.del}); }
-# m = function () {emit(this.lang, this.add); }
-# r = function (k, vals) { var added = 0; var removed = 0; var count = 0; vals.forEach(function (value) {added += value.add; removed += value.del; count += 1;}); return {'avgadded': added / count, 'avgremoved': removed / count, 'numcommits': count} }
-# db.mapreduce.commitlength.mapReduce(m, r, {out : 'avg_add'})
-
 #vim: set filetype=ruby expandtab tabstop=2 shiftwidth=2 autoindent smartindent:
