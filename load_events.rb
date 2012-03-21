@@ -30,60 +30,110 @@
 
 require 'rubygems'
 require 'yaml'
-require 'amqp'
-require 'eventmachine'
 require 'github-analysis'
 require 'json'
 require 'mongo'
+require 'amqp'
+require 'set'
+require 'eventmachine'
+require "amqp/extensions/rabbitmq"
 
 GH = GithubAnalysis.new
 
-# Graceful exit
-Signal.trap('INT') { AMQP.stop { EM.stop } }
-Signal.trap('TERM') { AMQP.stop { EM.stop } }
-
 events = GH.events_col
-counter = 0
 
 # Selectively load event types
 evt_type = ARGV.shift
 
 valid_types = ["CommitComment", "CreateEvent", "DeleteEvent", "DownloadEvent",
-"FollowEvent", "ForkEvent", "ForkApplyEvent", "GistEvent", "GollumEvent",
-"IssueCommentEvent", "IssuesEvent", "MemberEvent", "PublicEvent",
-"PullRequestEvent", "PushEvent", "TeamAddEvent", "WatchEvent"]
+               "FollowEvent", "ForkEvent", "ForkApplyEvent", "GistEvent", "GollumEvent",
+               "IssueCommentEvent", "IssuesEvent", "MemberEvent", "PublicEvent",
+               "PullRequestEvent", "PushEvent", "TeamAddEvent", "WatchEvent"]
 
 q = if evt_type.nil?
-  {}
-else
-  if valid_types.include? evt_type
-    {"type" => evt_type}
-  else
-    puts "No valid event type #{evt_type}"
-    puts "Valid event types are :"
-    valid_types.each{|x| puts "\t", x, "\n"}
-    exit 1
-  end
-end
+      {}
+    else
+      if valid_types.include? evt_type
+        {"type" => evt_type}
+      else
+        puts "No valid event type #{evt_type}"
+        puts "Valid event types are :"
+        valid_types.each { |x| puts "\t", x, "\n" }
+        exit 1
+      end
+    end
+
+# Message tags await ack
+awaiting_ack = SortedSet.new
 
 AMQP.start(:host => GH.settings['amqp']['host'],
            :port => GH.settings['amqp']['port'],
            :username => GH.settings['amqp']['username'],
            :password => GH.settings['amqp']['password']) do |connection|
 
-  channel = AMQP::Channel.new(connection, :prefetch => 5)
+  channel = AMQP::Channel.new(connection)
   exchange = channel.topic(GH.settings['amqp']['exchange'],
-                          :durable => true, :auto_delete => false)
+                           :durable => true, :auto_delete => false)
 
-  events.find(q).each do |e|
-    msg = e.json
-    key = "evt.%s" % e['type']
-    exchange.publish msg, :persistent => true, :routing_key => key
-    counter += 1
-    print "\r #{counter} events loaded"
+  # Num events read
+  from = 0
+
+  # Read next 1000 events and publish them on the queue
+  read_and_publish = Proc.new {
+    events.find(q, :skip => from, :limit => from + 1000).each do |e|
+      msg = e.json
+      key = "evt.%s" % e['type']
+      exchange.publish msg, :persistent => true, :routing_key => key
+      from += 1
+      puts "Publish event.id = #{e['id']} event.type = #{e['type']} (#{from} total)"
+      awaiting_ack << from
+    end
+  }
+
+  # Remove acknowledged or failed msg tags from the queue
+  # Trigger more messages to be read when
+  publisher_event = Proc.new { |ack|
+    if ack.multiple == true then
+      awaiting_ack.delete_if { |x| x <= ack.delivery_tag }
+    else
+      awaiting_ack.delete ack.delivery_tag
+    end
+
+    if awaiting_ack.size == 0 then
+      EventMachine.next_tick do
+        read_and_publish.call
+      end
+    end
+  }
+
+  # What to do when the user hits INT or QUIT buttons
+  show_stopper = Proc.new {
+    connection.close { EventMachine.stop }
+  }
+
+  # Await publisher confirms
+  channel.confirm_select
+
+  # Callback when confirms have arrived
+  channel.on_ack do |ack|
+    puts "ACK: tag = #{ack.delivery_tag}, multiple = #{ack.multiple}, wait = #{awaiting_ack.size}"
+    publisher_event.call(ack)
   end
 
-  AMQP.stop
+  # Callback when confirms failed.
+  channel.on_nack do |nack|
+    puts "NACK: tag = #{nack.delivery_tag}, multiple = #{nack.multiple}, wait = #{awaiting_ack.size}"
+    publisher_event.call(nack)
+  end
+
+  # Signal handlers
+  Signal.trap('INT', show_stopper)
+  Signal.trap('TERM', show_stopper)
+
+  # Trigger start processing
+  EventMachine.add_timer(0.1) do
+    read_and_publish.call
+  end
 end
 
 # vim: set sta sts=2 shiftwidth=2 sw=2 et ai :
