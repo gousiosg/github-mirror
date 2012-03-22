@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
 #
+# Loads items from Mongo to the queue for further processing
+#
+#
 # Copyright 2012 Georgios Gousios <gousiosg@gmail.com>
 #
 # Redistribution and use in source and binary forms, with or
@@ -82,7 +85,8 @@ class CmdLineArgs
       end
 
       opts.on("-f", "--filter [=OPTIONAL]", Array,
-              "Filter items by regexp on item attributes: item.attr=regexp,...") do |c|
+              "Filter items by regexp on item attributes:
+               item.attr=regexp,...") do |c|
 
         c.each{ |x|
           (k,r) = x.split(/=/)
@@ -168,13 +172,13 @@ AMQP.start(:host => GH.settings['amqp']['host'],
 
   # Callback when confirms have arrived
   channel.on_ack do |ack|
-    puts "ACK: tag = #{ack.delivery_tag}, multiple = #{ack.multiple}, wait = #{awaiting_ack.size}"
+    puts "ACK: tag=#{ack.delivery_tag}, mul=#{ack.multiple}" if opts.verbose
     publisher_event.call(ack)
   end
 
   # Callback when confirms failed.
   channel.on_nack do |nack|
-    puts "NACK: tag = #{nack.delivery_tag}, multiple = #{nack.multiple}, wait = #{awaiting_ack.size}"
+    puts "NACK: tag=#{nack.delivery_tag}, mul=#{nack.multiple}" if opts.verbose
     publisher_event.call(nack)
   end
 
