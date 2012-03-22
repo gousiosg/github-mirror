@@ -29,42 +29,94 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 require 'rubygems'
-require 'yaml'
 require 'github-analysis'
 require 'json'
 require 'mongo'
 require 'amqp'
 require 'set'
 require 'eventmachine'
+require 'optparse'
+require 'ostruct'
+require 'pp'
 require "amqp/extensions/rabbitmq"
 
 GH = GithubAnalysis.new
 
-events = GH.events_col
+per_col = {
+    :commits => {
+        :name => "commits",
+        :unq => "commit.id",
+        :col => GH.commits_col,
+        :routekey => "commit.%s"
+    },
+    :events => {
+        :name => "events",
+        :unq => "id",
+        :col => GH.events_col,
+        :routekey => "event.%s"
+    }
+}
 
-# Selectively load event types
-evt_type = ARGV.shift
+class CmdLineArgs
+  def self.parse(args)
+    options = OpenStruct.new
+    options.which = :undef
+    options.what = {}
+    options.from = {}
+    options.verbose = false
 
-valid_types = ["CommitComment", "CreateEvent", "DeleteEvent", "DownloadEvent",
-               "FollowEvent", "ForkEvent", "ForkApplyEvent", "GistEvent", "GollumEvent",
-               "IssueCommentEvent", "IssuesEvent", "MemberEvent", "PublicEvent",
-               "PullRequestEvent", "PushEvent", "TeamAddEvent", "WatchEvent"]
+    parser = OptionParser.new do |opts|
+      opts.banner = "Usage: load_ids.rb [options]"
+      opts.separator ""
+      opts.separator "Specific options:"
 
-q = if evt_type.nil?
-      {}
-    else
-      if valid_types.include? evt_type
-        {"type" => evt_type}
-      else
-        puts "No valid event type #{evt_type}"
-        puts "Valid event types are :"
-        valid_types.each { |x| puts "\t", x, "\n" }
-        exit 1
+      opts.on("-e", "--earliest [=OPTIONAL]", Integer,
+              "Seconds since epoch of earliest event to load") do |c|
+        options.from = {'_id' =>
+                            {'$gte' => BSON::ObjectId.from_time(Time.at(c))}}
+      end
+
+      opts.on("-c", "--collection COLLECTION", [:commits, :events],
+              "Collection to load data from") do |c|
+        options.which = c || :undef
+      end
+
+      opts.on("-f", "--filter [=OPTIONAL]", Array,
+              "Filter items by regexp on item attributes: item.attr=regexp,...") do |c|
+
+        c.each{ |x|
+          (k,r) = x.split(/=/)
+          if r.nil? then puts "#{x} not a valid filter"; next end
+          options.what[k] = Regexp.new(r)
+        }
+
+      end
+
+      opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
+        options.verbose = v
+      end
+
+      opts.on_tail("-h", "--help", "Show this help message.") do
+        puts opts; exit
       end
     end
 
-# Message tags await ack
+    parser.parse!(args)
+    options
+  end
+end
+
+# Parse cmd line args
+opts = CmdLineArgs.parse(ARGV)
+
+# Message tags await publisher ack
 awaiting_ack = SortedSet.new
+
+# Num events read
+num_read = 0
+
+puts "Loading items after #{opts.from}" if opts.verbose
+(puts "Mongo query:"; pp opts.what.merge(opts.from)) if opts.verbose
 
 AMQP.start(:host => GH.settings['amqp']['host'],
            :port => GH.settings['amqp']['port'],
@@ -75,18 +127,18 @@ AMQP.start(:host => GH.settings['amqp']['host'],
   exchange = channel.topic(GH.settings['amqp']['exchange'],
                            :durable => true, :auto_delete => false)
 
-  # Num events read
-  from = 0
-
-  # Read next 1000 events and publish them on the queue
+  # Read next 1000 items and put them on the queue
   read_and_publish = Proc.new {
-    events.find(q, :skip => from, :limit => from + 1000).each do |e|
+
+    per_col[opts.which][:col].find(opts.what.merge(opts.from),
+                              :skip => num_read,
+                              :limit => num_read + 1000).each do |e|
       msg = e.json
       key = "evt.%s" % e['type']
       exchange.publish msg, :persistent => true, :routing_key => key
-      from += 1
-      puts "Publish event.id = #{e['id']} event.type = #{e['type']} (#{from} total)"
-      awaiting_ack << from
+      num_read += 1
+      puts("Publish id = #{e['id']} (#{from} total)") if opts.verbose
+      awaiting_ack << num_read
     end
   }
 
