@@ -54,7 +54,7 @@ per_col = {
     },
     :events => {
         :name => "events",
-        :unq => "id",
+        :unq => "type",
         :col => GH.events_col,
         :routekey => "event.%s"
     }
@@ -138,7 +138,8 @@ AMQP.start(:host => GH.settings['amqp']['host'],
                               :skip => num_read,
                               :limit => num_read + 1000).each do |e|
       msg = e.json
-      key = "evt.%s" % e['type']
+      key = per_col[opts.which][:routekey] %
+          GH.read_value(e, per_col[opts.which][:unq])
       exchange.publish msg, :persistent => true, :routing_key => key
       num_read += 1
       puts("Publish id = #{e['id']} (#{from} total)") if opts.verbose
@@ -147,7 +148,7 @@ AMQP.start(:host => GH.settings['amqp']['host'],
   }
 
   # Remove acknowledged or failed msg tags from the queue
-  # Trigger more messages to be read when
+  # Trigger more messages to be read when ack msg queue size drops to zero
   publisher_event = Proc.new { |ack|
     if ack.multiple == true then
       awaiting_ack.delete_if { |x| x <= ack.delivery_tag }
@@ -162,7 +163,7 @@ AMQP.start(:host => GH.settings['amqp']['host'],
     end
   }
 
-  # What to do when the user hits INT or QUIT buttons
+  # What to do when the user hits Ctrl+c
   show_stopper = Proc.new {
     connection.close { EventMachine.stop }
   }
