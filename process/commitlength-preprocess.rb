@@ -3,12 +3,11 @@
 
 require 'rubygems'
 require 'mongo'
-require 'json'
-require 'amqp' #gem install amqp -v 0.7.1 <--need this version
+require 'amqp'
 require 'yaml'
-require 'github-analysis'
+require File.dirname(__FILE__) + '/../github-analysis'
 
-settings = YAML::load_file "config.yaml"
+GH = GithubAnalysis.new
 
 # Load extensions file to a hash indexed by extension
 extensions = Hash.new
@@ -20,32 +19,32 @@ yml.each_key do |key|
     end
 end
 
-github = GithubAnalysis.new
+# Treat languages with header files specially
+clangs = Array.new
+clangs << yml["c"].select{|x| x != "h"}
+clangs << yml["cpp"].select{|x| x != "h"}
+clangs << yml["objc"].select{|x| x != "h"}
 
 # Start message processing loop
 Signal.trap('INT') { AMQP.stop{ EM.stop } }
 Signal.trap('TERM'){ AMQP.stop{ EM.stop } }
 
-AMQP.start(:host => settings['amqp']['host'],
-           :username => settings['amqp']['username'],
-           :password => settings['amqp']['password']) do |connection|
+AMQP.start(:host => GH.settings['amqp']['host'],
+           :port => GH.settings['amqp']['port'],
+           :username => GH.settings['amqp']['username'],
+           :password => GH.settings['amqp']['password']) do |connection|
 
-  channel  = AMQP::Channel.new(connection)
-  exchange = channel.topic("mapreduce", opts = {:durable => true})
-  queue = channel.queue("mapreduce.commitlength", {:durable => true})\
-                 .bind(exchange, :routing_key => "commitlength.#")
+  channel = AMQP::Channel.new(connection, :prefetch => 1)
+  exchange = channel.topic(GH.settings['amqp']['exchange'],
+                           :durable => true, :auto_delete => false)
+
+  queue = channel.queue("commits", {:durable => true}) \
+                 .bind(exchange, :routing_key => "commit.#")
 
   i = 0
-  queue.subscribe do |headers, msg|
-    # Format is : {"date":epoch, "commit": "sha"}
-    message = JSON.parse(msg)
+  queue.subscribe(:ack => true) do |headers, msg|
 
-    if github.commitlength_col.find({'commit' => "#{message["commit"]}"}).has_next? then
-      puts "Already got #{message["commit"]}"
-      next
-    end
-
-    result = github.commits_col.find({'commit.id' => "#{message["commit"]}"})
+    result = GH.commits_col.find({'commit.id' => "#{msg}"})
     i += 1
 
     # Commit in queue, but not in mongo
@@ -75,9 +74,9 @@ AMQP.start(:host => settings['amqp']['host'],
       end
       added = removed = 0
       diff["diff"].lines.collect do |l|
-        case l[0,1]
-        when "+"; then added += 1 
-        when "-"; then removed += 1
+        case l[0, 1]
+          when "+"; then added += 1
+          when "-"; then removed += 1
         end
       end
 
@@ -87,15 +86,15 @@ AMQP.start(:host => settings['amqp']['host'],
         puts "Path does not contain an extension: #{diff["filename"]}"
         next
       end
-      
+
       ext = parts[-1]
 
       # Save result
       entry = {'commit' => commit['commit']['id'], 'ext' => ext,
                'add' => added, 'del' => removed}
 
-      results.add entry
-      puts "File: #{diff["filename"]}, Lang: #{lang} (+#{added}, -#{removed})"
+      results << entry
+      puts "File: #{diff["filename"]}, ext: #{ext} (+#{added}, -#{removed})"
 
     end unless not commit["commit"]["modified"]
 
@@ -103,35 +102,37 @@ AMQP.start(:host => settings['amqp']['host'],
     # the language is set to that that most (C-lang like) files included in
     # the commit. If the commits includes just one file ending in .h, then
     # the language defaults to C.
-    clangs = Hash.new
-    results.each do |i|
 
-      ext = i['ext']
-      lang = extensions[ext]
+    not_has_h = results.find{|h| h['ext'] == "h"}.nil?
 
-      if ext == 'h' then
-        lang = 'letssee'
+    results = if not not_has_h
+                lang = results.group_by { |x| x['ext'] }.max_by { |x| x[1].size }[0]
+                lang = "c" if lang == "h"
+                puts "Mapping extension .h to .#{lang}"
+                results.map { |x| x['ext'] = lang; x }
+              else
+                results
+              end
+
+    results = results.inject(Hash.new) {|acc, x|
+      lang = extensions[x['ext']]
+      lang = "Unknown" if lang.nil?
+      modified = x['add'] + x['del']
+      if acc[lang].nil?
+        acc[lang] = modified
+      else
+        acc[lang] += modified
       end
+      acc
+    }
 
-      if not lang then
-        puts "Unknown extension #{ext}"
-        next
-      end
+    results.each{|k,v|
+      puts "Lang: #{k}, Lines: #{v}"
+    }
 
-      clangs[lang] = clangs[lang] + 1 || 1
-      i['lang'] = lang
-      i['ext'].delete
-    end
-
-    winner = clangs.\
-              map{|k, v| [k, v]}.\
-              reduce([0,0]){|max, b| max = b if b[1] > max[1]; max}
-
-    github.commitlength_col.insert(entry)
-
+    headers.ack
   end
-  AMQP.stop{ EM.stop }
 end
-
+AMQP.stop{ EM.stop }
 
 #vim: set filetype=ruby expandtab tabstop=2 shiftwidth=2 autoindent smartindent:
