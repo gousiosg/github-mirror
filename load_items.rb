@@ -33,7 +33,6 @@
 
 require 'rubygems'
 require 'github-analysis'
-require 'json'
 require 'mongo'
 require 'amqp'
 require 'set'
@@ -120,7 +119,7 @@ awaiting_ack = SortedSet.new
 num_read = 0
 
 puts "Loading items after #{opts.from}" if opts.verbose
-(puts "Mongo query:"; pp opts.what.merge(opts.from)) if opts.verbose
+(puts "Mongo filter:"; pp opts.what.merge(opts.from)) if opts.verbose
 
 AMQP.start(:host => GH.settings['amqp']['host'],
            :port => GH.settings['amqp']['port'],
@@ -137,12 +136,15 @@ AMQP.start(:host => GH.settings['amqp']['host'],
     per_col[opts.which][:col].find(opts.what.merge(opts.from),
                               :skip => num_read,
                               :limit => num_read + 1000).each do |e|
-      msg = e.json
-      key = per_col[opts.which][:routekey] %
-          GH.read_value(e, per_col[opts.which][:unq])
-      exchange.publish msg, :persistent => true, :routing_key => key
+
+      unq = GH.read_value(e, per_col[opts.which][:unq])
+      key = per_col[opts.which][:routekey] % unq
+
+
+      exchange.publish unq, :persistent => true, :routing_key => key
+
       num_read += 1
-      puts("Publish id = #{e['id']} (#{from} total)") if opts.verbose
+      puts("Publish id = #{unq} (#{num_read} total)") if opts.verbose
       awaiting_ack << num_read
     end
   }
@@ -193,4 +195,4 @@ AMQP.start(:host => GH.settings['amqp']['host'],
   end
 end
 
-# vim: set sta sts=2 shiftwidth=2 sw=2 et ai :
+#vim: set filetype=ruby expandtab tabstop=2 shiftwidth=2 autoindent smartindent:
