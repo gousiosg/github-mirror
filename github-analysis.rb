@@ -82,6 +82,14 @@ class GithubAnalysis
     @db.collection(@settings['mongo']['events'])
   end
 
+  def followed_col
+    @db.collection(@settings['mongo']['followed'])
+  end
+
+  def followers_col
+    @db.collection(@settings['mongo']['followers'])
+  end
+
   # Specific API call functions and caches
 
   # Get commit information.
@@ -102,8 +110,24 @@ class GithubAnalysis
   def get_watched user
     url = @settings['mirror']['urlbase'] + "users/%s/watched"
     data = api_request(url % user)
-    watched_col.insert(data)
+    followed_col.insert(data)
     @log.info "Watched #{user}"
+  end
+
+  # Get the users followed by the event actor
+  def get_followed user
+    url = @settings['mirror']['urlbase'] + "users/%s/following"
+    data = api_request(url % user)
+    followed_col.insert(data)
+    @log.info "Followed #{user}"
+  end
+
+  # Get the users followed by the event actor
+  def get_followers user
+    url = @settings['mirror']['urlbase'] + "users/%s/followers"
+    data = api_request(url % user)
+    followers_col.insert(data)
+    @log.info "Followed by #{user}"
   end
 
   # Get current Github events

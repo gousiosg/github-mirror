@@ -46,18 +46,12 @@ def parse msg
 end
 
 def PushEvent evt
-  api_version = GH.settings['mirror']['commits']['apiversion']
-
   data = parse evt
   data['payload']['commits'].each do |c|
     url = c['url'].split(/\//)
-    if api_version == 2
-      GH.get_commit_v2 url[4], url[5], url[7]
-    else
-      GH.get_commit_v3 url[4], url[5], url[7]
-    end
+    GH.get_commit_v2 url[4], url[5], url[7]
+    GH.get_commit_v3 url[4], url[5], url[7]
   end
-
 end
 
 def WatchEvent evt
@@ -66,7 +60,16 @@ def WatchEvent evt
   GH.get_watched user
 end
 
-handlers = ['PushEvent', 'WatchEvent']
+def FollowEvent evt
+  data = parse evt
+  user = data['actor']['login']
+  GH.get_followed user
+
+  followed = data['payload']['target']['login']
+  GH.get_followers followed
+end
+
+handlers = ['PushEvent', 'WatchEvent', 'FollowEvent']
 
 AMQP.start(:host => GH.settings['amqp']['host'],
            :port => GH.settings['amqp']['port'],
