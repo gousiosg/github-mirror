@@ -139,6 +139,8 @@ class GithubAnalysis
   # from a hierarchial map (the result of a JSON parse
   # or a Mongo query)
   def read_value(from, key)
+    return from if key.nil? or key == ""
+
     key.split(/\./).reduce({}) do |acc, x|
       if not acc.nil?
         if acc.empty?

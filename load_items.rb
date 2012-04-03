@@ -53,7 +53,7 @@ per_col = {
     },
     :events => {
         :name => "events",
-        :unq => "type",
+        :unq => "",
         :col => GH.events_col,
         :routekey => "evt.%s"
     }
@@ -141,6 +141,11 @@ AMQP.start(:host => GH.settings['amqp']['host'],
                                    :limit => 1000).each do |e|
 
       unq = GH.read_value(e, per_col[opts.which][:unq])
+      unq = if unq.class == BSON::OrderedHash then
+        unq.delete "_id"
+        unq.to_json
+      end
+
       key = per_col[opts.which][:routekey] % unq
 
       exchange.publish unq, :persistent => true, :routing_key => key
