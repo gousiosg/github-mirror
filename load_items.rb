@@ -55,7 +55,7 @@ per_col = {
         :name => "events",
         :unq => "type",
         :col => GH.events_col,
-        :routekey => "event.%s"
+        :routekey => "evt.%s"
     }
 }
 
@@ -113,7 +113,7 @@ end
 # Parse cmd line args
 opts = CmdLineArgs.parse(ARGV)
 
-exit if opts.from == {} 
+exit if opts.which == {}
 
 # Message tags await publisher ack
 awaiting_ack = SortedSet.new
@@ -133,16 +133,15 @@ AMQP.start(:host => GH.settings['amqp']['host'],
   exchange = channel.topic(GH.settings['amqp']['exchange'],
                            :durable => true, :auto_delete => false)
 
-  # Read next 1000 items and put them on the queue
+  # Read next 1000 items and queue them
   read_and_publish = Proc.new {
 
     per_col[opts.which][:col].find(opts.what.merge(opts.from),
-                              :skip =>  num_read,
-                              :limit => 1000).each do |e|
+                                   :skip =>  num_read,
+                                   :limit => 1000).each do |e|
 
       unq = GH.read_value(e, per_col[opts.which][:unq])
       key = per_col[opts.which][:routekey] % unq
-
 
       exchange.publish unq, :persistent => true, :routing_key => key
 
