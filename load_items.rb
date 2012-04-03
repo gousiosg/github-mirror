@@ -100,7 +100,8 @@ class CmdLineArgs
       end
 
       opts.on_tail("-h", "--help", "Show this help message.") do
-        puts opts; exit
+	puts opts
+        exit
       end
     end
 
@@ -111,6 +112,8 @@ end
 
 # Parse cmd line args
 opts = CmdLineArgs.parse(ARGV)
+
+exit if opts.from == {} 
 
 # Message tags await publisher ack
 awaiting_ack = SortedSet.new
@@ -134,8 +137,8 @@ AMQP.start(:host => GH.settings['amqp']['host'],
   read_and_publish = Proc.new {
 
     per_col[opts.which][:col].find(opts.what.merge(opts.from),
-                              :skip => num_read,
-                              :limit => num_read + 1000).each do |e|
+                              :skip =>  num_read,
+                              :limit => 1000).each do |e|
 
       unq = GH.read_value(e, per_col[opts.which][:unq])
       key = per_col[opts.which][:routekey] % unq
@@ -159,6 +162,7 @@ AMQP.start(:host => GH.settings['amqp']['host'],
     end
 
     if awaiting_ack.size == 0 then
+      puts("ACKS.size= #{awaiting_ack.size}") if opts.verbose
       EventMachine.next_tick do
         read_and_publish.call
       end
