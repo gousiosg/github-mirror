@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+ <channel>
+  <title>GHTorrent <%= @torrent_name %> feed</title>
+  <link>
+http://wiki
+  </link>
+  <description>GHTorrent <%= @torrent_name %> feed</description>
+  <language>en-gb</language>
+  <pubDate>Thu, 1 Jan 2009 01:59:59 GMT</pubDate>
+  <lastBuildDate>
+Mon, 03 Oct 2011 10:58:46 GMT
+  </lastBuildDate>
+  <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+  <generator>
+    GHTorrent index.rb
+  </generator>
+  <managingEditor>gousiosg@gmail.com (Georgios Gousios)</managingEditor>
+  <atom:link href="https://<%= @torrent_name %>-rss.xml"
+  rel="self" type="application/rss+xml" />
+
+  <item>
+     <title></title>
+     <link></link>
+     <description></description>
+     <category><%= @torrent_name %></category>
+     <pubDate>Thu, 07 Oct 2010 21:04:27 GMT</pubDate>
+     <guid isPermaLink="false"> 1286474667</guid>
+  </item>
+
+  </channel>
+</rss>

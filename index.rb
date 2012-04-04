@@ -96,6 +96,9 @@ end
 
 torrents = Dir.entries("#{dir}").map do |f|
 
+  #File name format expected: collname-dump-2012-03-27.torrent
+  #                           collname-dump-2012-03-27.tar.gz
+
   # Go through all torrent files and extract name of
   # dumped collection and dump date
   matches = /([a-z0-9]+)-[a-z]+\.(.*)\.torrent/.match(f)
@@ -104,9 +107,10 @@ torrents = Dir.entries("#{dir}").map do |f|
   # Calculate original file size
   dump = f.gsub(/.torrent/, ".tar.gz")
   size = File.stat(File.join(dir, dump)).size / 1024 / 1024
-  
+
+  # Expects a format of yyyy-mm-dd
   date = Date.parse(matches[2])  
-  
+
   if size > 0
     Torrent.new(url_prefix + "/" + f, matches[1], size, date)
   end
