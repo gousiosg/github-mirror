@@ -47,13 +47,15 @@ GH = GithubAnalysis.new
 per_col = {
     :commits => {
         :name => "commits",
+        :payload => "commit.id",
         :unq => "commit.id",
         :col => GH.commits_col,
         :routekey => "commit.%s"
     },
     :events => {
         :name => "events",
-        :unq => "",
+        :payload => "",
+        :unq => "type",
         :col => GH.events_col,
         :routekey => "evt.%s"
     }
@@ -133,26 +135,43 @@ AMQP.start(:host => GH.settings['amqp']['host'],
   exchange = channel.topic(GH.settings['amqp']['exchange'],
                            :durable => true, :auto_delete => false)
 
+  # What to do when the user hits Ctrl+c
+  show_stopper = Proc.new {
+    connection.close { EventMachine.stop }
+  }
+
   # Read next 1000 items and queue them
   read_and_publish = Proc.new {
 
+    read = 0
     per_col[opts.which][:col].find(opts.what.merge(opts.from),
                                    :skip =>  num_read,
                                    :limit => 1000).each do |e|
 
+      payload = GH.read_value(e, per_col[opts.which][:payload])
+      payload = if payload.class == BSON::OrderedHash then
+                  payload.delete "_id" # Inserted by MongoDB on event insert
+                  payload.to_json
+                end
+      read += 1
       unq = GH.read_value(e, per_col[opts.which][:unq])
-      unq = if unq.class == BSON::OrderedHash then
-        unq.delete "_id"
-        unq.to_json
+      if unq.class != String or unq.nil? then
+        throw Exception("Unique value can only be a String")
       end
 
       key = per_col[opts.which][:routekey] % unq
 
-      exchange.publish unq, :persistent => true, :routing_key => key
+      exchange.publish payload, :persistent => true, :routing_key => key
 
       num_read += 1
       puts("Publish id = #{unq} (#{num_read} total)") if opts.verbose
       awaiting_ack << num_read
+    end
+
+    # Nothing new in the DB and no msgs waiting ack
+    if read == 0 and awaiting_ack.size == 0
+      puts("Finished reading, exiting")
+      show_stopper.call
     end
   }
 
@@ -171,11 +190,6 @@ AMQP.start(:host => GH.settings['amqp']['host'],
         read_and_publish.call
       end
     end
-  }
-
-  # What to do when the user hits Ctrl+c
-  show_stopper = Proc.new {
-    connection.close { EventMachine.stop }
   }
 
   # Await publisher confirms

@@ -39,11 +39,11 @@ GH = GithubAnalysis.new
 # Unique keys per known collection
 per_col = {
     :commits => {
-        :unq => "commit.id",
+        :payload => "commit.id",
         :col => GH.commits_col,
     },
     :events => {
-        :unq => "id",
+        :payload => "id",
         :col => GH.events_col,
     }
 }
@@ -91,9 +91,9 @@ data = Hash.new
 
 # The following code needs to save intermediate results to cope
 # with large datasets
-per_col[which][:col].find(from, :fields => per_col[which][:unq]).each do |r|
+per_col[which][:col].find(from, :fields => per_col[which][:payload]).each do |r|
   _id = r["_id"]
-  commit = GH.read_value(r, per_col[which][:unq])
+  commit = GH.read_value(r, per_col[which][:payload])
 
   # If entries cannot be parsed, remove them
   if commit.empty?
