@@ -1,16 +1,16 @@
 amqp:
-  host:   1.2.3.4 # Queue's IP address
+  host:   127.0.0.1 # Queue's IP address
   port:   5672
-  username: foo   # Username to connect to the queue
-  password: bar   # password
+  username: github   # Username to connect to the queue
+  password: github   # password
   exchange: github
 
 mongo:
-  host: 1.2.3.4        # Mongo's IP addr
+  host: 127.0.0.1      # Mongo's IP addr
   port: 27017          # Mongo's port
-  db: 'github'         # DB name to store commits to
-  username: foo        # User name to connect to Mongo
-  password: bar        # Password for mongo
+  db: github           # DB name to store commits to
+  username: github     # User name to connect to Mongo
+  password: github     # Password for mongo
 
   # Names for collections to save the retrieved data to
   commits: 'commits'
