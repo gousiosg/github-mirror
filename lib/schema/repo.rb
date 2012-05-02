@@ -1,0 +1,4 @@
+class Repo < SchemaBase
+
+
+end

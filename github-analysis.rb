@@ -35,18 +35,12 @@ require 'logger'
 require 'set'
 require 'open-uri'
 
-# Mongo preparation
-
-# db.createCollection("commits")
-# db.owners.ensureIndex({'commits.id': 1})
-# db.createCollection("owners")
-# db.owners.ensureIndex({pr: 1})
-
 class GithubAnalysis
 
   attr_reader :num_api_calls
   attr_reader :settings
   attr_reader :log
+  attr_reader :url_base
 
   def initialize
     @settings = YAML::load_file "config.yaml"
@@ -54,6 +48,7 @@ class GithubAnalysis
     @ts = Time.now().tv_sec()
     @num_api_calls = 0
     @log = Logger.new(STDOUT)
+    @url_base = @settings['mirror']['urlbase']
   end
 
   # Mongo related functions
@@ -90,6 +85,14 @@ class GithubAnalysis
     @db.collection(@settings['mongo']['followers'])
   end
 
+  def users_col
+    @db.collection(@settings['mongo']['users'])
+  end
+
+  def repos_col
+    @db.collection(@settings['mongo']['repos'])
+  end
+
   # Specific API call functions and caches
 
   # Get commit information.
@@ -102,21 +105,95 @@ class GithubAnalysis
   # Get commit information.
   # This method uses the v3 API for retrieving commits
   def get_commit_v3 user, repo, sha
-    url = @settings['mirror']['urlbase'] + "repos/%s/%s/commits/%s"
+    url = @url_base + "repos/%s/%s/commits/%s"
     get_commit url, commits_col_v3, 'sha', user, repo, sha
   end
 
   # Get watched repositories for user
-  def get_watched user
-    url = @settings['mirror']['urlbase'] + "users/%s/watched"
+  def get_watched(user, evt)
+    update_user(user, evt)
+    url = @url_base + "users/%s/watched"
+
+    prev = watched_col.find({:ght_owner => user}, :sort => :ght_eventid.to_s).to_a
     data = api_request(url % user)
-    followed_col.insert(data)
-    @log.info "Watched #{user}"
+
+    # Find all new watch entries that are not in the database
+    new = data.reduce([]) do |acc, x|
+      if prev.find{ |y|
+        y[:url.to_s] == x[:url.to_s]
+      } then
+        acc
+      else
+        acc << x
+      end
+    end
+
+    last = if prev.empty? then nil else prev[-1][:_id.to_s] end
+
+    new.each do |x|
+      ensure_user(x[:owner.to_s][:login.to_s], evt)
+      #ensure_repo(x[:owner.to_s][:login.to_s], evt)
+
+      # Write custom information to associate data per owning entity
+      x[:ght_prev] = last
+      x[:ght_owner] = user
+      x[:ght_eventid] = evt[:id]
+      x[:ght_ts] = evt[:created_at]
+      last = watched_col.insert(x)
+      @log.info "User #{user} watches #{x[:url.to_s]}"
+    end
+  end
+
+  # Ensure that a user exists, or fetch its latest state from Github
+  def ensure_user(user, evt)
+    if users_col.find_one({:login => user}, :sort => ["_id", :desc]).nil?
+      url = @url_base + "users/%s"
+      data = api_request(url % user)
+      data[:ght_prev] = nil
+      data[:ght_eventid] = evt[:id]
+      data[:ght_ts] = evt[:created_at]
+      users_col.insert(data)
+      @log.info "New user #{user}"
+    end
+  end
+
+  # Update a user's state from Github, iff the user's state changed
+  def update_user(user, evt)
+    last = users_col.find_one({:login => user}, :sort => ["_id", :desc])
+    url = @url_base + "users/%s"
+    data = api_request(url % user)
+
+    changed = if last.nil?
+                true
+              else
+                data.find{|k, v| if last[k] != data[k] then true else false end}
+              end
+
+    if changed then
+      data[:ght_prev] = if last.nil? then nil else last[:_id] end
+      data[:ght_eventid] = evt[:id]
+      data[:ght_ts] = evt[:created_at]
+      users_col.insert(data)
+      @log.info "New instance for user #{user}"
+    end
+  end
+
+  # Ensure that a repo exists, or fetch its latest state from Github
+  def ensure_repo(user, repo, evt)
+    if users_col.find_one({:ght_owner => user}, :sort => ["_id", :desc]).nil?
+      url = @url_base + "users/%s"
+      data = api_request(url % user)
+      data[:ght_prev] = nil
+      data[:ght_eventid] = evt[:id]
+      data[:ght_ts] = evt[:created_at]
+      users_col.insert(data)
+      @log.info "New user #{user}"
+    end
   end
 
   # Get the users followed by the event actor
   def get_followed user
-    url = @settings['mirror']['urlbase'] + "users/%s/following"
+    url = @url_base + "users/%s/following"
     data = api_request(url % user)
     followed_col.insert(data)
     @log.info "Followed #{user}"
@@ -124,7 +201,7 @@ class GithubAnalysis
 
   # Get the users followed by the event actor
   def get_followers user
-    url = @settings['mirror']['urlbase'] + "users/%s/followers"
+    url = @url_base + "users/%s/followers"
     data = api_request(url % user)
     followers_col.insert(data)
     @log.info "Followed by #{user}"
@@ -135,9 +212,9 @@ class GithubAnalysis
     api_request "https://api.github.com/events"
   end
 
-  # Read a hierarchical value of the type  "foo.bar.baz"
-  # from a hierarchial map (the result of a JSON parse
-  # or a Mongo query)
+  # Read a value whose format is "foo.bar.baz" from a hierarchical map
+  # (the result of a JSON parse or a Mongo query), where a dot represents
+  # one level deep in the result hierarchy.
   def read_value(from, key)
     return from if key.nil? or key == ""
 
@@ -161,7 +238,6 @@ class GithubAnalysis
       end
     end
   end
-
 
   private
 
@@ -223,4 +299,3 @@ class BSON::OrderedHash
 end
 
 # vim: set sta sts=2 shiftwidth=2 sw=2 et ai :
-

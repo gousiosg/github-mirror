@@ -57,7 +57,7 @@ end
 def WatchEvent evt
   data = parse evt
   user = data['actor']['login']
-  GH.get_watched user
+  GH.get_watched user, evt
 end
 
 def FollowEvent evt
