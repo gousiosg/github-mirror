@@ -31,11 +31,11 @@
 
 require 'rubygems'
 require 'amqp'
-require 'github-analysis'
+require 'ghtorrent'
 require 'json'
 require 'pp'
 
-GH = GithubAnalysis.new
+GH = GHTorrent.new
 
 # Graceful exit
 Signal.trap('INT') { AMQP.stop { EM.stop } }

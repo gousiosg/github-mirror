@@ -5,9 +5,9 @@
 require 'rubygems'
 require 'mongo'
 require 'yaml'
-require 'github-analysis'
+require 'ghtorrent'
 
-analysis = GithubAnalysis.new
+analysis = GHTorrent.new
 $commits = analysis.commits_col
 
 # Retrieve and

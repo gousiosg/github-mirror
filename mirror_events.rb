@@ -33,10 +33,10 @@ require 'rubygems'
 require 'yaml'
 require 'amqp'
 require 'eventmachine'
-require 'github-analysis'
+require 'ghtorrent'
 require 'json'
 
-GH = GithubAnalysis.new
+GH = GHTorrent.new
 
 # Graceful exit
 Signal.trap('INT') { AMQP.stop { EM.stop } }

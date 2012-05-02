@@ -32,9 +32,9 @@
 
 require 'rubygems'
 require 'mongo'
-require 'github-analysis'
+require 'ghtorrent'
 
-GH = GithubAnalysis.new
+GH = GHTorrent.new
 
 # Unique keys per known collection
 per_col = {

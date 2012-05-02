@@ -10,6 +10,7 @@ Gem::Specification.new do |s|
   s.email        = 'gousiosg@gmail.com'
   s.homepage     = 'https://github.com/gousiosg/github-mirror'
   s.rdoc_options = ["--charset=UTF-8"]
+  s.executables << 'hola'
   s.files        = FileList['lib/**/*.rb',
                            'bin/*',
                            '[A-Z]*',

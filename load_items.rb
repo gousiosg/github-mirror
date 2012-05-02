@@ -32,7 +32,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 require 'rubygems'
-require 'github-analysis'
+require 'ghtorrent'
 require 'mongo'
 require 'amqp'
 require 'set'
@@ -42,7 +42,7 @@ require 'ostruct'
 require 'pp'
 require "amqp/extensions/rabbitmq"
 
-GH = GithubAnalysis.new
+GH = GHTorrent.new
 
 per_col = {
     :commits => {

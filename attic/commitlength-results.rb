@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
-require 'github-analysis'
+require 'ghtorrent'
 
-github = GithubAnalysis.new
+github = GHTorrent.new
 
 puts "lang added removed"
 github.commitlength_col\

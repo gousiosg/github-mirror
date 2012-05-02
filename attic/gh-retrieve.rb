@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 #
 
-require 'github-analysis'
+require 'ghtorrent'
 require 'rubygems'
 require 'hpricot'
 require 'open-uri'
@@ -11,7 +11,7 @@ require 'yaml'
 
 OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
 
-github = GithubAnalysis.new
+github = GHTorrent.new
 
 # Get the github timeline from the RSS feed. Used to work
 def get_timeline_rss

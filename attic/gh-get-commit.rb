@@ -2,10 +2,10 @@
 
 require 'rubygems'
 require 'amqp'
-require 'github-analysis'
+require 'ghtorrent'
 require 'optparse'
 
-github = GithubAnalysis.new
+github = GHTorrent.new
 
 # Find out which api version to use for retrieving the commits
 api_version = github.settings['mirror']['commits']['apiversion']

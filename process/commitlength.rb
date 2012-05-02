@@ -5,9 +5,9 @@ require 'rubygems'
 require 'mongo'
 require 'amqp'
 require 'yaml'
-require File.dirname(__FILE__) + '/../github-analysis'
+require File.dirname(__FILE__) + '/../ghtorrent'
 
-GH = GithubAnalysis.new
+GH = GHTorrent.new
 
 # Load extensions file to a hash indexed by extension
 extensions = Hash.new

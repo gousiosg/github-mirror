@@ -35,7 +35,7 @@ require 'logger'
 require 'set'
 require 'open-uri'
 
-class GithubAnalysis
+class GHTorrent
 
   attr_reader :num_api_calls
   attr_reader :settings
@@ -114,7 +114,8 @@ class GithubAnalysis
     update_user(user, evt)
     url = @url_base + "users/%s/watched"
 
-    prev = watched_col.find({:ght_owner => user}, :sort => :ght_eventid.to_s).to_a
+    prev = watched_col.find({:ght_owner => user},
+                            :sort => :ght_eventid.to_s).to_a
     data = api_request(url % user)
 
     # Find all new watch entries that are not in the database
