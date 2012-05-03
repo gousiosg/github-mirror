@@ -149,7 +149,7 @@ AMQP.start(:host => GH.settings['amqp']['host'],
                                    :limit => 1000).each do |e|
 
       payload = GH.read_value(e, per_col[opts.which][:payload])
-      payload = if payload.class == BSON::OrderedHash then
+      payload = if payload.class == BSON::OrderedHash
                   payload.delete "_id" # Inserted by MongoDB on event insert
                   payload.to_json
                 end
@@ -178,13 +178,13 @@ AMQP.start(:host => GH.settings['amqp']['host'],
   # Remove acknowledged or failed msg tags from the queue
   # Trigger more messages to be read when ack msg queue size drops to zero
   publisher_event = Proc.new { |ack|
-    if ack.multiple == true then
+    if ack.multiple then
       awaiting_ack.delete_if { |x| x <= ack.delivery_tag }
     else
       awaiting_ack.delete ack.delivery_tag
     end
 
-    if awaiting_ack.size == 0 then
+    if awaiting_ack.size == 0
       puts("ACKS.size= #{awaiting_ack.size}") if opts.verbose
       EventMachine.next_tick do
         read_and_publish.call

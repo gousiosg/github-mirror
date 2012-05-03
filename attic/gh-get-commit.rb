@@ -12,7 +12,7 @@ api_version = github.settings['mirror']['commits']['apiversion']
 
 ver = ARGV.shift.to_i
 
-if ![2,3].include?(ver) then
+unless [2,3].include?(ver)
   puts "#{ver} is not a valid API version number, using default #{api_version}"
 else
   api_version = ver

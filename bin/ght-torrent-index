@@ -33,7 +33,7 @@ require 'erb'
 require 'set'
 require 'date'
 
-class GHTorrent
+class Page
   attr_reader :collections
   attr_reader :dumps
   
@@ -126,7 +126,7 @@ all_dumps = all_dates.map{ |d|
 
 max_date = all_dates.max{ |a,b| a <=> b}
 
-ghtorrent = GHTorrent.new(max_date)
+ghtorrent = Page.new(max_date)
 all_dumps.each { |x|
   ghtorrent.add_dump x
   x.torrents.values.each { |t|
@@ -135,4 +135,5 @@ all_dumps.each { |x|
 }
 
 puts rhtml.result(ghtorrent.get_binding).gsub(/^\s+/, "").gsub(/\s+$/, $/).gsub(/<table>/, "\n<table>")
+
 # vim: set sta sts=2 shiftwidth=2 sw=2 et ai :

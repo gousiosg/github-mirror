@@ -11,7 +11,7 @@ analysis = GHTorrent.new
 $commits = analysis.commits_col
 
 # Retrieve and
-def get_project_owner project
+def get_project_owner(project)
   # Check the cache
   project_owners = @db.collection(@settings['mongo']['owners'])
   result = project_owners.find({'pr' => "#{project}"})
@@ -22,7 +22,7 @@ def get_project_owner project
     end
   else
     repo = search_project project
-    if repo.nil? then
+    if repo.nil?
       @log.error "Cannot find project: #{project}"
       return NIL
     end
@@ -36,7 +36,7 @@ def get_project_owner project
   end
 end
 
-def search_project name
+def search_project(name)
   search_name = name.gsub(/\./, "+")
 
   page = 1
@@ -53,7 +53,7 @@ def search_project name
     end
 
     repos['repositories'].each do |repo|
-      if repo['name'].casecmp(name) == 0 then
+      if repo['name'].casecmp(name) == 0
         project = repo
         break
       end
@@ -70,14 +70,14 @@ i = 0
 
 # Go through all commits and index authors by project
 $commits.find({'commit.id' => {'$exists' => 'true'}},
-              :fields => ['commit.url']).each do |c|
+              :fields => %w(commit.url)).each do |c|
   author, project = c['commit']['url'].split(/\//)[1,2]
 
-  if not project_authors.has_key?(author) then
+  unless project_authors.has_key?(author) then
     project_authors[author] = Array.new
   end
 
-  if not project_authors[author].include?(project)
+  unless project_authors[author].include?(project)
     project_authors[author].push(project) 
   end
   $stderr.print "\rParsing #{i} commits"

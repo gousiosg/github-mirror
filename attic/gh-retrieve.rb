@@ -22,8 +22,7 @@ def get_timeline_rss
                       .gsub(/&gt;/, '>').gsub(/&quot;/, '\'')\
                       .gsub(/\n/, '') }.map { |x| Hpricot(x) }
 
-  commit_hashes = entries.map { |x| x.search("//a")\
-                         .collect { |x| x.attributes['href'] if not x.attributes['href'].nil? } }\
+  commit_hashes = entries.map { |x| x.search("//a").collect { |x| x.attributes['href'] unless x.attributes['href'].nil? } }\
                          .flatten.collect { |x| x if x =~ /commit/ }\
                          .compact\
                          .map { |x| [$1, $2, $3] if x =~/\/(.*)\/(.*)\/commit\/(.*)/ }\

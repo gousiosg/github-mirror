@@ -97,14 +97,14 @@ class GHTorrent
 
   # Get commit information.
   # This method uses the v2 API for retrieving commits
-  def get_commit_v2 user, repo, sha
+  def get_commit_v2(user, repo, sha)
     url = "http://github.com/api/v2/json/commits/show/%s/%s/%s"
     get_commit url, commits_col, 'commit.id', user, repo, sha
   end
 
   # Get commit information.
   # This method uses the v3 API for retrieving commits
-  def get_commit_v3 user, repo, sha
+  def get_commit_v3(user, repo, sha)
     url = @url_base + "repos/%s/%s/commits/%s"
     get_commit url, commits_col_v3, 'sha', user, repo, sha
   end
@@ -170,7 +170,7 @@ class GHTorrent
                 data.find{|k, v| if last[k] != data[k] then true else false end}
               end
 
-    if changed then
+    if changed
       data[:ght_prev] = if last.nil? then nil else last[:_id] end
       data[:ght_eventid] = evt[:id]
       data[:ght_ts] = evt[:created_at]
@@ -193,7 +193,7 @@ class GHTorrent
   end
 
   # Get the users followed by the event actor
-  def get_followed user
+  def get_followed(user)
     url = @url_base + "users/%s/following"
     data = api_request(url % user)
     followed_col.insert(data)
@@ -201,7 +201,7 @@ class GHTorrent
   end
 
   # Get the users followed by the event actor
-  def get_followers user
+  def get_followers(user)
     url = @url_base + "users/%s/followers"
     data = api_request(url % user)
     followers_col.insert(data)
@@ -220,7 +220,7 @@ class GHTorrent
     return from if key.nil? or key == ""
 
     key.split(/\./).reduce({}) do |acc, x|
-      if not acc.nil?
+      unless acc.nil?
         if acc.empty?
           # Initial run
           acc = from[x]
@@ -242,8 +242,8 @@ class GHTorrent
 
   private
 
-  def get_commit urltmpl, col, commit_id, user, repo, sha
-    if not sha.match(/[a-f0-9]{40}$/) then
+  def get_commit(urltmpl, col, commit_id, user, repo, sha)
+    unless sha.match(/[a-f0-9]{40}$/)
       @log.warn "Ignoring #{line}"
       return
     end
@@ -257,14 +257,14 @@ class GHTorrent
     end
   end
 
-  def api_request url
+  def api_request(url)
     JSON.parse(api_request_raw(url))
   end
 
-  def api_request_raw url
+  def api_request_raw(url)
     #Rate limiting to avoid error requests
     if Time.now().tv_sec() - @ts < 60 then
-      if @num_api_calls >= @settings['mirror']['reqrate'].to_i then
+      if @num_api_calls >= @settings['mirror']['reqrate'].to_i
         @log.debug "Sleeping for #{Time.now().tv_sec() - @ts}"
         sleep (Time.now().tv_sec() - @ts)
         @num_api_calls = 0
@@ -278,9 +278,7 @@ class GHTorrent
 
     @num_api_calls += 1
     @log.debug("Request: #{url} (num_calls = #{num_api_calls})")
-    data = open(url).read
-    #resp = Net::HTTP.get_response(URI.parse(url))
-    return data
+    open(url).read
   end
 end
 
@@ -288,7 +286,7 @@ class BSON::OrderedHash
 
   def to_h
     inject({}) do |acc, element| 
-      k,v = element; 
+      k,v = element
       acc[k] = (if v.class == BSON::OrderedHash then v.to_h else v end)
       acc 
     end

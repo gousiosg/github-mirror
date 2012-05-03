@@ -22,14 +22,14 @@ AMQP.start(:host => settings['amqp']['host'],
     exchange = channel.topic("commits", {:durable => true})
 
     File.open(ARGV[0], 'r') do |f|  
-        while line = f.gets 
-            x = line.split(/ /)
+        while (line = f.gets)
+          x = line.split(/ /)
 
-            if not x[2].scan(/.*#/).empty? then
+            unless x[2].scan(/.*#/).empty? then
                 x[2] = x[2][0, x[2].index('#')]
             end
 
-            if not x[2].match(/[a-f0-9]{40}$/) then
+            unless x[2].match(/[a-f0-9]{40}$/)
                 puts "Ignoring #{x[2]}"
                 next 
             end

@@ -41,11 +41,11 @@ GH = GHTorrent.new
 Signal.trap('INT') { AMQP.stop { EM.stop } }
 Signal.trap('TERM') { AMQP.stop { EM.stop } }
 
-def parse msg
+def parse(msg)
   JSON.parse(msg)
 end
 
-def PushEvent evt
+def PushEvent(evt)
   data = parse evt
   data['payload']['commits'].each do |c|
     url = c['url'].split(/\//)
@@ -54,13 +54,13 @@ def PushEvent evt
   end
 end
 
-def WatchEvent evt
+def WatchEvent(evt)
   data = parse evt
   user = data['actor']['login']
   GH.get_watched user, evt
 end
 
-def FollowEvent evt
+def FollowEvent(evt)
   data = parse evt
   user = data['actor']['login']
   GH.get_followed user
@@ -69,7 +69,7 @@ def FollowEvent evt
   GH.get_followers followed
 end
 
-handlers = ['PushEvent', 'WatchEvent', 'FollowEvent']
+handlers = %w(PushEvent WatchEvent FollowEvent)
 
 AMQP.start(:host => GH.settings['amqp']['host'],
            :port => GH.settings['amqp']['port'],

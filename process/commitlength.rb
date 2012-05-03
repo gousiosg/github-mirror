@@ -48,7 +48,7 @@ AMQP.start(:host => GH.settings['amqp']['host'],
     i += 1
 
     # Commit in queue, but not in mongo
-    if not result.has_next? then
+    unless result.has_next?
       puts "Error getting result for commit id #{msg}"
       next
     end
@@ -68,7 +68,7 @@ AMQP.start(:host => GH.settings['amqp']['host'],
 
       # Github does not provide diffs for binary files and seems to be employing
       # a cutoff filter based on diff size, for very large diffs
-      if not diff["diff"] then
+      unless diff["diff"]
         puts "File #{diff["filename"]} is binary or diff too big"
         next
       end
@@ -82,7 +82,7 @@ AMQP.start(:host => GH.settings['amqp']['host'],
 
       parts = diff["filename"].split(/\./)
 
-      if parts.length == 1 then
+      if parts.length == 1
         puts "Path does not contain an extension: #{diff["filename"]}"
         next
       end
@@ -105,7 +105,7 @@ AMQP.start(:host => GH.settings['amqp']['host'],
 
     not_has_h = results.find{|h| h['ext'] == "h"}.nil?
 
-    results = if not not_has_h
+    results = unless not_has_h
                 lang = results.group_by { |x| x['ext'] }.max_by { |x| x[1].size }[0]
                 lang = "c" if lang == "h"
                 puts "Mapping extension .h to .#{lang}"
