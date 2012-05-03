@@ -1,4 +1,4 @@
-class Team < SchemaBase
+class Schema::Team < Schema::SchemaBase
   extend DB
 
   attr_reader :timestamp

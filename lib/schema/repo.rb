@@ -1,4 +1,4 @@
-class Repo < SchemaBase
+class Schema::Repo < Schema::SchemaBase
 
 
 end

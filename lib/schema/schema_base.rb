@@ -1,4 +1,4 @@
-class SchemaBase
+class Schema::SchemaBase
 
   attr_reader :timestamp
 

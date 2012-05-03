@@ -1,4 +1,4 @@
-module DB
+module Schema::DB
 
   def DB.db
     settings = YAML::load_file settings

@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'lazy'
 
-class User < SchemaBase
+class Schema::User < Schema::SchemaBase
   extend DB
 
   attr_reader :timestamp
