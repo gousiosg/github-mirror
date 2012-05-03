@@ -64,8 +64,8 @@ def delete_by_id(col, id)
   begin
     col.remove({'_id' => id})
     true
-  rescue Mongo::OperationFailure => e
-    puts "Cannot remove record with id #{x} from #{col.name}"
+  rescue Mongo::OperationFailure
+    puts "Cannot remove record with id #{id} from #{col.name}"
     false
   end
 end
