@@ -46,22 +46,24 @@ class GHTLoad < Command
 
   GH = GHTorrent.new
 
-  COLINFO = {
-      :commits => {
-          :name => "commits",
-          :payload => "commit.id",
-          :unq => "commit.id",
-          :col => GH.commits_col,
-          :routekey => "commit.%s"
-      },
-      :events => {
-          :name => "events",
-          :payload => "",
-          :unq => "type",
-          :col => GH.events_col,
-          :routekey => "evt.%s"
-      }
-  }
+  def col_info()
+    {
+        :commits => {
+            :name => "commits",
+            :payload => "commit.id",
+            :unq => "commit.id",
+            :col => GH.commits_col,
+            :routekey => "commit.%s"
+        },
+        :events => {
+            :name => "events",
+            :payload => "",
+            :unq => "type",
+            :col => GH.events_col,
+            :routekey => "evt.%s"
+        }
+    }
+  end
 
   def prepare_options(options)
     options.banner <<-BANNER
@@ -96,6 +98,7 @@ Loads object ids from a collection to a queue for further processing.
   end
 
   def go
+    GH.init(options[:config])
     # Message tags await publisher ack
     awaiting_ack = SortedSet.new
 
@@ -145,22 +148,22 @@ Loads object ids from a collection to a queue for further processing.
       read_and_publish = Proc.new {
 
         read = 0
-        COLINFO[collection][:col].find(what.merge(from),
+        col_info[collection][:col].find(what.merge(from),
                                        :skip => num_read,
                                        :limit => 1000).each do |e|
 
-          payload = GH.read_value(e, COLINFO[collection][:payload])
+          payload = GH.read_value(e, col_info[collection][:payload])
           payload = if payload.class == BSON::OrderedHash
                       payload.delete "_id" # Inserted by MongoDB on event insert
                       payload.to_json
                     end
           read += 1
-          unq = GH.read_value(e, COLINFO[collection][:unq])
+          unq = GH.read_value(e, col_info[collection][:unq])
           if unq.class != String or unq.nil? then
             throw Exception("Unique value can only be a String")
           end
 
-          key = COLINFO[collection][:routekey] % unq
+          key = col_info[collection][:routekey] % unq
 
           exchange.publish payload, :persistent => true, :routing_key => key
 

@@ -36,6 +36,7 @@ require 'json'
 require 'pp'
 
 GH = GHTorrent.new
+GH.init("config.yaml")
 
 # Graceful exit
 Signal.trap('INT') { AMQP.stop { EM.stop } }

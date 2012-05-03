@@ -35,6 +35,7 @@ require 'mongo'
 require 'ghtorrent'
 
 GH = GHTorrent.new
+GH.init("config.yaml")
 
 # Unique keys per known collection
 per_col = {

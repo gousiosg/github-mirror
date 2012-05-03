@@ -42,8 +42,8 @@ class GHTorrent
   attr_reader :log
   attr_reader :url_base
 
-  def initialize
-    @settings = YAML::load_file "config.yaml"
+  def init(config)
+    @settings = YAML::load_file config
     get_mongo
     @ts = Time.now().tv_sec()
     @num_api_calls = 0
