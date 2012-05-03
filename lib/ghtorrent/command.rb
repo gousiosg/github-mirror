@@ -40,7 +40,7 @@ class Command
 Standard options:
       END
 
-      opt :config, 'config.yaml file location', :short => 'C', :default => 'config.yaml'
+      opt :config, 'config.yaml file location', :short => 'c', :default => 'config.yaml'
       opt :verbose, 'verbose mode', :short => 'v'
     end
 
@@ -75,7 +75,7 @@ Standard options:
 
   def file_exists?(file)
     begin
-      File::Stat.new("config.yaml")
+      File::Stat.new(file)
       true
     rescue
       false
