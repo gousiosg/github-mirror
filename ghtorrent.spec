@@ -13,9 +13,22 @@ Gem::Specification.new do |s|
   s.rdoc_options = ["--charset=UTF-8"]
   s.executables  = ['ght-data-retrieval', 'ght-load', 'ght-mirror-events',
                     'ght-periodic-dump', 'ght-rm-dupl', 'ght-torrent-index']
-  s.files        = FileList['lib/**/*.rb',
-                           '[A-Z]*',
-                           'test/**/*'].to_a
+  s.files = [
+    'config.yaml.tmpl',
+    'extensions.yaml',
+    'README.md',
+    'VERSION',
+    'ghtorrent.spec',
+    'bin/ght-data-retrieval',
+    'bin/ght-load',
+    'bin/ght-mirror-events',
+    'bin/ght-periodic-dump',
+    'bin/ght-rm-dupl',
+    'bin/ght-torrent-index'
+  ]
+
+  s.files << FileSet('lib/*')
+
   s.add_runtime_dependency "amqp", ['>= 0.9']
   s.add_runtime_dependency "mongo", ['>= 1.6']
   s.add_runtime_dependency "bson_ext", ['>= 1.6']
