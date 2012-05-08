@@ -40,10 +40,9 @@ require 'schema-sql/schema'
 
 class GHTorrentSQL
 
-  attr_reader :num_api_calls
   attr_reader :settings
   attr_reader :log
-  attr_reader :url_base
+  attr_reader :num_api_calls
 
   def init(config)
     @settings = YAML::load_file config
@@ -52,6 +51,7 @@ class GHTorrentSQL
     @num_api_calls = 0
     @log = Logger.new(STDOUT)
     @url_base = @settings['mirror']['urlbase']
+    @url_base_v2 = @settings['mirror']['urlbase_v2']
   end
 
   # db related functions
@@ -84,15 +84,14 @@ class GHTorrentSQL
       url = @url_base + "repos/#{user}/#{repo}/commits/#{sha}"
       c = api_request(url)
 
-      pp c
-
       ensure_user(c['commit']['author']['email'])
       ensure_user(c['commit']['committer']['email'])
 
       commits.insert(:sha => sha,
                      :message => c['message'],
-                     :author => @db[:user].filter(:login => c['commit']['author']['email']).first[:id],
-                     :committer => @db[:user].filter(:login => c['commit']['committer']['email']).first[:id]
+                     :login_id => @db[:user].filter(:login => user).first[:id],
+                     :author_id => @db[:user].filter(:login => c['commit']['author']['email']).first[:id],
+                     :committer_id => @db[:user].filter(:login => c['commit']['committer']['email']).first[:id]
       )
 
       @log.info "New commit #{sha}"
@@ -103,7 +102,6 @@ class GHTorrentSQL
 
   # Ensure that a user exists, or fetch its latest state from Github
   def ensure_user(user)
-
     if user.match(/@/)
       ensure_user_byemail(user)
     else
@@ -123,6 +121,7 @@ class GHTorrentSQL
                    :email => u['email'],
                    :hireable => boolean(u['hirable']),
                    :bio => u['bio'],
+                   :location => u['location'],
                    :created_at => date(u['created_at']))
 
       @log.info "New user #{user}"
@@ -132,16 +131,38 @@ class GHTorrentSQL
   end
 
   # We cannot yet retrieve users by email from Github. Just go over the
-  # database and try to find the user by email, if stored.
+  # database and try to find the user by email, if stored. Otherwise,
+  # add the user to the DB by email
   def ensure_user_byemail(user)
-
-    usr = @db[:user].first(:email => user)
+    users = @db[:user]
+    usr = users.first(:email => user)
 
     if usr.nil?
+      # Try Github API v2 user search by email. This is optional info, so
+      # it may not return any data.
+      # http://develop.github.com/p/users.html
+      url = @url_base_v2 + "user/email/#{user}"
+      u = api_request(url)
+
+      if u['user'].nil? or u['user']['login'].nil?
+        @log.debug "Cannot find #{user} through API v2 query"
+      else
+        users.insert(:login => u['user']['login'],
+                     :name => u['user']['name'],
+                     :company => u['user']['company'],
+                     :email => u['user']['email'],
+                     :hireable => nil,
+                     :bio => nil,
+                     :location => u['user']['location'],
+                     :created_at => date(u['user']['created_at']))
+        @log.debug "Found #{user} through API v2 query"
+      end
+
       @log.warn "Cannot find user #{user}"
+    else
+      @log.debug "User with email #{user} exists"
     end
 
-    usr
   end
 
   # Ensure that a repo exists, or fetch its latest state from Github
@@ -178,7 +199,9 @@ class GHTorrentSQL
     end
   end
 
-  # Dates returned by Github are formatted as: yyyy-mm-ddThh:mm:ssZ
+  # Dates returned by Github are formatted as:
+  # - yyyy-mm-ddThh:mm:ssZ
+  # - yyyy/mm/dd hh:mm:ss {+/-}hhmm
   def date(arg)
     Time.parse(arg).to_i
   end
@@ -238,7 +261,22 @@ class GHTorrentSQL
 
     @num_api_calls += 1
     @log.debug("Request: #{url} (num_calls = #{num_api_calls})")
-    open(url).read
+    begin
+      open(url).read
+    rescue OpenURI::HTTPError => e
+      case e.io.status[0].to_i
+        # The following indicate valid Github return codes
+        when 400, # Bad request
+             401, # Unauthorized
+             403, # Forbidden
+             404, # Not found
+             422: # Unprocessable entity
+          error = {"error" => e.io.status[1]}
+          return error.to_json
+        else # Server error or HTTP conditions that Github does not report
+          raise e
+      end
+    end
   end
 end
 
