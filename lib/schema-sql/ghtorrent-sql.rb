@@ -84,15 +84,15 @@ class GHTorrentSQL
       url = @url_base + "repos/#{user}/#{repo}/commits/#{sha}"
       c = api_request(url)
 
-      ensure_user(c['commit']['author']['email'])
-      ensure_user(c['commit']['committer']['email'])
+      author = ensure_user(c['commit']['author']['email'])
+      commiter = ensure_user(c['commit']['committer']['email'])
 
-      commits.insert(:sha => sha,
-                     :message => c['message'],
-                     :login_id => @db[:user].filter(:login => user).first[:id],
-                     :author_id => @db[:user].filter(:login => c['commit']['author']['email']).first[:id],
-                     :committer_id => @db[:user].filter(:login => c['commit']['committer']['email']).first[:id]
-      )
+      #commits.insert(:sha => sha,
+      #               :message => c['message'],
+      #               :login_id => @db[:user].filter(:login => user).first[:id],
+      #               :author_id => author,
+      #               :committer_id => commiter
+      #)
 
       @log.info "New commit #{sha}"
     else
@@ -102,16 +102,19 @@ class GHTorrentSQL
 
   # Ensure that a user exists, or fetch its latest state from Github
   def ensure_user(user)
-    if user.match(/@/)
+    u = if user.match(/@/)
       ensure_user_byemail(user)
     else
       ensure_user_byuname(user)
     end
+    return u
   end
 
   def ensure_user_byuname(user)
     users = @db[:user]
-    if users.filter(:login => user).empty?
+    usr = users.first(:login => user)
+
+    if usr.nil?
       url = @url_base + "users/#{user}"
       u = api_request(url)
 
@@ -125,14 +128,23 @@ class GHTorrentSQL
                    :created_at => date(u['created_at']))
 
       @log.info "New user #{user}"
+      users.first(:login => user)
     else
       @log.debug "User #{user} exists"
+      usr
     end
   end
 
-  # We cannot yet retrieve users by email from Github. Just go over the
-  # database and try to find the user by email, if stored. Otherwise,
-  # add the user to the DB by email
+  # Try to retrieve a user by email. Search the DB first, fall back to
+  # Github API v2 if unsuccessful.
+  #
+  # ==Parameters:
+  #  user::
+  #     The email to lookup the user by
+  #
+  # == Returns:
+  # If the user can be retrieved, it is returned as a Hash. Otherwise,
+  # the result is nil
   def ensure_user_byemail(user)
     users = @db[:user]
     usr = users.first(:email => user)
@@ -146,6 +158,7 @@ class GHTorrentSQL
 
       if u['user'].nil? or u['user']['login'].nil?
         @log.debug "Cannot find #{user} through API v2 query"
+        nil
       else
         users.insert(:login => u['user']['login'],
                      :name => u['user']['name'],
@@ -156,22 +169,23 @@ class GHTorrentSQL
                      :location => u['user']['location'],
                      :created_at => date(u['user']['created_at']))
         @log.debug "Found #{user} through API v2 query"
+        users.first(:email => user)
       end
-
-      @log.warn "Cannot find user #{user}"
     else
       @log.debug "User with email #{user} exists"
+      usr
     end
-
   end
 
   # Ensure that a repo exists, or fetch its latest state from Github
+  # The repo information is returned as a Hash
   def ensure_repo(user, repo)
 
     ensure_user(user)
     repos = @db[:project]
+    currepo = repos.first(:name => repo)
 
-    if repos.filter(:name => repo).empty?
+    if currepo.nil?
       url = @url_base + "repos/#{user}/#{repo}"
       r = api_request(url)
 
@@ -183,27 +197,11 @@ class GHTorrentSQL
                    :created_at => date(r['created_at']))
 
       @log.info "New repo #{repo}"
+      repos.first(:name => repo)
     else
       @log.debug "Repo #{repo} exists"
+      currepo
     end
-  end
-
-  def boolean(arg)
-    case arg
-      when 'true'
-        1
-      when 'false'
-        0
-      when nil
-        0
-    end
-  end
-
-  # Dates returned by Github are formatted as:
-  # - yyyy-mm-ddThh:mm:ssZ
-  # - yyyy/mm/dd hh:mm:ss {+/-}hhmm
-  def date(arg)
-    Time.parse(arg).to_i
   end
 
   # Get current Github events
@@ -239,6 +237,25 @@ class GHTorrentSQL
   end
 
   private
+
+  # Convert a string value to boolean, the SQL way
+  def boolean(arg)
+    case arg
+      when 'true'
+        1
+      when 'false'
+        0
+      when nil
+        0
+    end
+  end
+
+  # Dates returned by Github are formatted as:
+  # - yyyy-mm-ddThh:mm:ssZ
+  # - yyyy/mm/dd hh:mm:ss {+/-}hhmm
+  def date(arg)
+    Time.parse(arg).to_i
+  end
 
   def api_request(url)
     JSON.parse(api_request_raw(url))

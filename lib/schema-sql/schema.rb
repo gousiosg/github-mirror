@@ -33,7 +33,7 @@ def create_schema(db)
     String :message
     foreign_key :login_id, :user
     foreign_key :author_id, :user
-    foreign_key :commiter_id, :user
+    foreign_key :committer_id, :user
   end
 
   puts("Creating table commit_parents")
