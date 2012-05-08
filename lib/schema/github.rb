@@ -1,5 +1,5 @@
 class Schema::Github < Schema::SchemaBase
-  extend DB
+  extend Schema::DB
 
   def initialize(timestamp = Time.now.to_i)
     super(timestamp)

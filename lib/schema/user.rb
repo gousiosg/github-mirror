@@ -48,7 +48,8 @@ class Schema::User < Schema::SchemaBase
   private
 
   def get_followers
-
+    DB::watched_col.find({:ght_owner => @login,
+                          :ght_ts => {"$lte" => @timestamp}})
   end
 
   def get_watched_repos
