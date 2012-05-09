@@ -3,9 +3,9 @@ require 'sequel'
 def create_schema(db)
 
   puts("Creating table user")
-  db.create_table :user do
+  db.create_table :users do
     primary_key :id
-    String :login
+    String :login, :unique => true
     String :name
     String :company, :null => true
     String :location
@@ -16,10 +16,10 @@ def create_schema(db)
   end
 
   puts("Creating table project")
-  db.create_table :project do
+  db.create_table :projects do
     primary_key :id
     String :url
-    foreign_key :owner, :user
+    foreign_key :owner, :users
     String :name
     String :description
     String :language
@@ -27,13 +27,13 @@ def create_schema(db)
   end
 
   puts("Creating table commit")
-  db.create_table :commit do
+  db.create_table :commits do
     primary_key :id
     String :sha, :size => 40, :unique => true
     String :message
-    foreign_key :login_id, :user
-    foreign_key :author_id, :user
-    foreign_key :committer_id, :user
+    foreign_key :author_id, :users
+    foreign_key :committer_id, :users
+    Time :created_at
   end
 
   puts("Creating table commit_parents")

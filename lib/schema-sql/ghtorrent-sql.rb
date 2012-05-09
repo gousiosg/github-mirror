@@ -65,9 +65,14 @@ class GHTorrentSQL
     @db
   end
 
-  # Specific API call functions and caches
-
-  # Get commit information.
+  # Ensure that a user exists, or fetch its latest state from Github
+  # ==Parameters:
+  #  user::
+  #     The email or login name to lookup the user by
+  #
+  # == Returns:
+  # If the user can be retrieved, it is returned as a Hash. Otherwise,
+  # the result is nil
   def get_commit(user, repo, sha)
 
     unless sha.match(/[a-f0-9]{40}$/)
@@ -75,24 +80,22 @@ class GHTorrentSQL
       return
     end
 
-    commits = @db[:commit]
-
-    ensure_user(user)
-    ensure_repo(user, repo)
+    commits = @db[:commits]
 
     if commits.filter(:sha => sha).empty?
+      ensure_repo(user, repo)
+
       url = @url_base + "repos/#{user}/#{repo}/commits/#{sha}"
       c = api_request(url)
 
-      author = ensure_user(c['commit']['author']['email'])
-      commiter = ensure_user(c['commit']['committer']['email'])
+      author = commit_user(c['author'], c['commit']['author'])
+      commiter = commit_user(c['committer'], c['commit']['committer'])
 
-      #commits.insert(:sha => sha,
-      #               :message => c['message'],
-      #               :login_id => @db[:user].filter(:login => user).first[:id],
-      #               :author_id => author,
-      #               :committer_id => commiter
-      #)
+      commits.insert(:sha => sha,
+                     :message => c['message'],
+                     :author_id => author[:id],
+                     :committer_id => commiter[:id]
+      )
 
       @log.info "New commit #{sha}"
     else
@@ -100,18 +103,69 @@ class GHTorrentSQL
     end
   end
 
+  # Add (or update) an entry for a commit author. This method uses information
+  # in the JSON object returned by Github to add (or update) a user in the
+  # metadata database with a full user entry (both Git and Github details).
+  # Resolution of how
+  #
+  # ==Parameters:
+  #  githubuser::
+  #     A hash containing the user's Github login
+  #  commituser::
+  #     A hash containing the Git commit's user name and email
+  # == Returns:
+  # The (added/modified) user entry as a Hash.
+  def commit_user(githubuser, commituser)
+
+    raise GHTorrentException.new "github user is null" if githubuser.nil?
+    raise GHTorrentException.new "git user is null" if commituser.nil?
+
+    users = @db[:users]
+
+    name = commituser['name']
+    email = commituser['email']
+    login = githubuser['login']
+
+    dbuser = users.first(:login => login)
+
+    if dbuser.nil?
+      ensure_user(login)
+      users.filter(:login => login).update(:name => name, :email => email)
+    else
+      users.filter(:login => login).update(:name => name) if dbuser[:name].nil?
+      users.filter(:login => login).update(:email => email) if dbuser[:email].nil?
+    end
+
+    users.first(:login => login)
+  end
+
   # Ensure that a user exists, or fetch its latest state from Github
+  # ==Parameters:
+  #  user::
+  #     The email or login name to lookup the user by
+  #
+  # == Returns:
+  # If the user can be retrieved, it is returned as a Hash. Otherwise,
+  # the result is nil
   def ensure_user(user)
     u = if user.match(/@/)
-      ensure_user_byemail(user)
-    else
-      ensure_user_byuname(user)
-    end
+          ensure_user_byemail(user)
+        else
+          ensure_user_byuname(user)
+        end
     return u
   end
 
+  # Ensure that a user exists, or fetch its latest state from Github
+  # ==Parameters:
+  #  user::
+  #     The login name to lookup the user by
+  #
+  # == Returns:
+  # If the user can be retrieved, it is returned as a Hash. Otherwise,
+  # the result is nil
   def ensure_user_byuname(user)
-    users = @db[:user]
+    users = @db[:users]
     usr = users.first(:login => user)
 
     if usr.nil?
@@ -146,7 +200,7 @@ class GHTorrentSQL
   # If the user can be retrieved, it is returned as a Hash. Otherwise,
   # the result is nil
   def ensure_user_byemail(user)
-    users = @db[:user]
+    users = @db[:users]
     usr = users.first(:email => user)
 
     if usr.nil?
@@ -178,11 +232,20 @@ class GHTorrentSQL
   end
 
   # Ensure that a repo exists, or fetch its latest state from Github
-  # The repo information is returned as a Hash
+  #
+  # ==Parameters:
+  #  user::
+  #     The email or login name to which this repo belongs
+  #  repo::
+  #     The repo name
+  #
+  # == Returns:
+  # If the repo can be retrieved, it is returned as a Hash. Otherwise,
+  # the result is nil
   def ensure_repo(user, repo)
 
     ensure_user(user)
-    repos = @db[:project]
+    repos = @db[:projects]
     currepo = repos.first(:name => repo)
 
     if currepo.nil?
@@ -190,7 +253,7 @@ class GHTorrentSQL
       r = api_request(url)
 
       repos.insert(:url => r['url'],
-                   :owner => @db[:user].filter(:login => user).first[:id],
+                   :owner => @db[:users].filter(:login => user).first[:id],
                    :name => r['name'],
                    :description => r['description'],
                    :language => r['language'],
@@ -295,6 +358,11 @@ class GHTorrentSQL
       end
     end
   end
+end
+
+# Base exception for all GHTorrent exceptions
+class GHTorrentException < Exception
+
 end
 
 # vim: set sta sts=2 shiftwidth=2 sw=2 et ai :
