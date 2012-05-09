@@ -5,14 +5,14 @@ def create_schema(db)
   puts("Creating table user")
   db.create_table :users do
     primary_key :id
-    String :login, :unique => true
+    String :login, :unique => true, :null => false
     String :name
     String :company, :null => true
-    String :location
+    String :location, :null => true
     String :email, :null => true, :unique => true
     TrueClass :hireable, :null => true
     String :bio, :null => true
-    Time :created_at
+    Time :created_at, :null => false
   end
 
   puts("Creating table project")
@@ -23,17 +23,16 @@ def create_schema(db)
     String :name
     String :description
     String :language
-    Time :created_at
+    Time :created_at, :null => false
   end
 
   puts("Creating table commit")
   db.create_table :commits do
     primary_key :id
     String :sha, :size => 40, :unique => true
-    String :message
     foreign_key :author_id, :users
     foreign_key :committer_id, :users
-    Time :created_at
+    Time :created_at, :null => false
   end
 
   puts("Creating table commit_parents")

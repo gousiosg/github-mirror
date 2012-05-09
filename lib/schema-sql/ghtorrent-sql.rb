@@ -46,10 +46,10 @@ class GHTorrentSQL
 
   def init(config)
     @settings = YAML::load_file config
-    get_db
     @ts = Time.now().tv_sec()
     @num_api_calls = 0
     @log = Logger.new(STDOUT)
+    get_db
     @url_base = @settings['mirror']['urlbase']
     @url_base_v2 = @settings['mirror']['urlbase_v2']
   end
@@ -58,6 +58,7 @@ class GHTorrentSQL
   def get_db
 
     @db = Sequel.connect('sqlite://github.db')
+    #@db.loggers << @log
     if @db.tables.empty?
       puts("Database empty, creating schema")
       create_schema(@db)
@@ -92,10 +93,9 @@ class GHTorrentSQL
       commiter = commit_user(c['committer'], c['commit']['committer'])
 
       commits.insert(:sha => sha,
-                     :message => c['message'],
                      :author_id => author[:id],
-                     :committer_id => commiter[:id]
-      )
+                     :committer_id => commiter[:id],
+                     :created_at => date(c['commit']['author']['date']))
 
       @log.info "New commit #{sha}"
     else
@@ -117,39 +117,70 @@ class GHTorrentSQL
   # The (added/modified) user entry as a Hash.
   def commit_user(githubuser, commituser)
 
-    raise GHTorrentException.new "github user is null" if githubuser.nil?
     raise GHTorrentException.new "git user is null" if commituser.nil?
 
     users = @db[:users]
 
     name = commituser['name']
     email = commituser['email']
-    login = githubuser['login']
+    # Github user can be null when the commit email has not been associated
+    # with any account in Github.
+    login = githubuser['login'] unless githubuser.nil?
 
-    dbuser = users.first(:login => login)
-
-    if dbuser.nil?
-      ensure_user(login)
-      users.filter(:login => login).update(:name => name, :email => email)
+    if login.nil?
+      ensure_user("#{name}<#{email}>")
     else
-      users.filter(:login => login).update(:name => name) if dbuser[:name].nil?
-      users.filter(:login => login).update(:email => email) if dbuser[:email].nil?
+      dbuser = users.first(:login => login)
+      byemail = users.first(:email => email)
+      if dbuser.nil?
+        # We do not have the user in the database yet. Add him
+        added = ensure_user(login)
+        if byemail.nil?
+          #
+          users.filter(:login => login).update(:name => name) if added[:name].nil?
+          users.filter(:login => login).update(:email => email) if added[:email].nil?
+        else
+          # There is a previous entry for the user, currently identified by
+          # email. This means that the user has updated his account and now
+          # Github is able to associate his commits with his git credentials.
+          # As the previous entry might have already associated records, just
+          # delete the new one and update the existing with any extra data.
+          users.filter(:login => login).delete
+          users.filter(:email => email).update(
+              :login => login,
+              :company => added['company'],
+              :location => added['location'],
+              :hireable => added['hireable'],
+              :bio => added['bio'],
+              :created_at => added['created_at']
+          )
+        end
+      else
+        users.filter(:login => login).update(:name => name) if dbuser[:name].nil?
+        users.filter(:login => login).update(:email => email) if dbuser[:email].nil?
+      end
+      users.first(:login => login)
     end
-
-    users.first(:login => login)
   end
 
   # Ensure that a user exists, or fetch its latest state from Github
   # ==Parameters:
   #  user::
-  #     The email or login name to lookup the user by
+  #     The full email address in RFC 822 format
+  #     or a login name to lookup the user by
   #
   # == Returns:
   # If the user can be retrieved, it is returned as a Hash. Otherwise,
   # the result is nil
   def ensure_user(user)
     u = if user.match(/@/)
-          ensure_user_byemail(user)
+          begin
+            name, email = user.split("<")
+            email = email.split(">")[0]
+          rescue Exception
+            raise new GHTorrentException("Not a valid email address: #{user}")
+          end
+          ensure_user_byemail(email.strip, name.strip)
         else
           ensure_user_byuname(user)
         end
@@ -172,10 +203,14 @@ class GHTorrentSQL
       url = @url_base + "users/#{user}"
       u = api_request(url)
 
+      email = unless u['email'].nil?
+                if u['email'].strip == "" then nil else u['email'].strip end
+              end
+
       users.insert(:login => u['login'],
                    :name => u['name'],
                    :company => u['company'],
-                   :email => u['email'],
+                   :email => email,
                    :hireable => boolean(u['hirable']),
                    :bio => u['bio'],
                    :location => u['location'],
@@ -199,20 +234,25 @@ class GHTorrentSQL
   # == Returns:
   # If the user can be retrieved, it is returned as a Hash. Otherwise,
   # the result is nil
-  def ensure_user_byemail(user)
+  def ensure_user_byemail(email, name)
     users = @db[:users]
-    usr = users.first(:email => user)
+    usr = users.first(:email => email)
 
     if usr.nil?
       # Try Github API v2 user search by email. This is optional info, so
       # it may not return any data.
       # http://develop.github.com/p/users.html
-      url = @url_base_v2 + "user/email/#{user}"
+      url = @url_base_v2 + "user/email/#{email}"
       u = api_request(url)
 
       if u['user'].nil? or u['user']['login'].nil?
-        @log.debug "Cannot find #{user} through API v2 query"
-        nil
+        @log.debug "Cannot find #{email} through API v2 query"
+        users.insert(:email => email,
+                     :name => name,
+                     :login => (0...8).map{65.+(rand(25)).chr}.join,
+                     :created_at => Time.now
+        )
+        users.first(:email => email)
       else
         users.insert(:login => u['user']['login'],
                      :name => u['user']['name'],
@@ -222,11 +262,11 @@ class GHTorrentSQL
                      :bio => nil,
                      :location => u['user']['location'],
                      :created_at => date(u['user']['created_at']))
-        @log.debug "Found #{user} through API v2 query"
-        users.first(:email => user)
+        @log.debug "Found #{email} through API v2 query"
+        users.first(:email => email)
       end
     else
-      @log.debug "User with email #{user} exists"
+      @log.debug "User with email #{email} exists"
       usr
     end
   end
