@@ -82,8 +82,9 @@ class GHTorrentSQL
     end
 
     commits = @db[:commits]
+    commit = commits.first(:sha => sha)
 
-    if commits.filter(:sha => sha).empty?
+    if commit.nil?
       ensure_repo(user, repo)
 
       url = @url_base + "repos/#{user}/#{repo}/commits/#{sha}"
@@ -98,6 +99,18 @@ class GHTorrentSQL
                      :created_at => date(c['commit']['author']['date']))
 
       @log.info "New commit #{sha}"
+
+      c['parents'].each { |p|
+        url = p['url'].split(/\//)
+        get_commit url[4], url[5], url[7]
+
+        commit = commits.first(:sha => sha)
+        parent = commits.first(:sha => url[7])
+        @db[:commit_parents].insert(:commit_id => commit[:id],
+                                    :parent_id => parent[:id]
+        )
+        @log.info "Added parent #{parent[:sha]} to commit #{sha}"
+      }
     else
       @log.debug "Commit #{sha} exists"
     end
@@ -293,7 +306,7 @@ class GHTorrentSQL
       r = api_request(url)
 
       repos.insert(:url => r['url'],
-                   :owner => @db[:users].filter(:login => user).first[:id],
+                   :owner_id => @db[:users].filter(:login => user).first[:id],
                    :name => r['name'],
                    :description => r['description'],
                    :language => r['language'],
