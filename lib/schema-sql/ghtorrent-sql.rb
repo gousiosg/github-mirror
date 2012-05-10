@@ -36,8 +36,6 @@ require 'open-uri'
 require 'pp'
 require 'sequel'
 
-require 'schema-sql/schema'
-
 class GHTorrentSQL
 
   attr_reader :settings
@@ -60,8 +58,10 @@ class GHTorrentSQL
     @db = Sequel.connect('sqlite://github.db')
     #@db.loggers << @log
     if @db.tables.empty?
-      puts("Database empty, creating schema")
-      create_schema(@db)
+      dir = File.join(File.dirname(__FILE__), 'migrations')
+      puts("Database empty, running migrations from #{dir}")
+      Sequel.extension :migration
+      Sequel::Migrator.apply(@db, dir)
     end
     @db
   end
@@ -230,11 +230,41 @@ class GHTorrentSQL
                    :created_at => date(u['created_at']))
 
       @log.info "New user #{user}"
+
+      # Get the user's followers
+      ensure_user_followers(user)
+
       users.first(:login => user)
     else
       @log.debug "User #{user} exists"
       usr
     end
+  end
+
+  # Get all followers for a user. This
+  #
+  # ==Parameters:
+  #  user::
+  #     The email to lookup the user by
+  #
+  # == Returns:
+  # If the user can be retrieved, it is returned as a Hash. Otherwise,
+  # the result is nil
+  def ensure_user_followers(user)
+
+    followers = paged_api_request(@url_base + "users/#{user}/followers")
+    ts = Time.now
+    followers.each { |f| ensure_follower(user, f, ts)}
+  end
+
+
+  def ensure_follower(user, follower, ts)
+    login = u['login']
+
+    ensure_user(login)
+
+    follower = @db[:users].first(:login => login)
+
   end
 
   # Try to retrieve a user by email. Search the DB first, fall back to
@@ -371,6 +401,19 @@ class GHTorrentSQL
   # - yyyy/mm/dd hh:mm:ss {+/-}hhmm
   def date(arg)
     Time.parse(arg).to_i
+  end
+
+  def paged_api_request(url, pages = -1)
+
+    pg = if pages == -1 then 1000000 else pages end
+    result = Array.new
+
+    (1..pg).each { |x|
+      data = api_request("#{url}?page=#{x}")
+      result += data
+      break if data.empty?
+    }
+    result
   end
 
   def api_request(url)
