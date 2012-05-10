@@ -381,8 +381,9 @@ class GHTorrentSQL
     #Rate limiting to avoid error requests
     if Time.now().tv_sec() - @ts < 60 then
       if @num_api_calls >= @settings['mirror']['reqrate'].to_i
-        @log.debug "Sleeping for #{Time.now().tv_sec() - @ts}"
-        sleep (Time.now().tv_sec() - @ts)
+        sleep = 60 - (Time.now().tv_sec() - @ts)
+        @log.debug "Sleeping for #{sleep}"
+        sleep (sleep)
         @num_api_calls = 0
         @ts = Time.now().tv_sec()
       end
