@@ -49,19 +49,18 @@ class CallStackTest < Test::Unit::TestCase
 
     stack.push("1234421")
 
-    stack
-
     stack.empty
   end
 
   def test_stress
     stack = CallStack.new('users4', 0)
-    1..1000.times do
-      txt = (0...rand(20)).map{65.+(rand(25)).chr}.join
+
+    1000.times do
+      txt = (0..rand(20)).map{65.+(rand(25)).chr}.join
       stack.push txt
     end
 
-    1..999.times do
+    999.times do
       stack.pop
     end
     stack.pop
