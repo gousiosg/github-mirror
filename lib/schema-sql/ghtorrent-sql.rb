@@ -101,31 +101,23 @@ class GHTorrentSQL
                        :created_at => date(c['commit']['author']['date']))
 
         @log.info "New commit #{sha}"
-        #TODO: Change c['parents'] to sha when we start storing to Mongo
-        ensure_commit_parents(c['parents'])
+
+        c['parents'].each do |p|
+          url = p['url'].split(/\//)
+          get_commit url[4], url[5], url[7]
+
+          commit = commits.first(:sha => sha)
+          parent = commits.first(:sha => url[7])
+          @db[:commit_parents].insert(:commit_id => commit[:id],
+                                      :parent_id => parent[:id])
+          @log.info "Added parent #{parent[:sha]} to commit #{sha}"
+        end
+
         @log.debug("Transaction committed")
       end
     else
       @log.debug "Commit #{sha} exists"
     end
-  end
-
-  ##
-  # Get parents of commit. Requires commit to be stored in database.
-  #
-  def ensure_commit_parents(sha)
-    commits = @db[:commits]
-    c['parents'].each { |p|
-      url = p['url'].split(/\//)
-      get_commit url[4], url[5], url[7]
-
-      commit = commits.first(:sha => sha)
-      parent = commits.first(:sha => url[7])
-      @db[:commit_parents].insert(:commit_id => commit[:id],
-                                  :parent_id => parent[:id]
-      )
-      @log.info "Added parent #{parent[:sha]} to commit #{sha}"
-    }
   end
 
   ##
