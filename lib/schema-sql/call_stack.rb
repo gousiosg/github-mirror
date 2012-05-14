@@ -28,13 +28,26 @@
 
 class CallStack
 
-  @@filenames = Array.new
+  @@callstacks = Hash.new
 
-  attr_reader :stack
+  attr_reader :name
+
+  def self.new(*args)
+    name = args[0]
+    if @@callstacks.has_key? name
+      @@callstacks[name]
+    else
+      o = allocate
+      if o.__send__(:initialize, *args)
+        @@callstacks[name] = o
+        o
+      else
+        nil
+      end
+    end
+  end
 
   def initialize(name, sync_every = 5)
-    raise Exception.new("stack for #{name} exists") if @@filenames.include? name
-    @@filenames << name
 
     @stack = Array.new
     @name = name
@@ -56,7 +69,7 @@ class CallStack
         begin
           if not @stack.empty?
             @file = File.new(name, "w+")
-            @stack.each{|l| @file.write("#{l} \n")}
+            @stack.each { |l| @file.write("#{l} \n") }
             @file.fsync
             @file.close
           end
@@ -69,13 +82,12 @@ class CallStack
 
     ObjectSpace.define_finalizer(self, proc {
       puts "Finalizer: Cleaning up #{@name}"
-      @@filenames.delete_if{|x| x == @name}
+      @@callstacks.delete[@name]
       flusher.stop
       cleanup
     })
 
     at_exit { cleanup }
-
   end
 
   def push(item)

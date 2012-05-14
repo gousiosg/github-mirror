@@ -10,10 +10,9 @@ class CallStackTest < Test::Unit::TestCase
   end
 
   def test_constructor
-    assert_raise Exception do
-      CallStack.new('users', 0)
-      CallStack.new('users', 0)
-    end
+    a = CallStack.new('users', 0)
+    b = CallStack.new('users', 0)
+    assert_equal a,b
   end
 
   def test_push
