@@ -66,6 +66,7 @@ class GHTorrentSQL
     @db
   end
 
+  ##
   # Ensure that a user exists, or fetch its latest state from Github
   # ==Parameters:
   #  user::
@@ -85,37 +86,49 @@ class GHTorrentSQL
     commit = commits.first(:sha => sha)
 
     if commit.nil?
-      ensure_repo(user, repo)
+      @db.transaction do
+        ensure_repo(user, repo)
 
-      url = @url_base + "repos/#{user}/#{repo}/commits/#{sha}"
-      c = api_request(url)
+        url = @url_base + "repos/#{user}/#{repo}/commits/#{sha}"
+        c = api_request(url)
 
-      author = commit_user(c['author'], c['commit']['author'])
-      commiter = commit_user(c['committer'], c['commit']['committer'])
+        author = commit_user(c['author'], c['commit']['author'])
+        commiter = commit_user(c['committer'], c['commit']['committer'])
 
-      commits.insert(:sha => sha,
-                     :author_id => author[:id],
-                     :committer_id => commiter[:id],
-                     :created_at => date(c['commit']['author']['date']))
+        commits.insert(:sha => sha,
+                       :author_id => author[:id],
+                       :committer_id => commiter[:id],
+                       :created_at => date(c['commit']['author']['date']))
 
-      @log.info "New commit #{sha}"
-
-      c['parents'].each { |p|
-        url = p['url'].split(/\//)
-        get_commit url[4], url[5], url[7]
-
-        commit = commits.first(:sha => sha)
-        parent = commits.first(:sha => url[7])
-        @db[:commit_parents].insert(:commit_id => commit[:id],
-                                    :parent_id => parent[:id]
-        )
-        @log.info "Added parent #{parent[:sha]} to commit #{sha}"
-      }
+        @log.info "New commit #{sha}"
+        #TODO: Change c['parents'] to sha when we start storing to Mongo
+        ensure_commit_parents(c['parents'])
+        @log.debug("Transaction committed")
+      end
     else
       @log.debug "Commit #{sha} exists"
     end
   end
 
+  ##
+  # Get parents of commit. Requires commit to be stored in database.
+  #
+  def ensure_commit_parents(sha)
+    commits = @db[:commits]
+    c['parents'].each { |p|
+      url = p['url'].split(/\//)
+      get_commit url[4], url[5], url[7]
+
+      commit = commits.first(:sha => sha)
+      parent = commits.first(:sha => url[7])
+      @db[:commit_parents].insert(:commit_id => commit[:id],
+                                  :parent_id => parent[:id]
+      )
+      @log.info "Added parent #{parent[:sha]} to commit #{sha}"
+    }
+  end
+
+  ##
   # Add (or update) an entry for a commit author. This method uses information
   # in the JSON object returned by Github to add (or update) a user in the
   # metadata database with a full user entry (both Git and Github details).
@@ -141,13 +154,13 @@ class GHTorrentSQL
     login = githubuser['login'] unless githubuser.nil?
 
     if login.nil?
-      ensure_user("#{name}<#{email}>")
+      ensure_user("#{name}<#{email}>", true)
     else
       dbuser = users.first(:login => login)
       byemail = users.first(:email => email)
       if dbuser.nil?
         # We do not have the user in the database yet. Add him
-        added = ensure_user(login)
+        added = ensure_user(login, true)
         if byemail.nil?
           #
           users.filter(:login => login).update(:name => name) if added[:name].nil?
@@ -176,16 +189,18 @@ class GHTorrentSQL
     end
   end
 
+  ##
   # Ensure that a user exists, or fetch its latest state from Github
   # ==Parameters:
   #  user::
   #     The full email address in RFC 822 format
   #     or a login name to lookup the user by
-  #
+  #  followers::
+  #     A boolean value indicating whether to retrieve the user's followers
   # == Returns:
   # If the user can be retrieved, it is returned as a Hash. Otherwise,
   # the result is nil
-  def ensure_user(user)
+  def ensure_user(user, followers)
     u = if user.match(/@/)
           begin
             name, email = user.split("<")
@@ -193,13 +208,14 @@ class GHTorrentSQL
           rescue Exception
             raise new GHTorrentException("Not a valid email address: #{user}")
           end
-          ensure_user_byemail(email.strip, name.strip)
+          ensure_user_byemail(email.strip, name.strip, followers)
         else
-          ensure_user_byuname(user)
+          ensure_user_byuname(user, followers)
         end
     return u
   end
 
+  ##
   # Ensure that a user exists, or fetch its latest state from Github
   # ==Parameters:
   #  user::
@@ -208,7 +224,7 @@ class GHTorrentSQL
   # == Returns:
   # If the user can be retrieved, it is returned as a Hash. Otherwise,
   # the result is nil
-  def ensure_user_byuname(user)
+  def ensure_user_byuname(user, followers)
     users = @db[:users]
     usr = users.first(:login => user)
 
@@ -232,7 +248,7 @@ class GHTorrentSQL
       @log.info "New user #{user}"
 
       # Get the user's followers
-      ensure_user_followers(user)
+      ensure_user_followers(user) if followers
 
       users.first(:login => user)
     else
@@ -241,32 +257,48 @@ class GHTorrentSQL
     end
   end
 
-  # Get all followers for a user. This
+  ##
+  # Get all followers for a user. Since we do not know when the actual
+  # follow event took place, we set the created_at field to the timestamp
+  # of the method call.
   #
   # ==Parameters:
-  #  user::
-  #     The email to lookup the user by
-  #
-  # == Returns:
-  # If the user can be retrieved, it is returned as a Hash. Otherwise,
-  # the result is nil
+  # [user]  The user login to find followers by
   def ensure_user_followers(user)
 
     followers = paged_api_request(@url_base + "users/#{user}/followers")
     ts = Time.now
-    followers.each { |f| ensure_follower(user, f, ts)}
+    followers.each { |f| ensure_follower(user, f['login'], ts) }
   end
 
-
+  ##
+  # Get a single follower for a user.
+  #
+  # ==Parameters:
+  # [user]  The user login who is being followed
+  # [follower]  The user login of the follower
+  # [ts]  The +Time+ the follow event took place
   def ensure_follower(user, follower, ts)
-    login = u['login']
 
-    ensure_user(login)
+    ensure_user(user, false)
+    ensure_user(follower, false)
 
-    follower = @db[:users].first(:login => login)
+    userid = @db[:users].select(:id).first(:login => user)[:id]
+    followerid = @db[:users].select(:id).first(:login => follower)[:id]
+    followers = @db[:followers]
 
+    if followers.first(:user_id => userid, :follower_id => followerid).nil?
+      @db[:followers].insert(:user_id => userid,
+                             :follower_id => followerid,
+                             :created_at => ts
+      )
+      log.info("User #{follower} follows #{user}")
+    else
+      log.info("User #{follower} already follows #{user}")
+    end
   end
 
+  ##
   # Try to retrieve a user by email. Search the DB first, fall back to
   # Github API v2 if unsuccessful.
   #
@@ -277,7 +309,7 @@ class GHTorrentSQL
   # == Returns:
   # If the user can be retrieved, it is returned as a Hash. Otherwise,
   # the result is nil
-  def ensure_user_byemail(email, name)
+  def ensure_user_byemail(email, name, followers)
     users = @db[:users]
     usr = users.first(:email => email)
 
@@ -306,6 +338,7 @@ class GHTorrentSQL
                      :location => u['user']['location'],
                      :created_at => date(u['user']['created_at']))
         @log.debug "Found #{email} through API v2 query"
+        ensure_user_followers(user) if followers
         users.first(:email => email)
       end
     else
@@ -314,20 +347,18 @@ class GHTorrentSQL
     end
   end
 
+  ##
   # Ensure that a repo exists, or fetch its latest state from Github
   #
   # ==Parameters:
-  #  user::
-  #     The email or login name to which this repo belongs
-  #  repo::
-  #     The repo name
+  # [user]  The email or login name to which this repo belongs
+  # [repo]  The repo name
   #
-  # == Returns:
-  # If the repo can be retrieved, it is returned as a Hash. Otherwise,
-  # the result is nil
+  # == Returns: If the repo can be retrieved, it is returned as a Hash.
+  #             Otherwise, the result is nil
   def ensure_repo(user, repo)
 
-    ensure_user(user)
+    ensure_user(user, false)
     repos = @db[:projects]
     currepo = repos.first(:name => repo)
 
@@ -350,6 +381,7 @@ class GHTorrentSQL
     end
   end
 
+  ##
   # Get current Github events
   def get_events
     api_request "https://api.github.com/events"
@@ -384,6 +416,7 @@ class GHTorrentSQL
 
   private
 
+  ##
   # Convert a string value to boolean, the SQL way
   def boolean(arg)
     case arg
