@@ -37,18 +37,12 @@ module GHTorrent
     include GHTorrent::Retriever
 
     attr_reader :settings
-    attr_reader :log
-    attr_reader :num_api_calls
 
-    def init(config)
-      @settings = YAML::load_file config
-      @ts = Time.now().tv_sec()
-      @num_api_calls = 0
-      @log = Logger.new(STDOUT)
+    def init(configuration)
+      @settings = YAML::load_file configuration
+      @logger = Logger.new(STDOUT)
+      @persister = Persister.new(:mongo)
       get_db
-      get_mongo
-      @url_base = @settings['mirror']['urlbase']
-      @url_base_v2 = @settings['mirror']['urlbase_v2']
     end
 
     # db related functions
@@ -65,7 +59,6 @@ module GHTorrent
       @db
     end
 
-
     ##
     # Ensure that a user exists, or fetch its latest state from Github
     # ==Parameters:
@@ -78,7 +71,7 @@ module GHTorrent
     def get_commit(user, repo, sha)
 
       unless sha.match(/[a-f0-9]{40}$/)
-        @log.error "Ignoring commit #{sha}"
+        error "Ignoring commit #{sha}"
         return
       end
 
@@ -109,10 +102,10 @@ module GHTorrent
           #  @log.info "Added parent #{parent[:sha]} to commit #{sha}"
           #end
 
-          @log.debug("Transaction committed")
+          debug("Transaction committed")
         end
       else
-        @log.debug "Commit #{sha} exists"
+        debug "Commit #{sha} exists"
       end
     end
 
@@ -235,14 +228,14 @@ module GHTorrent
                      :location => u['location'],
                      :created_at => date(u['created_at']))
 
-        @log.info "New user #{user}"
+        info "New user #{user}"
 
         # Get the user's followers
         ensure_user_followers(user) if followers
 
         users.first(:login => user)
       else
-        @log.debug "User #{user} exists"
+        debug "User #{user} exists"
         usr
       end
     end
@@ -282,9 +275,9 @@ module GHTorrent
                                :follower_id => followerid,
                                :created_at => ts
         )
-        log.info("User #{follower} follows #{user}")
+        info("User #{follower} follows #{user}")
       else
-        log.info("User #{follower} already follows #{user}")
+        info("User #{follower} already follows #{user}")
       end
     end
 
@@ -311,7 +304,7 @@ module GHTorrent
         u = api_request(url)
 
         if u['user'].nil? or u['user']['login'].nil?
-          @log.debug "Cannot find #{email} through API v2 query"
+          debug "Cannot find #{email} through API v2 query"
           users.insert(:email => email,
                        :name => name,
                        :login => (0...8).map { 65.+(rand(25)).chr }.join,
@@ -327,12 +320,12 @@ module GHTorrent
                        :bio => nil,
                        :location => u['user']['location'],
                        :created_at => date(u['user']['created_at']))
-          @log.debug "Found #{email} through API v2 query"
+          debug "Found #{email} through API v2 query"
           ensure_user_followers(user) if followers
           users.first(:email => email)
         end
       else
-        @log.debug "User with email #{email} exists"
+        debug "User with email #{email} exists"
         usr
       end
     end
@@ -363,10 +356,10 @@ module GHTorrent
                      :language => r['language'],
                      :created_at => date(r['created_at']))
 
-        @log.info "New repo #{repo}"
+        info "New repo #{repo}"
         repos.first(:name => repo)
       else
-        @log.debug "Repo #{repo} exists"
+        debug "Repo #{repo} exists"
         currepo
       end
     end
