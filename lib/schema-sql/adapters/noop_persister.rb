@@ -1,5 +1,5 @@
 module GHTorrent
-  class MongoPersister
+  class NoopPersister
 
     def store(entity, data = {})
       #Nothing to see here

@@ -1,8 +1,4 @@
-require 'rubygems'
 require 'mongo'
-
-require File.join(File.dirname(__FILE__), '..', "logging")
-require File.join(File.dirname(__FILE__), '..', "settings")
 
 module GHTorrent
   class MongoPersister

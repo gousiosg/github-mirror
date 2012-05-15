@@ -1,12 +1,8 @@
-#require File.join(File.dirname(__FILE__), "logging")
-#require File.join(File.dirname(__FILE__), "persister")
-#require File.join(File.dirname(__FILE__), "api_client")
-
 module GHTorrent
   module Retriever
     include GHTorrent::Logging
-    include GHTorrent::Persister
     include GHTorrent::APIClient
+
 
     def retrieve_commit(repo, sha, user)
       commit = @persister.retrieve(:commits, {'sha' => "#{sha}"})

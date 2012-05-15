@@ -1,14 +1,11 @@
-#require File.join(File.dirname(__FILE__), "adapters", "mongo_persister")
-#require File.join(File.dirname(__FILE__), "adapters", "noop_persister")
-
 module GHTorrent
   class Persister
 
     ENTITIES = [:users, :commits, :follows]
 
     ADAPTERS = {
-        :mongo => GHTorrent::MongoPerister,
-        :noop  => GHTorrent::NoopPersister
+        :mongo => GHTorrent::MongoPersister.class,
+        :noop  => GHTorrent::NoopPersister.class
     }
 
     def initialize(adapter)
