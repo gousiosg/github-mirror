@@ -9,14 +9,21 @@ module GHTorrent
         :amqp_user => "amqp.user",
         :amqp_passwd => "amqp.password",
 
+        :sql_url => "sql.url",
+
         :mirror_urlbase => "mirror.urlbase",
-        :mirror_urlbase_v2 => "mirror.urlbase.urlbase_v2"
+        :mirror_urlbase_v2 => "mirror.urlbase.urlbase_v2",
+        :mirror_reqrate => "mirror.reqrate",
+        :mirror_pollevery => "mirror.pollevery",
+        :mirror_persister => "mirror.persister"
     }
 
-    #yaml = YAML::load_file @configuration
+    def config(key)
+      read_value(@settings, CONFIGKEYS[key])
+    end
 
-    def self.config(key)
-      read_value(yaml, key)
+    def merge(more_keys)
+      more_keys.each {|k,v| CONFIGKEYS[k] = v}
     end
 
     # Read a value whose format is "foo.bar.baz" from a hierarchical map

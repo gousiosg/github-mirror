@@ -10,16 +10,11 @@ module GHTorrent
         :mongo_port => "mongo.port",
         :mongo_db => "mongo.db",
         :mongo_username => "mongo.username",
-        :mongo_passwd => "mongo.password",
-        :mongo_commits => "mongo.commits",
-        :mongo_events => "mongo.events",
-        :mongo_users => "mongo.users",
-        :mongo_repos => "mongo.repos"
+        :mongo_passwd => "mongo.password"
     }
 
-    CONFIGKEYS.merge LOCALCONFIG
-
     def initialize
+      merge LOCALCONFIG
       @mongo = Mongo::Connection.new(config(:mongo_host),
                                      config(:mongo_port))\
                                 .db(config(:mongo_db))

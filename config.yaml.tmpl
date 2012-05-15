@@ -5,30 +5,26 @@ amqp:
   password: github   # password
   exchange: github
 
+sql:
+  # Configuration URL for the SQL database subsystem.
+  # Examples:
+  # - MySQL:     mysql2://user:password@host/github
+  # - Postgres:  postgres://user:password@host/github
+  #
+  # see http://sequel.rubyforge.org/rdoc/files/doc/opening_databases_rdoc.html
+  # for details
+  url: sqlite://github.db
+
+mirror:
+  urlbase: "https://api.github.com/"
+  urlbase_v2: "https://github.com/api/v2/json/"
+  reqrate: 80 #per minute
+  pollevery: 5 #sec
+  persister: mongo #or no-op
+
 mongo:
   host: 127.0.0.1      # Mongo's IP addr
   port: 27017          # Mongo's port
   db: github           # DB name to store commits to
   username: github     # User name to connect to Mongo
   password: github     # Password for mongo
-
-  # Names for collections to save the retrieved data to
-  commits: 'commits'
-  commitsv3: 'commitsv3'
-  owners: 'owners'
-  events: 'events'
-  watched: 'watched'
-  followed: 'followed'
-  followers: 'followers'
-  users: 'users'
-
-mirror:
-  urlbase: "https://api.github.com/"
-  urlbase_v2: "https://github.com/api/v2/json/"
-  reqrate: 80 #per minute
-  commits:
-    shamethod: event #or html or rss   # Method to use to retrieve commit SHA-1
-    apiversion: 2 #or 3
-    pollevery: 10 #sec
-  events:
-    pollevery: 5 #sec

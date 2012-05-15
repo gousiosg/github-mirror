@@ -4,8 +4,8 @@ module GHTorrent
     ENTITIES = [:users, :commits, :follows]
 
     ADAPTERS = {
-        :mongo => GHTorrent::MongoPersister.class,
-        :noop  => GHTorrent::NoopPersister.class
+        :mongo => GHTorrent::MongoPersister,
+        :noop  => GHTorrent::NoopPersister
     }
 
     def initialize(adapter)
