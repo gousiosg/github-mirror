@@ -1,5 +1,6 @@
 require 'ghtorrent/command'
 
+require 'schema-sql/utils'
 require 'schema-sql/logging'
 require 'schema-sql/settings'
 require 'schema-sql/api_client'
