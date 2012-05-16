@@ -52,7 +52,11 @@ class Command
         command.go
       rescue => e
         STDERR.puts e.message
-        STDERR.puts e.backtrace.join("\n") if command.options.verbose
+        if command.options.verbose
+          STDERR.puts e.backtrace.join("\n")
+        else
+          STDERR.puts e.backtrace[0]
+        end
         exit 1
       end
     end
