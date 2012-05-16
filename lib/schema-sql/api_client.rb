@@ -8,8 +8,10 @@ module GHTorrent
   module APIClient
     include GHTorrent::Logging
 
-    @num_api_calls = 0
-    @ts = Time.now().tv_sec()
+    def initialize
+      @num_api_calls = 0
+      @ts = Time.now().tv_sec()
+    end
     
     def paged_api_request(url, pages = -1)
 
@@ -49,7 +51,7 @@ module GHTorrent
       end
 
       @num_api_calls += 1
-      debug "Request: #{url} (num_calls = #{num_api_calls})"
+      debug "Request: #{url} (num_calls = #{@num_api_calls})"
       begin
         open(url).read
       rescue OpenURI::HTTPError => e

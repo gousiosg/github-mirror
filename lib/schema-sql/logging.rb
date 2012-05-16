@@ -19,22 +19,22 @@ module GHTorrent
 
     private
 
-    # Log a message with the given level.
+    # Log a message at the given level.
     def log(level, msg)
       return unless @logger
       case level
         when :fatal then
-          @logger.fatal "GHTorrent [FATAL] #{msg}"
+          @logger.fatal msg
         when :error then
-          @logger.error "GHTorrent [ERROR] #{msg}"
+          @logger.error msg
         when :warn then
-          @logger.warn "GHTorrent [WARNING] #{msg}"
+          @logger.warn msg
         when :info then
-          @logger.info "GHTorrent [INFO] #{msg}"
+          @logger.info msg
         when :debug then
-          @logger.debug "GHTorrent [DEBUG] #{msg}"
+          @logger.debug msg
         else
-          @logger.debug "GHTorrent [DEBUG] #{msg}"
+          @logger.debug msg
       end
     end
   end

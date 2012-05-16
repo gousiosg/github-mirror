@@ -37,6 +37,10 @@ module GHTorrent
 
     attr_reader :settings
 
+    def initialize
+      super
+    end
+
     def init(configuration)
       @settings = YAML::load_file configuration
       @logger = Logger.new(STDOUT)
@@ -248,7 +252,7 @@ module GHTorrent
     # [user]  The user login to find followers by
     def ensure_user_followers(user)
 
-      followers = paged_api_request(@url_base + "users/#{user}/followers")
+      followers = retrieve_user_followers(user)
       ts = Time.now
       followers.each { |f| ensure_follower(user, f['login'], ts) }
     end
@@ -296,11 +300,8 @@ module GHTorrent
       usr = users.first(:email => email)
 
       if usr.nil?
-        # Try Github API v2 user search by email. This is optional info, so
-        # it may not return any data.
-        # http://develop.github.com/p/users.html
-        url = @url_base_v2 + "user/email/#{email}"
-        u = api_request(url)
+
+        u = retrieve_user_byemail(email, name)
 
         if u['user'].nil? or u['user']['login'].nil?
           debug "Cannot find #{email} through API v2 query"
@@ -345,9 +346,7 @@ module GHTorrent
       currepo = repos.first(:name => repo)
 
       if currepo.nil?
-        url = @url_base + "repos/#{user}/#{repo}"
-        r = api_request(url)
-
+        r = retrieve_repo(user, repo)
         repos.insert(:url => r['url'],
                      :owner_id => @db[:users].filter(:login => user).first[:id],
                      :name => r['name'],

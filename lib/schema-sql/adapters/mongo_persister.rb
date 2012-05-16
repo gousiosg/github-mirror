@@ -22,32 +22,23 @@ module GHTorrent
                                      config(:mongo_port))\
                                 .db(config(:mongo_db))
       @enttodb = {
-          :users => users_col,
-          :commits => commits_col,
-          :repos => repos_col,
-          :follows => "follows"
+          :users => get_collection("users"),
+          :commits => get_collection("commits"),
+          :repos => get_collection("repos"),
+          :followers => get_collection("followers")
       }
     end
 
-    def commits_col
-      @mongo.collection("commits")
+    def get_collection(col)
+      @mongo.collection(col.to_s)
     end
-
-    def users_col
-      @mongo.collection("users")
-    end
-
-    def repos_col
-      @mongo.collection("repos")
-    end
-
 
     def store(entity, data = {})
 
       col = @enttodb[entity]
 
       if col.nil?
-        raise GHTorrentException("Entity #{entity} not supported yet")
+        raise GHTorrentException.new("Entity #{entity} not supported yet")
       end
 
       col.insert(data)
@@ -59,12 +50,27 @@ module GHTorrent
       col = @enttodb[entity]
 
       if col.nil?
-        raise GHTorrentException("Entity #{entity} not supported yet")
+        raise GHTorrentException.new("Entity #{entity} not supported yet")
       end
 
       result = col.find(query)
-      result.to_a
+      result.to_a.map { |r| r.to_h }
     end
 
+  end
+end
+
+class BSON::OrderedHash
+  def to_h
+    inject({}) { |acc, element| k, v = element; acc[k] = (
+    if v.class == BSON::OrderedHash then
+      v.to_h
+    else
+      v
+    end); acc }
+  end
+
+  def to_json
+    to_h.to_json
   end
 end
