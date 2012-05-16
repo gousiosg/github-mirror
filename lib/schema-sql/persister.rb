@@ -8,9 +8,9 @@ module GHTorrent
         :noop  => GHTorrent::NoopPersister
     }
 
-    def initialize(adapter)
+    def initialize(adapter, settings)
       driver = ADAPTERS[adapter]
-      @persister = driver.new
+      @persister = driver.new(settings)
     end
 
     # Stores data into entity. Returns unique key for each

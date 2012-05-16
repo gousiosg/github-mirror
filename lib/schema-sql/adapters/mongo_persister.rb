@@ -13,8 +13,11 @@ module GHTorrent
         :mongo_passwd => "mongo.password"
     }
 
-    def initialize
+    attr_reader :settings
+
+    def initialize(set)
       merge LOCALCONFIG
+      @settings = set
       @mongo = Mongo::Connection.new(config(:mongo_host),
                                      config(:mongo_port))\
                                 .db(config(:mongo_db))
@@ -27,15 +30,15 @@ module GHTorrent
     end
 
     def commits_col
-      @mongo.collection(config(:mongo_commits))
+      @mongo.collection("commits")
     end
 
     def users_col
-      @mongo.collection(config(:mongo_users))
+      @mongo.collection("users")
     end
 
     def repos_col
-      @mongo.collection(config(:mongo_repos))
+      @mongo.collection("repos")
     end
 
 
