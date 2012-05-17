@@ -30,12 +30,11 @@
 
 require 'rubygems'
 require 'amqp'
-require 'ghtorrent'
 require 'json'
+require 'ghtorrent'
 require 'pp'
 
 class GHTDataRetrieval < Command
-  GH = GHTorrent.new
 
   def parse(msg)
     JSON.parse(msg)
@@ -45,24 +44,23 @@ class GHTDataRetrieval < Command
     data = parse evt
     data['payload']['commits'].each do |c|
       url = c['url'].split(/\//)
-      GH.get_commit_v2 url[4], url[5], url[7]
-      GH.get_commit_v3 url[4], url[5], url[7]
+      @gh.get_commit url[4], url[5], url[7]
     end
   end
 
   def WatchEvent(evt)
     data = parse evt
     user = data['actor']['login']
-    GH.get_watched user, evt
+    #@gh.get_watched user, evt
   end
 
   def FollowEvent(evt)
     data = parse evt
     user = data['actor']['login']
-    GH.get_followed user
+    #@gh.get_followed user
 
     followed = data['payload']['target']['login']
-    GH.get_followers followed
+    #@gh.get_followers followed
   end
 
   def handlers
@@ -70,36 +68,36 @@ class GHTDataRetrieval < Command
   end
 
   def go
-    GH.init(options[:config])
+    @gh = GHTorrent::GHTorrentSQL.new(options[:config])
 
     # Graceful exit
     Signal.trap('INT') { AMQP.stop { EM.stop } }
     Signal.trap('TERM') { AMQP.stop { EM.stop } }
 
-    AMQP.start(:host => GH.settings['amqp']['host'],
-               :port => GH.settings['amqp']['port'],
-               :username => GH.settings['amqp']['username'],
-               :password => GH.settings['amqp']['password']) do |connection|
+    AMQP.start(:host => @gh.settings['amqp']['host'],
+               :port => @gh.settings['amqp']['port'],
+               :username => @gh.settings['amqp']['username'],
+               :password => @gh.settings['amqp']['password']) do |connection|
 
       channel = AMQP::Channel.new(connection, :prefetch => 5)
-      exchange = channel.topic(GH.settings['amqp']['exchange'],
+      exchange = channel.topic(@gh.settings['amqp']['exchange'],
                                :durable => true, :auto_delete => false)
 
       handlers.each { |h|
         queue = channel.queue("#{h}s", {:durable => true})\
                        .bind(exchange, :routing_key => "evt.#{h}")
 
-        GH.log.info("Binding handler #{h} to routing key evt.#{h}")
+        puts "Binding handler #{h} to routing key evt.#{h}"
 
         queue.subscribe(:ack => true) do |headers, msg|
           begin
             send(h, msg)
-            break
+            headers.ack
           rescue Exception => e
-            pp JSON.parse(msg)
-            GH.log.error e
+            #pp JSON.parse(msg)
+            STDERR.puts e
+            STDERR.puts e.backtrace.join("\n")
           end
-          headers.ack
         end
       }
     end

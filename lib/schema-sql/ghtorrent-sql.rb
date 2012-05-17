@@ -315,7 +315,7 @@ module GHTorrent
                        :bio => nil,
                        :location => u['user']['location'],
                        :created_at => date(u['user']['created_at']),
-                       :ext_ref_id => c[@ext_uniq])
+                       :ext_ref_id => u[@ext_uniq])
           debug "GHTorrent: Found #{email} through API v2 query"
           ensure_user_followers(user) if followers
           users.first(:email => email)
