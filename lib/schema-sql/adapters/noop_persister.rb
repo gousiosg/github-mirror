@@ -8,5 +8,6 @@ module GHTorrent
     def retrieve(entity, query = {})
       #Nothing to see here
     end
+
   end
 end

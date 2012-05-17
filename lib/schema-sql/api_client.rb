@@ -34,8 +34,9 @@ require 'json'
 module GHTorrent
   module APIClient
     include GHTorrent::Logging
+    include GHTorrent::Settings
 
-    def initialize
+    def initialize(settings)
       @num_api_calls = 0
       @ts = Time.now().tv_sec()
     end
@@ -58,7 +59,12 @@ module GHTorrent
     end
 
     def api_request(url)
-      JSON.parse(api_request_raw(url))
+      result = api_request_raw(url)
+      if result.nil?
+        nil
+      else
+        JSON.parse(result)
+      end
     end
 
     def api_request_raw(url)
@@ -89,8 +95,8 @@ module GHTorrent
               403, # Forbidden
               404, # Not found
               422 : # Unprocessable entity
-            error = {"error" => e.io.status[1]}
-            return error.to_json
+            STDERR.puts "#{url}: #{e.io.status[1]}"
+            return nil
           else # Server error or HTTP conditions that Github does not report
             raise e
         end

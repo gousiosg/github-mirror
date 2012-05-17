@@ -37,12 +37,11 @@ module GHTorrent
 
     attr_reader :settings
 
-    def initialize
-      super
-    end
+    def initialize(configuration)
 
-    def init(configuration)
       @settings = YAML::load_file configuration
+      super(@settings)
+      @ext_uniq = config(:uniq_id)
       @logger = Logger.new(STDOUT)
       @persister = Persister.new(:mongo, @settings)
       get_db
@@ -92,7 +91,9 @@ module GHTorrent
           commits.insert(:sha => sha,
                          :author_id => author[:id],
                          :committer_id => commiter[:id],
-                         :created_at => date(c['commit']['author']['date']))
+                         :created_at => date(c['commit']['author']['date']),
+                         :ext_ref_id => c[@ext_uniq]
+          )
 
           #c['parents'].each do |p|
           #  url = p['url'].split(/\//)
@@ -104,9 +105,8 @@ module GHTorrent
           #                              :parent_id => parent[:id])
           #  @log.info "Added parent #{parent[:sha]} to commit #{sha}"
           #end
-
-          debug "GHTorrent: Transaction committed"
         end
+        debug "GHTorrent: Transaction committed"
       else
         debug "GHTorrent: Commit #{sha} exists"
       end
@@ -132,7 +132,7 @@ module GHTorrent
       users = @db[:users]
 
       name = commituser['name']
-      email = commituser['email']
+      email = commituser['email'] #if is_valid_email(commituser['email'])
       # Github user can be null when the commit email has not been associated
       # with any account in Github.
       login = githubuser['login'] unless githubuser.nil?
@@ -185,7 +185,9 @@ module GHTorrent
     # If the user can be retrieved, it is returned as a Hash. Otherwise,
     # the result is nil
     def ensure_user(user, followers)
-      u = if user.match(/@/)
+      # Github only supports alpa-nums and dashes in its usernames.
+      # All other sympbols are treated as emails.
+      u = if not user.match(/^[A-Za-z0-9\-]*$/)
             begin
               name, email = user.split("<")
               email = email.split(">")[0]
@@ -229,7 +231,8 @@ module GHTorrent
                      :hireable => boolean(u['hirable']),
                      :bio => u['bio'],
                      :location => u['location'],
-                     :created_at => date(u['created_at']))
+                     :created_at => date(u['created_at']),
+                     :ext_ref_id => u[@ext_uniq])
 
         info "GHTorrent: New user #{user}"
 
@@ -250,38 +253,29 @@ module GHTorrent
     #
     # ==Parameters:
     # [user]  The user login to find followers by
-    def ensure_user_followers(user)
+    def ensure_user_followers(user, ts = Time.now)
 
-      followers = retrieve_user_followers(user)
-      ts = Time.now
-      followers.each { |f| ensure_follower(user, f['login'], ts) }
-    end
+      followers = retrieve_new_user_followers(user)
+      followers.each { |f|
+        follower = f['login']
+        ensure_user(user, false)
+        ensure_user(follower, false)
 
-    ##
-    # Get a single follower for a user.
-    #
-    # ==Parameters:
-    # [user]  The user login who is being followed
-    # [follower]  The user login of the follower
-    # [ts]  The +Time+ the follow event took place
-    def ensure_follower(user, follower, ts)
+        userid = @db[:users].select(:id).first(:login => user)[:id]
+        followerid = @db[:users].select(:id).first(:login => follower)[:id]
+        followers = @db[:followers]
 
-      ensure_user(user, false)
-      ensure_user(follower, false)
-
-      userid = @db[:users].select(:id).first(:login => user)[:id]
-      followerid = @db[:users].select(:id).first(:login => follower)[:id]
-      followers = @db[:followers]
-
-      if followers.first(:user_id => userid, :follower_id => followerid).nil?
-        @db[:followers].insert(:user_id => userid,
-                               :follower_id => followerid,
-                               :created_at => ts
-        )
-        info "GHTorrent: User #{follower} follows #{user}"
-      else
-        info "User #{follower} already follows #{user}"
-      end
+        if followers.first(:user_id => userid, :follower_id => followerid).nil?
+          @db[:followers].insert(:user_id => userid,
+                                 :follower_id => followerid,
+                                 :created_at => ts,
+                                 :ext_ref_id => f[@ext_uniq]
+          )
+          info "GHTorrent: User #{follower} follows #{user}"
+        else
+          info "User #{follower} already follows #{user}"
+        end
+      }
     end
 
     ##
@@ -303,12 +297,13 @@ module GHTorrent
 
         u = retrieve_user_byemail(email, name)
 
-        if u['user'].nil? or u['user']['login'].nil?
+        if u.nil? or u['user'].nil? or u['user']['login'].nil?
           debug "GHTorrent: Cannot find #{email} through API v2 query"
           users.insert(:email => email,
                        :name => name,
                        :login => (0...8).map { 65.+(rand(25)).chr }.join,
-                       :created_at => Time.now
+                       :created_at => Time.now,
+                       :ext_ref_id => ""
           )
           users.first(:email => email)
         else
@@ -319,7 +314,8 @@ module GHTorrent
                        :hireable => nil,
                        :bio => nil,
                        :location => u['user']['location'],
-                       :created_at => date(u['user']['created_at']))
+                       :created_at => date(u['user']['created_at']),
+                       :ext_ref_id => c[@ext_uniq])
           debug "GHTorrent: Found #{email} through API v2 query"
           ensure_user_followers(user) if followers
           users.first(:email => email)
@@ -352,7 +348,8 @@ module GHTorrent
                      :name => r['name'],
                      :description => r['description'],
                      :language => r['language'],
-                     :created_at => date(r['created_at']))
+                     :created_at => date(r['created_at']),
+                     :ext_ref_id => r[@ext_uniq])
 
         info "GHTorrent: New repo #{repo}"
         repos.first(:name => repo)
@@ -362,13 +359,7 @@ module GHTorrent
       end
     end
 
-    ##
-    # Get current Github events
-    def get_events
-      api_request "https://api.github.com/events"
-    end
-
-    private
+  private
 
     ##
     # Convert a string value to boolean, the SQL way
@@ -390,8 +381,10 @@ module GHTorrent
       Time.parse(arg).to_i
     end
 
+    def is_valid_email(email)
+      email =~ /^[a-zA-Z][\w\.-]*[a-zA-Z0-9]@[a-zA-Z0-9][\w\.-]*[a-zA-Z0-9]\.[a-zA-Z][a-zA-Z\.]*[a-zA-Z]$/
+    end
   end
-
   # Base exception for all GHTorrent exceptions
   class GHTorrentException < Exception
 

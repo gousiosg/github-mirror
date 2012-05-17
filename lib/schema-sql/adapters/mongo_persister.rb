@@ -46,6 +46,7 @@ module GHTorrent
     def initialize(set)
       merge LOCALCONFIG
       @settings = set
+      @uniq = config(:uniq_id)
       @mongo = Mongo::Connection.new(config(:mongo_host),
                                      config(:mongo_port))\
                                 .db(config(:mongo_db))
@@ -69,8 +70,7 @@ module GHTorrent
         raise GHTorrentException.new("Mongo: Entity #{entity} not supported")
       end
 
-      col.insert(data)
-
+      col.insert(data).to_s
     end
 
     def retrieve(entity, query = {})
@@ -82,7 +82,14 @@ module GHTorrent
       end
 
       result = col.find(query)
-      result.to_a.map { |r| r.to_h }
+      result.to_a.map { |r|
+        r[@uniq] = r['_id'].to_s;
+        r.to_h
+      }
+    end
+
+    def get_id
+      "_id"
     end
 
   end

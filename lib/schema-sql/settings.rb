@@ -17,7 +17,9 @@ module GHTorrent
         :mirror_urlbase_v2 => "mirror.urlbase_v2",
         :mirror_reqrate => "mirror.reqrate",
         :mirror_pollevery => "mirror.pollevery",
-        :mirror_persister => "mirror.persister"
+        :mirror_persister => "mirror.persister",
+
+        :uniq_id => "uniq_id"
     }
 
     def config(key)
