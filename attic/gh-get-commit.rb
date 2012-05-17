@@ -5,7 +5,7 @@ require 'amqp'
 require 'ghtorrent-old'
 require 'optparse'
 
-github = GHTorrent.new
+github = Mirror.new
 
 # Find out which api version to use for retrieving the commits
 api_version = github.settings['mirror']['commits']['apiversion']

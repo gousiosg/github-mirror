@@ -11,7 +11,7 @@ require 'yaml'
 
 OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
 
-github = GHTorrent.new
+github = Mirror.new
 
 # Get the github timeline from the RSS feed. Used to work
 def get_timeline_rss

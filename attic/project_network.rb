@@ -7,7 +7,7 @@ require 'mongo'
 require 'yaml'
 require 'ghtorrent-old'
 
-analysis = GHTorrent.new
+analysis = Mirror.new
 $commits = analysis.commits_col
 
 # Retrieve and

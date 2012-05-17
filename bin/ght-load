@@ -44,7 +44,7 @@ require "amqp/extensions/rabbitmq"
 
 class GHTLoad < Command
 
-  GH = GHTorrent.new
+  GH = Mirror.new
 
   def col_info()
     {

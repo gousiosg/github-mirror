@@ -1,4 +1,8 @@
-require 'ghtorrent-old/ghtorrent-old'
+#require 'ghtorrent-old/ghtorrent-old'
+
+module GHTorrent
+  VERSION = 0.1
+end
 
 require 'ghtorrent/command'
 

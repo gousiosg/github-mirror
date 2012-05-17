@@ -54,7 +54,8 @@ module GHTorrent
           :users => get_collection("users"),
           :commits => get_collection("commits"),
           :repos => get_collection("repos"),
-          :followers => get_collection("followers")
+          :followers => get_collection("followers"),
+          :events => get_collection("events")
       }
     end
 

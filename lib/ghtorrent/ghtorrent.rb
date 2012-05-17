@@ -29,7 +29,7 @@
 require 'sequel'
 
 module GHTorrent
-  class GHTorrent
+  class Mirror
 
     include GHTorrent::Logging
     include GHTorrent::Settings
@@ -50,11 +50,11 @@ module GHTorrent
     # db related functions
     def get_db
 
-      @db = Sequel.connect('sqlite://github.db')
-      #@db.loggers << @log
+      @db = Sequel.connect(config(:sql_url))
+
       if @db.tables.empty?
         dir = File.join(File.dirname(__FILE__), 'migrations')
-        puts("Database empty, running migrations from #{dir}")
+        puts "Database empty, running migrations from #{dir}"
         Sequel.extension :migration
         Sequel::Migrator.apply(@db, dir)
       end

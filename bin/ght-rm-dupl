@@ -34,7 +34,7 @@ require 'rubygems'
 require 'mongo'
 require 'ghtorrent-old'
 
-GH = GHTorrent.new
+GH = Mirror.new
 GH.init("config.yaml")
 
 # Unique keys per known collection

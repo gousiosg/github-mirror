@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 require 'ghtorrent-old'
 
-github = GHTorrent.new
+github = Mirror.new
 
 puts "lang added removed"
 github.commitlength_col\

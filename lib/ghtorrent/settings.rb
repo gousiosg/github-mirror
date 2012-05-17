@@ -8,8 +8,9 @@ module GHTorrent
     CONFIGKEYS = {
         :amqp_host => "amqp.host",
         :amqp_port => "amqp.port",
-        :amqp_user => "amqp.user",
-        :amqp_passwd => "amqp.password",
+        :amqp_username => "amqp.username",
+        :amqp_password => "amqp.password",
+        :amqp_exchange => "amqp.exchange",
 
         :sql_url => "sql.url",
 

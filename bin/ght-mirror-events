@@ -34,8 +34,14 @@ require 'amqp'
 require 'eventmachine'
 require 'ghtorrent'
 require 'json'
+require 'logger'
 
 class GHTMirrorEvents < Command
+
+  include GHTorrent::Settings
+  include GHTorrent::Logging
+
+  attr_reader :settings
 
   # Retrieve events from Github, store them in the DB
   def retrieve(exchange)
@@ -44,15 +50,15 @@ class GHTMirrorEvents < Command
       events = @gh.get_events
 
       events.each do |e|
-        if @gh.events_col.find({'id' => e['id']}).has_next?
-          @gh.log.info "Already got #{e['id']}"
+        unless @persister.find(:events, {'id' => e['id']}).empty?
+          info "Already got #{e['id']}"
           dupl += 1
           next
         end
 
         new += 1
-        @gh.events_col.insert(e)
-        @gh.log.info "Added #{e['id']}"
+        @persister.store(:events, e)
+        info "Added #{e['id']}"
 
         msg = JSON.dump(e)
         key = "evt.%s" % e['type']
@@ -60,8 +66,8 @@ class GHTMirrorEvents < Command
       end
       return new, dupl
     rescue Exception => e
-      puts e.backtrace
-      #@gh.log.error e.backtrace
+      STDERR.puts e.message
+      STDERR.puts e.backtrace
     end
   end
 
@@ -71,29 +77,32 @@ class GHTMirrorEvents < Command
 
   def go
 
-    @gh = GHTorrent.new(options[:config])
+    @gh = GHTorrent::Mirror.new(options[:config])
+    @settings = @gh.settings
+    @persister = GHTorrent::Persister.new(:mongo, @settings)
+    @logger = Logger.new(STDOUT)
 
     # Graceful exit
     Signal.trap('INT') { AMQP.stop { EM.stop } }
     Signal.trap('TERM') { AMQP.stop { EM.stop } }
 
     # The event loop
-    AMQP.start(:host => @gh.settings['amqp']['host'],
-               :port => @gh.settings['amqp']['port'],
-               :username => @gh.settings['amqp']['username'],
-               :password => @gh.settings['amqp']['password']) do |connection|
+    AMQP.start(:host => config(:amqp_host),
+               :port => config(:amqp_port),
+               :username => config(:amqp_username),
+               :password => config(:amqp_password)) do |connection|
 
       # Statistics used to recalibrate event delays
       dupl_msgs = new_msgs = 1
 
-      @gh.log.debug "connected to rabbit"
+      debug "connected to rabbit"
 
       channel = AMQP::Channel.new(connection)
-      exchange = channel.topic("#{@gh.settings['amqp']['exchange']}",
-                               :durable => true, :auto_delete => false)
+      exchange = channel.topic(config(:amqp_exchange), :durable => true,
+                               :auto_delete => false)
 
       # Initial delay for the retrieve event loop
-      retrieval_delay = @gh.settings['mirror']['pollevery']
+      retrieval_delay = config(:mirror_pollevery)
 
       # Retrieve commits.
       retriever = EventMachine.add_periodic_timer(retrieval_delay) do
@@ -106,7 +115,7 @@ class GHTMirrorEvents < Command
       EventMachine.add_periodic_timer(120) do
         ratio = (dupl_msgs.to_f / (dupl_msgs + new_msgs).to_f)
 
-        @gh.log.info("Stats: #{new_msgs} new, #{dupl_msgs} duplicate, ratio: #{ratio}")
+        info("Stats: #{new_msgs} new, #{dupl_msgs} duplicate, ratio: #{ratio}")
 
         new_delay = if ratio >= 0 and ratio < 0.3 then
                       -1
@@ -125,7 +134,7 @@ class GHTMirrorEvents < Command
           # Stop the retriever task and adjust retrieval delay
           retriever.cancel
           retrieval_delay = retrieval_delay + new_delay
-          @gh.log.info("Setting event retrieval delay to #{retrieval_delay} secs")
+          info("Setting event retrieval delay to #{retrieval_delay} secs")
 
           # Restart the retriever
           retriever = EventMachine.add_periodic_timer(retrieval_delay) do

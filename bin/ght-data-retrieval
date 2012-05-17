@@ -36,6 +36,10 @@ require 'pp'
 
 class GHTDataRetrieval < Command
 
+  include GHTorrent::Settings
+
+  attr_reader :settings
+
   def parse(msg)
     JSON.parse(msg)
   end
@@ -68,20 +72,21 @@ class GHTDataRetrieval < Command
   end
 
   def go
-    @gh = GHTorrent::GHTorrent.new(options[:config])
+    @gh = GHTorrent::Mirror.new(options[:config])
+    @settings = @gh.settings
 
     # Graceful exit
     Signal.trap('INT') { AMQP.stop { EM.stop } }
     Signal.trap('TERM') { AMQP.stop { EM.stop } }
 
-    AMQP.start(:host => @gh.settings['amqp']['host'],
-               :port => @gh.settings['amqp']['port'],
-               :username => @gh.settings['amqp']['username'],
-               :password => @gh.settings['amqp']['password']) do |connection|
+    AMQP.start(:host => config(:amqp_host),
+               :port => config(:amqp_port),
+               :username => config(:amqp_username),
+               :password => config(:amqp_password)) do |connection|
 
       channel = AMQP::Channel.new(connection, :prefetch => 5)
-      exchange = channel.topic(@gh.settings['amqp']['exchange'],
-                               :durable => true, :auto_delete => false)
+      exchange = channel.topic(config(:amqp_exchange), :durable => true,
+                               :auto_delete => false)
 
       handlers.each { |h|
         queue = channel.queue("#{h}s", {:durable => true})\

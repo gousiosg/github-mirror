@@ -29,7 +29,7 @@
 module GHTorrent
   class Persister
 
-    ENTITIES = [:users, :commits, :followers, :repos]
+    ENTITIES = [:users, :commits, :followers, :repos, :events]
 
     ADAPTERS = {
         :mongo => GHTorrent::MongoPersister,
