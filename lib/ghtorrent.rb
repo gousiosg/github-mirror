@@ -1,3 +1,4 @@
+#require 'ghtorrent/ghtorrent'
 require 'ghtorrent/command'
 
 require 'schema-sql/utils'

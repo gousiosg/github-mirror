@@ -62,11 +62,11 @@ class GHTorrent
   end
 
   def commits_col
-    @db.collection(@settings['mongo']['commits'])
+    @db.collection('commits')
   end
 
   def commits_col_v3
-    @db.collection(@settings['mongo']['commitsv3'])
+    @db.collection('commitsv3')
   end
 
   def watched_col
@@ -74,7 +74,7 @@ class GHTorrent
   end
 
   def events_col
-    @db.collection(@settings['mongo']['events'])
+    @db.collection('events')
   end
 
   def followed_col

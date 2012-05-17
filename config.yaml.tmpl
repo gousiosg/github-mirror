@@ -21,6 +21,7 @@ mirror:
   reqrate: 80 #per minute
   pollevery: 5 #sec
   persister: mongo #or no-op
+  uniq_id: 'ext_ref_id' # Field that links persister entries to SQL entries
 
 mongo:
   host: 127.0.0.1      # Mongo's IP addr

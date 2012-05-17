@@ -94,7 +94,7 @@ class GHTMirrorEvents < Command
                                :durable => true, :auto_delete => false)
 
       # Initial delay for the retrieve event loop
-      retrieval_delay = GH.settings['mirror']['events']['pollevery']
+      retrieval_delay = GH.settings['mirror']['pollevery']
 
       # Retrieve commits.
       retriever = EventMachine.add_periodic_timer(retrieval_delay) do
