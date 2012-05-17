@@ -99,6 +99,13 @@ class GHTDataRetrieval < Command
             send(h, msg)
             headers.ack
           rescue Exception => e
+            # Give a message a chance to be reprocessed
+            if headers.redelivered?
+              headers.reject(:requeue => false)
+            else
+              headers.reject(:requeue => true)
+            end
+
             #pp JSON.parse(msg)
             STDERR.puts e
             STDERR.puts e.backtrace.join("\n")
