@@ -29,10 +29,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 require 'rubygems'
-require 'ghtorrent-old'
 require 'erb'
 require 'set'
 require 'date'
+require 'ghtorrent'
 
 class Page
   attr_reader :collections
