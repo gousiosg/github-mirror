@@ -5,7 +5,7 @@
 require 'rubygems'
 require 'mongo'
 require 'yaml'
-require 'ghtorrent'
+require 'ghtorrent-old'
 
 analysis = GHTorrent.new
 $commits = analysis.commits_col

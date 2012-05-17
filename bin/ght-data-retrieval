@@ -68,7 +68,7 @@ class GHTDataRetrieval < Command
   end
 
   def go
-    @gh = GHTorrent::GHTorrentSQL.new(options[:config])
+    @gh = GHTorrent::GHTorrent.new(options[:config])
 
     # Graceful exit
     Signal.trap('INT') { AMQP.stop { EM.stop } }

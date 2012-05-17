@@ -28,7 +28,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-require 'rubygems'
 require 'trollop'
 
 # Base class for all GHTorrent command line utilities. Provides basic command

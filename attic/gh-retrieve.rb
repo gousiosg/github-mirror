@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 #
 
-require 'ghtorrent'
+require 'ghtorrent-old'
 require 'rubygems'
 require 'hpricot'
 require 'open-uri'

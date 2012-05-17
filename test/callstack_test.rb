@@ -1,5 +1,5 @@
 require "test/unit"
-require 'ghtorrent'
+require 'ghtorrent-old'
 
 class CallStackTest < Test::Unit::TestCase
 

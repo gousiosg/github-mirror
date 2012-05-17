@@ -2,7 +2,7 @@
 
 require 'rubygems'
 require 'amqp'
-require 'ghtorrent'
+require 'ghtorrent-old'
 require 'optparse'
 
 github = GHTorrent.new

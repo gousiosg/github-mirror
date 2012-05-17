@@ -32,7 +32,7 @@
 
 require 'rubygems'
 require 'mongo'
-require 'ghtorrent'
+require 'ghtorrent-old'
 
 GH = GHTorrent.new
 GH.init("config.yaml")

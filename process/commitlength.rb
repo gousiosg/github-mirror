@@ -5,7 +5,7 @@ require 'rubygems'
 require 'mongo'
 require 'amqp'
 require 'yaml'
-require File.dirname(__FILE__) + '/../ghtorrent'
+require File.dirname(__FILE__) + '/../ghtorrent-old'
 
 GH = GHTorrent.new
 

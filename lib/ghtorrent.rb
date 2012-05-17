@@ -1,16 +1,16 @@
-#require 'ghtorrent/ghtorrent'
+require 'ghtorrent-old/ghtorrent-old'
+
 require 'ghtorrent/command'
 
-require 'schema-sql/utils'
-require 'schema-sql/logging'
-require 'schema-sql/settings'
-require 'schema-sql/api_client'
-require 'schema-sql/call_stack'
+require 'ghtorrent/utils'
+require 'ghtorrent/logging'
+require 'ghtorrent/settings'
+require 'ghtorrent/api_client'
+require 'ghtorrent/call_stack'
 
-require 'schema-sql/adapters/mongo_persister'
-require 'schema-sql/adapters/noop_persister'
-require 'schema-sql/persister'
+require 'ghtorrent/adapters/mongo_persister'
+require 'ghtorrent/adapters/noop_persister'
+require 'ghtorrent/persister'
+require 'ghtorrent/retriever'
 
-require 'schema-sql/retriever'
-
-require 'schema-sql/ghtorrent-sql'
+require 'ghtorrent/ghtorrent'

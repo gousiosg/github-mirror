@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-require 'ghtorrent'
+require 'ghtorrent-old'
 
 github = GHTorrent.new
 
