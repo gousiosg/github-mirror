@@ -14,7 +14,7 @@ module GHTorrent
         :sql_url => "sql.url",
 
         :mirror_urlbase => "mirror.urlbase",
-        :mirror_urlbase_v2 => "mirror.urlbase.urlbase_v2",
+        :mirror_urlbase_v2 => "mirror.urlbase_v2",
         :mirror_reqrate => "mirror.reqrate",
         :mirror_pollevery => "mirror.pollevery",
         :mirror_persister => "mirror.persister"

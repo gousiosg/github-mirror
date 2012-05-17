@@ -74,7 +74,7 @@ module GHTorrent
     def get_commit(user, repo, sha)
 
       unless sha.match(/[a-f0-9]{40}$/)
-        error "Ignoring commit #{sha}"
+        error "GHTorrent: Ignoring commit #{sha}"
         return
       end
 
@@ -82,7 +82,7 @@ module GHTorrent
       commit = commits.first(:sha => sha)
 
       if commit.nil?
-        @db.transaction do
+        @db.transaction(:rollback => :reraise) do
           ensure_repo(user, repo)
           c = retrieve_commit(repo, sha, user)
 
@@ -105,10 +105,10 @@ module GHTorrent
           #  @log.info "Added parent #{parent[:sha]} to commit #{sha}"
           #end
 
-          debug("Transaction committed")
+          debug "GHTorrent: Transaction committed"
         end
       else
-        debug "Commit #{sha} exists"
+        debug "GHTorrent: Commit #{sha} exists"
       end
     end
 
@@ -231,14 +231,14 @@ module GHTorrent
                      :location => u['location'],
                      :created_at => date(u['created_at']))
 
-        info "New user #{user}"
+        info "GHTorrent: New user #{user}"
 
         # Get the user's followers
         ensure_user_followers(user) if followers
 
         users.first(:login => user)
       else
-        debug "User #{user} exists"
+        debug "GHTorrent: User #{user} exists"
         usr
       end
     end
@@ -278,9 +278,9 @@ module GHTorrent
                                :follower_id => followerid,
                                :created_at => ts
         )
-        info("User #{follower} follows #{user}")
+        info "GHTorrent: User #{follower} follows #{user}"
       else
-        info("User #{follower} already follows #{user}")
+        info "User #{follower} already follows #{user}"
       end
     end
 
@@ -304,7 +304,7 @@ module GHTorrent
         u = retrieve_user_byemail(email, name)
 
         if u['user'].nil? or u['user']['login'].nil?
-          debug "Cannot find #{email} through API v2 query"
+          debug "GHTorrent: Cannot find #{email} through API v2 query"
           users.insert(:email => email,
                        :name => name,
                        :login => (0...8).map { 65.+(rand(25)).chr }.join,
@@ -320,12 +320,12 @@ module GHTorrent
                        :bio => nil,
                        :location => u['user']['location'],
                        :created_at => date(u['user']['created_at']))
-          debug "Found #{email} through API v2 query"
+          debug "GHTorrent: Found #{email} through API v2 query"
           ensure_user_followers(user) if followers
           users.first(:email => email)
         end
       else
-        debug "User with email #{email} exists"
+        debug "GHTorrent: User with email #{email} exists"
         usr
       end
     end
@@ -354,10 +354,10 @@ module GHTorrent
                      :language => r['language'],
                      :created_at => date(r['created_at']))
 
-        info "New repo #{repo}"
+        info "GHTorrent: New repo #{repo}"
         repos.first(:name => repo)
       else
-        debug "Repo #{repo} exists"
+        debug "GHTorrent: Repo #{repo} exists"
         currepo
       end
     end
