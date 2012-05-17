@@ -44,8 +44,6 @@ require "amqp/extensions/rabbitmq"
 
 class GHTLoad < Command
 
-  GH = Mirror.new
-
   def col_info()
     {
         :commits => {
@@ -98,6 +96,9 @@ Loads object ids from a collection to a queue for further processing.
   end
 
   def go
+    @gh = GHTorrent::Mirror.new(options[:config])
+    @settings = @gh.settings
+
     GH.init(options[:config])
     # Message tags await publisher ack
     awaiting_ack = SortedSet.new
