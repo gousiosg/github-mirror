@@ -19,6 +19,16 @@ it as a Gem do:
 sudo gem install ghtorrent 
 </code>
 
+Depending on which SQL database you want to use, install the appropriate dependency gem.
+GHTorrent already installs the `sqlite3` gem (if it fails, install the development
+package for `sqlite3` for your system).
+
+<code>
+sudo gem install mysql2
+#or
+sudo gem install postgres
+</code>
+
 #### Configuring
 
 Copy the contents of the 
