@@ -1,9 +1,14 @@
 require 'rake'
 
+ts = `git log --date=raw lib/ghtorrent.rb |grep Date|head|tr -s ' '|cut -f2 -d' '|head -n 1`
+date = Time.at(ts.to_i).strftime("%Y-%m-%d")
+
+ver = `cat lib/ghtorrent.rb |grep VERSION|cut -f2 -d'='`.strip
+
 Gem::Specification.new do |s|
   s.name         = 'ghtorrent'
-  s.version      = '0.1'
-  s.date         = '2012-05-02'
+  s.version      = ver
+  s.date         = date
   s.summary      = 'Mirror and process Github data'
   s.description  = 'A library and a collection of associated programs
                     to mirror and process Github data'
@@ -11,8 +16,9 @@ Gem::Specification.new do |s|
   s.email        = 'gousiosg@gmail.com'
   s.homepage     = 'https://github.com/gousiosg/github-mirror'
   s.rdoc_options = ["--charset=UTF-8"]
-  s.executables  = ['ght-data-retrieval', 'ght-load', 'ght-mirror-events',
-                    'ght-periodic-dump', 'ght-rm-dupl', 'ght-torrent-index']
+  s.executables  = ['ght-data-retrieval', 'ght-mirror-events']
+                  # 'ght-load','ght-periodic-dump', 'ght-rm-dupl',
+                  # 'ght-torrent-index']
   s.files        = FileList['lib/**/*.rb',
                              'bin/*',
                              '[A-Z]*',
