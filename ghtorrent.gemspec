@@ -30,4 +30,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "json", ['>= 1.6']
   s.add_runtime_dependency "trollop", ['>= 1.16']
   s.add_runtime_dependency "sequel", ['>= 3.35']
+  s.add_runtime_dependency "sqlite3-ruby", ['>= 1.3.2']
 end
