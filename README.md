@@ -24,9 +24,7 @@ GHTorrent already installs the `sqlite3` gem (if it fails, install the developme
 package for `sqlite3` for your system).
 
 <code>
-sudo gem install mysql2
-#or
-sudo gem install postgres
+sudo gem install mysql2 #or postgres
 </code>
 
 #### Configuring
