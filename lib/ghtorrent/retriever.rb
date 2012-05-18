@@ -85,7 +85,7 @@ module GHTorrent
         end
       end
 
-      stored_followers
+      @persister.find(:followers, {'follows' => user})
     end
 
     def retrieve_commit(repo, sha, user)
