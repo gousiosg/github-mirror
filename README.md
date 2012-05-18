@@ -23,12 +23,14 @@ sudo gem install ghtorrent
 
 Copy the contents of the 
 [config.yaml.tmpl](https://github.com/gousiosg/github-mirror/blob/master/config.yaml.tmpl)
-file to a file in your home directory.  
+file to a file in your home directory. All provided scripts accept the `-c`
+option, which you can use to pass the location of the configuration file as
+a parameter.
 
-Copy `config.yaml.tmpl` to `config.yaml`. Edit the MongoDB and AMQP 
+Edit the MongoDB and AMQP 
 configuration options accordingly. The scripts require accounts with permissions
-to create queues and exchanges in the AMQP queue and databases and collections
-in MongoDB respectively.
+to create queues and exchanges in the AMQP queue, collections
+in MongoDB and tables in the selected SQL database, respectively.
 
 To prepare MongoDB:
 
