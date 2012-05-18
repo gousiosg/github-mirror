@@ -1,4 +1,4 @@
-github-mirror: Mirror and process the Github event steam
+ghtorrent: Mirror and process the Github event steam
 =========================================================
 
 A collection of scripts used to mirror the Github event stream, for 
@@ -9,14 +9,24 @@ GHTorrent relies on the following software to work:
 
 * MongoDB > 2.0
 * RabbitMQ >= 2.7
-* An SQL database compatible with [Sequel](http://sequel.rubyforge.org/rdoc/files/doc/opening_databases_rdoc.html). GHTorrent is tested with SQLite and MySQL,
-so your mileage may vary if you are using other databases.
+* An SQL database compatible with [Sequel](http://sequel.rubyforge.org/rdoc/files/doc/opening_databases_rdoc.html). 
+GHTorrent is tested with SQLite and MySQL, so your mileage may vary if you are using other databases.
 
 GHTorrent is written in Ruby (tested with 1.8 and JRuby). To install 
 it as a Gem do:
 
 <code>
 sudo gem install ghtorrent 
+</code>
+
+Depending on which SQL database you want to use, install the appropriate dependency gem.
+GHTorrent already installs the `sqlite3` gem (if it fails, install the development
+package for `sqlite3` for your system).
+
+<code>
+sudo gem install mysql2
+#or
+sudo gem install postgres
 </code>
 
 #### Configuring
