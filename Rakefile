@@ -13,7 +13,8 @@ end
 
 desc "Run Rdoc"
 Rake::RDocTask.new(:rdoc) do |rd|
-  rd.main = "README.doc"
+#  rd.main = "README.doc"
   rd.rdoc_files.include("lib/**/*.rb")
-  rd.options << "--all"
+  rd.options << "-d"
+  rd.options << "-x migrations"
 end

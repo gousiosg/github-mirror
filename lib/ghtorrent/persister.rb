@@ -14,7 +14,7 @@
 #      provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 # TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 # PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
 # CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -27,80 +27,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 module GHTorrent
-  class Persister
 
-    ENTITIES = [:users, :commits, :followers, :repos, :events]
+  #
+  module Persister
 
     ADAPTERS = {
-        :mongo => GHTorrent::MongoPersister,
-        :noop => GHTorrent::NoopPersister
+      :mongo => GHTorrent::MongoPersister,
+      :noop => GHTorrent::NoopPersister
     }
 
-    def initialize(adapter, settings)
+    # Factory method for retrieving persistence connections.
+    # The +settings+ argument is a fully parsed YAML document
+    # passed on to adapters. The available +adapter+ are :mongo and :noop
+    def connect(adapter, settings)
       driver = ADAPTERS[adapter]
-      @persister = driver.new(settings)
-    end
-
-    # Stores data into entity. Returns a unique key for the stored entry
-    def store(entity, data = {})
-      unless ENTITIES.include?(entity)
-        throw GHTorrentException.new("Perister: Entity #{entity} not known")
-      end
-
-      @persister.store(entity, data)
-    end
-
-
-    # Retrieves rows from +entity+ matching the provided +query+.
-    # The +query+
-    # is performed on the Github API JSON results. For example, given the
-    # following JSON object format:
-    #
-    #   {
-    #      commit: {
-    #        sha: "23fa34aa442456"
-    #      }
-    #      author: {
-    #        name: {
-    #          real_name: "foo"
-    #          given_name: "bar"
-    #        }
-    #      }
-    #      created_at: "1980-12-30T22:25:25"
-    #   }
-    #
-    # to query for matching +sha+s, pass to +query+
-    #
-    #   {'commit.sha' => 'a_value'}
-    #
-    # to query for real_name's matching an argument, pass to +query+
-    #
-    #   {'author.name.real_name' => 'a_value'}
-    #
-    # to query for both a specific sha and a specific creation time
-    #
-    #   {'commit.sha' => 'a_value', 'created_at' => 'other_value'}
-    #
-    # The persister adapter must translate the query to the underlying data
-    # storage engine query capabilities.
-    #
-    # The results are returned as an array of hierarchical maps, one for each
-    # matching JSON object.
-    def find(entity, query = {})
-      unless ENTITIES.include?(entity)
-        throw GHTorrentException.new("Perister: Entity #{entity} not known")
-      end
-
-      @persister.retrieve(entity, query)
-    end
-
-
-    def find_by_ext_ref_id(entity, id)
-      unless ENTITIES.include?(entity)
-        throw GHTorrentException.new("Perister: Entity #{entity} not known")
-      end
-
-      @persister.retrieve(entity, {get_id => id})
+      driver.new(settings)
     end
 
   end

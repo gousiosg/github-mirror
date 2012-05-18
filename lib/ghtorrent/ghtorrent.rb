@@ -14,7 +14,7 @@
 #      provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 # TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 # PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
 # CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -34,8 +34,9 @@ module GHTorrent
     include GHTorrent::Logging
     include GHTorrent::Settings
     include GHTorrent::Retriever
+    include GHTorrent::Persister
 
-    attr_reader :settings
+    attr_reader :settings, :persister
 
     def initialize(configuration)
 
@@ -43,7 +44,7 @@ module GHTorrent
       super(@settings)
       @ext_uniq = config(:uniq_id)
       @logger = Logger.new(STDOUT)
-      @persister = Persister.new(:mongo, @settings)
+      @persister = connect(:mongo, @settings)
       get_db
     end
 

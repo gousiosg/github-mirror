@@ -14,7 +14,7 @@
 #      provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 # TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 # PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
 # CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -29,10 +29,14 @@
 require 'mongo'
 
 module GHTorrent
-  class MongoPersister
+
+  # A persistence adapter that saves data into a configurable MongoDB database.
+  class MongoPersister < GHTorrent::BaseAdapter
+
     include GHTorrent::Settings
     include GHTorrent::Logging
 
+    # Supported configuration options.
     LOCALCONFIG = {
         :mongo_host => "mongo.host",
         :mongo_port => "mongo.port",
@@ -43,8 +47,11 @@ module GHTorrent
 
     attr_reader :settings
 
+    # Creates a new instance of the MongoDB persistence adapter.
+    # Expects a parsed YAML settings document as input.
     def initialize(set)
       merge LOCALCONFIG
+
       @settings = set
       @uniq = config(:uniq_id)
       @mongo = Mongo::Connection.new(config(:mongo_host),
@@ -59,12 +66,9 @@ module GHTorrent
       }
     end
 
-    def get_collection(col)
-      @mongo.collection(col.to_s)
-    end
 
     def store(entity, data = {})
-
+      super
       col = @enttodb[entity]
 
       if col.nil?
@@ -74,7 +78,8 @@ module GHTorrent
       col.insert(data).to_s
     end
 
-    def retrieve(entity, query = {})
+    def find(entity, query = {})
+      super
 
       col = @enttodb[entity]
 
@@ -89,24 +94,33 @@ module GHTorrent
       }
     end
 
-    def get_id
-      "_id"
+    # Find the record identified by +id+ in +entity+
+    def find_by_ext_ref_id(entity, id)
+      super
+      raise NotImplementedError
+    end
+
+    private
+
+    def get_collection(col)
+      @mongo.collection(col.to_s)
     end
 
   end
 end
 
 class BSON::OrderedHash
-  def to_h
-    inject({}) { |acc, element| k, v = element; acc[k] = (
-    if v.class == BSON::OrderedHash then
-      v.to_h
-    else
-      v
-    end); acc }
-  end
 
-  def to_json
-    to_h.to_json
+  # Convert a BSON result to a +Hash+
+  def to_h
+    inject({}) do |acc, element|
+      k, v = element;
+      acc[k] = if v.class == BSON::OrderedHash then
+                 v.to_h
+               else
+                 v
+               end;
+      acc
+    end
   end
 end
