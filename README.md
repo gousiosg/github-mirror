@@ -132,7 +132,7 @@ please consider citing the following paper:
 
 Georgios Gousios <gousiosg@gmail.com>
 
-Diomidis Spinellis
+[Diomidis Spinellis](http://www.dmst.aueb.gr/dds) <dds@aueb.gr>
 
 #### License
 
