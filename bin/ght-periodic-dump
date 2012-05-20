@@ -6,23 +6,53 @@
 # Directory to place compressed files and torrents
 OUTDIR=/home/data/github-mirror/dumps
 
-# Base URL for HTTP dir containing torrents and data 
+# Base URL for HTTP dir containing torrents and data
 WEBSEED=http://ikaria.dmst.aueb.gr/ghtorrent/
 
-# Time to start dumping from
-if [ -r lastrun ]
+usage()
+{
+	echo "Usage: $0 [-f 'yyyy-mm-dd hh:mm'] [-t 'yyyy-mm-dd hh:mm']"
+	echo "          [-c collection_to_dump]"
+	echo "Dump the database. -f earliest record timestamp"
+	echo "                   -t latest record timestamp"
+	echo "                   -c collection to dump (default: all)"
+}
+
+if [ -z $1 ]
 then
-	timeStart=`cat lastrun`
-else
-	timeStart=0
+	usage
+	exit 1
+fi
+
+while getopts "f:t:c:" o
+do
+	case $o in
+	f) 	timeStart=`date -d "$OPTARG" +%s` ;;
+	t) 	timeEnd=`date -d "$OPTARG" +%s` ;;
+	c) 	collection=$OPTARG ;;
+	\?)     echo "Invalid option: -$OPTARG" >&2
+		usage
+	        exit 1
+		;;
+	esac
+done
+
+
+# Time to start dumping from
+if [ -z $timeStart ]
+then
+	if [ -r lastrun ]
+	then
+		timeStart=`cat lastrun`
+	else
+		timeStart=0
+	fi
 fi
 
 # Time to end dumping
-if [ "$1" = "" ]
+if [ -z $timeEnd ]
 then
 	timeEnd=`date +%s`
-else
-	timeEnd=`date -d "$1" +%s` || exit 1
 fi
 
 # Name used for the files
@@ -37,11 +67,19 @@ dateName=`date -d @$timeEnd -u +'%Y-%m-%d'`
 endId=`printf '%08x0000000000000000' $timeEnd`
 startId=`printf '%08x0000000000000000' $timeStart`
 
+
+if [ -z $collection ]
+then
+	collections=`echo "show collections"|mongo --quiet github|egrep -v "system|bye"`
+else
+	collections=$collection
+fi
+
 echo "Dumping database from `date -d @$timeStart` to `date -d @$timeEnd`"
 
-collections=`echo "show collections"|mongo --quiet github|egrep -v "system|bye"`
-	
 rm -rf dump
+mkdir -p dump/github
+
 for col in $collections; do
 
 	echo "Dumping $col"
@@ -62,8 +100,8 @@ for col in $collections; do
 (
 	echo "Start date: `date -u -d @$timeStart +'%Y-%m-%dT%H:%M:%SZ'`"
 	echo "End date: `date -u -d @$timeEnd +'%Y-%m-%dT%H:%M:%SZ'`"
-	meta $col 
-) 
+	meta $col
+)
 done |
 tee README.$dateName.txt >dump/github/README.txt || exit 1
 
@@ -88,5 +126,5 @@ done
 echo $timeEnd >lastrun || exit 1
 
 # Clean up
-rm -rf dump 
+rm -rf dump
 
