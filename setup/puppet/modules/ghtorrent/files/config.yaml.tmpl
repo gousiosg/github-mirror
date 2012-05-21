@@ -1,0 +1,31 @@
+amqp:
+  host:   127.0.0.1 # Queue's IP address
+  port:   5672
+  username: ghtorrent   # Username to connect to the queue
+  password: ghtorrent   # password
+  exchange: ghtorrent
+
+sql:
+  # Configuration URL for the SQL database subsystem.
+  # Examples:
+  # - MySQL:     mysql2://user:password@host/github
+  # - Postgres:  postgres://user:password@host/github
+  #
+  # see http://sequel.rubyforge.org/rdoc/files/doc/opening_databases_rdoc.html
+  # for details
+  url: mysql2://ghtorrent:ghtorrent@localhost/ghtorrent
+
+mirror:
+  urlbase: "https://api.github.com/"
+  urlbase_v2: "https://github.com/api/v2/json/"
+  reqrate: 80 #per minute
+  pollevery: 5 #sec
+  persister: mongo #or no-op
+  uniq_id: 'ext_ref_id' # Field that links persister entries to SQL entries
+
+mongo:
+  host: 127.0.0.1      # Mongo's IP addr
+  port: 27017          # Mongo's port
+  db: github           # DB name to store commits to
+  username: ghtorrent  # User name to connect to Mongo
+  password: ghtorrent  # Password for mongo
