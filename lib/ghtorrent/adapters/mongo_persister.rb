@@ -49,6 +49,7 @@ module GHTorrent
 
     # Creates a new instance of the MongoDB persistence adapter.
     # Expects a parsed YAML settings document as input.
+    # Will create indexes on fields most frequently used in queries.
     def initialize(set)
       merge LOCALCONFIG
 
@@ -64,6 +65,12 @@ module GHTorrent
           :followers => get_collection("followers"),
           :events => get_collection("events")
       }
+
+      # Ensure that the necessary indexes exist
+      ensure_index(:users, "login")
+      ensure_index(:commits, "sha")
+      ensure_index(:repos, "name")
+      ensure_index(:followers, "follows")
     end
 
 
@@ -104,6 +111,20 @@ module GHTorrent
 
     def get_collection(col)
       @mongo.collection(col.to_s)
+    end
+
+    # Declare an index on +field+ for +collection+ if it does not exist
+    def ensure_index(collection, field)
+      col = @enttodb[collection]
+
+      exists = col.index_information.find {|k,v|
+        k == "#{field}_1"
+      }
+
+      if exists.nil?
+        col.create_index(field, :background => true)
+        STDERR.puts "Creating index on #{collection}(#{field})"
+      end
     end
 
   end
