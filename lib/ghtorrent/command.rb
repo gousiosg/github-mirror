@@ -27,6 +27,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 require 'trollop'
+require 'daemons'
 
 # Base class for all GHTorrent command line utilities. Provides basic command
 # line argument parsing and command bootstraping support. The order of
@@ -46,6 +47,12 @@ module GHTorrent
         command = new(args)
         command.process_options
         command.validate
+
+        if command.options[:daemon]
+          Daemons.daemonize(:app_name => "foo",
+                            :dir_mode => :script,
+                            :log_output => true)
+        end
 
         begin
           command.go
@@ -79,6 +86,7 @@ Standard options:
         opt :config, 'config.yaml file location', :short => 'c',
             :default => 'config.yaml'
         opt :verbose, 'verbose mode', :short => 'v'
+        opt :daemon, 'run as daemon', :short => 'd'
       end
 
       @args = @args.dup
