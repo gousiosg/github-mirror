@@ -73,19 +73,24 @@ class GHTMirrorEvents < GHTorrent::Command
   end
 
   def prepare_options(options)
-
+    @name = "ght-mirror-events"
   end
 
   def go
-
     @gh = GHTorrent::Mirror.new(options[:config])
     @settings = @gh.settings
     @persister = connect(:mongo, @settings)
     @logger = Logger.new(STDOUT)
 
     # Graceful exit
-    Signal.trap('INT') { AMQP.stop { EM.stop } }
-    Signal.trap('TERM') { AMQP.stop { EM.stop } }
+    Signal.trap('INT') {
+      info ("Received SIGINT, exiting")
+      AMQP.stop { EM.stop }
+    }
+    Signal.trap('TERM') {
+      info ("Received SIGTERM, exiting")
+      AMQP.stop { EM.stop }
+    }
 
     # The event loop
     AMQP.start(:host => config(:amqp_host),

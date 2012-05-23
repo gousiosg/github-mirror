@@ -38,7 +38,7 @@ class GHTDataRetrieval < GHTorrent::Command
 
   include GHTorrent::Settings
 
-  attr_reader :settings
+  attr_reader :settings, :name
 
   def parse(msg)
     JSON.parse(msg)
@@ -71,13 +71,23 @@ class GHTDataRetrieval < GHTorrent::Command
     %w(PushEvent WatchEvent FollowEvent)
   end
 
+  def prepare_options(options)
+      @name = "ght-data-retrieval"
+  end
+
   def go
     @gh = GHTorrent::Mirror.new(options[:config])
     @settings = @gh.settings
 
     # Graceful exit
-    Signal.trap('INT') { AMQP.stop { EM.stop } }
-    Signal.trap('TERM') { AMQP.stop { EM.stop } }
+    Signal.trap('INT') {
+      info ("Received SIGINT, exiting")
+      AMQP.stop { EM.stop }
+    }
+    Signal.trap('TERM') {
+      info ("Received SIGTERM, exiting")
+      AMQP.stop { EM.stop }
+    }
 
     AMQP.start(:host => config(:amqp_host),
                :port => config(:amqp_port),

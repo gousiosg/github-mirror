@@ -28,6 +28,7 @@
 
 require 'trollop'
 require 'daemons'
+require 'etc'
 
 # Base class for all GHTorrent command line utilities. Provides basic command
 # line argument parsing and command bootstraping support. The order of
@@ -39,7 +40,7 @@ require 'daemons'
 module GHTorrent
   class Command
 
-    attr_reader :args, :options
+    attr_reader :args, :options, :name
 
     # Specify the run method for subclasses.
     class << self
@@ -49,9 +50,26 @@ module GHTorrent
         command.validate
 
         if command.options[:daemon]
-          Daemons.daemonize(:app_name => "foo",
-                            :dir_mode => :script,
-                            :log_output => true)
+          if Process.uid == 0
+            # Daemonize as a proper system daemon
+            Daemons.daemonize(:app_name   => File.basename($0),
+                              :dir_mode   => :system,
+                              :log_dir    => "/var/log",
+                              :backtrace  => true,
+                              :log_output => true)
+            STDERR.puts "Became a daemon"
+            # Change effective user id for the process
+            unless command.options[:user].nil?
+              Process.euid = Etc.getpwnam(command.options[:user]).uid
+            end
+          else
+            # Daemonize, but output in current directory
+            Daemons.daemonize(:app_name   => File.basename($0),
+                              :dir_mode   => :normal,
+                              :dir        => Dir.getwd,
+                              :backtrace  => true,
+                              :log_output => true)
+          end
         end
 
         begin
@@ -70,6 +88,7 @@ module GHTorrent
 
     def initialize(args)
       @args = args
+      @name = self.class.name
     end
 
     # Specify and parse supported command line options.
@@ -87,6 +106,8 @@ Standard options:
             :default => 'config.yaml'
         opt :verbose, 'verbose mode', :short => 'v'
         opt :daemon, 'run as daemon', :short => 'd'
+        opt :user, 'run as the specified user (only when started as root)',
+            :short => 'u', :type => String
       end
 
       @args = @args.dup
@@ -111,10 +132,21 @@ Standard options:
         unless (file_exists?("config.yaml") or file_exists?("/etc/ghtorrent/config.yaml"))
           Trollop::die "No config file in default locations (., /etc/ghtorrent)
                       you need to specify the #{:config} parameter. Read the
-                      documnetation on how to create a config.yaml file."
+                      documentation on how to create a config.yaml file."
         end
       else
         Trollop::die "Cannot find file #{options[:config]}" unless file_exists?(options[:config])
+      end
+
+      unless @options[:user].nil?
+        if not Process.uid == 0
+          Trollop::die "Option --user (-u) cannot be specified by normal users"
+        end
+          begin
+            Etc.getpwnam(@options[:user])
+          rescue ArgumentError
+            Trollop::die "No such user: #{@options[:user]}"
+          end
       end
     end
 
