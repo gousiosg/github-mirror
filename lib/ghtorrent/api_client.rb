@@ -43,27 +43,46 @@ module GHTorrent
     
     def paged_api_request(url, pages = -1)
 
-      pg = if pages == -1 then
-             1000000
-           else
-             pages
-           end
-      result = Array.new
+      data = api_request_raw(url)
 
-      (1..pg).each { |x|
-        data = api_request("#{url}?page=#{x}")
-        result += data
-        break if data.empty?
-      }
-      result
+      return [] if data.nil?
+
+      unless data.meta['link'].nil?
+        links = parse_links(data.meta['link'])
+        if links['last'].nil? or url == links['last']
+          parse_request_result(data)
+        else
+          parse_request_result(data) | paged_api_request(links['next'])
+        end
+      else
+        parse_request_result(data)
+      end
     end
 
     def api_request(url)
-      result = api_request_raw(url)
+      parse_request_result api_request_raw(url)
+    end
+
+    private
+
+    def parse_links(links)
+      links.split(/,/).reduce({}) do |acc, x|
+        matches = x.strip.match(/<(.*)>; rel=\"(.*)\"/)
+        acc[matches[2]] = matches[1]
+        acc
+      end
+    end
+
+    def parse_request_result(result)
       if result.nil?
         nil
       else
-        JSON.parse(result)
+        json = result.read
+        if json.nil?
+          nil
+        else
+          JSON.parse(json)
+        end
       end
     end
 
@@ -86,7 +105,7 @@ module GHTorrent
       @num_api_calls += 1
       debug "APIClient: Request: #{url} (num_calls = #{@num_api_calls})"
       begin
-        open(url).read
+        open(url)
       rescue OpenURI::HTTPError => e
         case e.io.status[0].to_i
           # The following indicate valid Github return codes
