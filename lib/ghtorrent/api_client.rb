@@ -40,8 +40,10 @@ module GHTorrent
       @num_api_calls = 0
       @ts = Time.now().tv_sec()
     end
-    
-    def paged_api_request(url, pages = -1)
+
+    # A paged request. Used when the result can expand to more than one
+    # result pages.
+    def paged_api_request(url)
 
       data = api_request_raw(url)
 
@@ -49,7 +51,7 @@ module GHTorrent
 
       unless data.meta['link'].nil?
         links = parse_links(data.meta['link'])
-        if links['last'].nil? or url == links['last']
+        if links['next'].nil?
           parse_request_result(data)
         else
           parse_request_result(data) | paged_api_request(links['next'])
@@ -59,12 +61,15 @@ module GHTorrent
       end
     end
 
+    # A normal request. Returns a hash or an array of hashes representing the
+    # parsed JSON result.
     def api_request(url)
       parse_request_result api_request_raw(url)
     end
 
     private
 
+    # Parse a Github link header
     def parse_links(links)
       links.split(/,/).reduce({}) do |acc, x|
         matches = x.strip.match(/<(.*)>; rel=\"(.*)\"/)
@@ -73,19 +78,21 @@ module GHTorrent
       end
     end
 
+    # Parse the JSON result array
     def parse_request_result(result)
       if result.nil?
-        nil
+        []
       else
         json = result.read
         if json.nil?
-          nil
+          []
         else
           JSON.parse(json)
         end
       end
     end
 
+    # Do the actual request and return the result object
     def api_request_raw(url)
       #Rate limiting to avoid error requests
       if Time.now().tv_sec() - @ts < 60 then

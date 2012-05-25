@@ -44,7 +44,7 @@ module GHTorrent
         url = ghurl "users/#{user}"
         u = api_request(url)
 
-        if u.nil?
+        if u.empty?
           throw GHTorrentException.new("Cannot find user #{user}")
         end
 
@@ -63,7 +63,10 @@ module GHTorrent
     # http://develop.github.com/p/users.html
     def retrieve_user_byemail(email, name)
       url = ghurl_v2("user/email/#{email}")
-      api_request(url)
+      r = api_request(url)
+
+      return nil if r.empty?
+      r
     end
 
     def retrieve_new_user_followers(user)
@@ -95,7 +98,7 @@ module GHTorrent
         url = ghurl "repos/#{user}/#{repo}/commits/#{sha}"
         c = api_request(url)
 
-        if c.nil?
+        if c.empty?
           throw GHTorrentException.new("Cannot find commit #{user}/#{repo}/#{sha}")
         end
 
@@ -116,7 +119,7 @@ module GHTorrent
         url = ghurl "repos/#{user}/#{repo}"
         r = api_request(url)
 
-        if r.nil?
+        if r.empty?
           throw GHTorrentException.new("Cannot find repo #{user}/#{repo}")
         end
 
