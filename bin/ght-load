@@ -113,7 +113,7 @@ Loads object ids from a collection to a queue for further processing.
                      :commits
                  end
 
-    puts "Loading form collection #{collection}"
+    puts "Loading from collection #{collection}"
     puts "Loading items after #{Time.at(options[:earliest])}" if options[:verbose]
 
     what = case

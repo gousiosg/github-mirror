@@ -114,6 +114,17 @@ module GHTorrent
     end
 
     ##
+    # Get all commits (as many as allowed by Github's API restrictions)
+    #
+    # ==Parameters:
+    # [user]  The user to whom the repo belongs.
+    # [repo]  The repo to look for commits into.
+    def get_commits(user, repo)
+
+
+    end
+
+    ##
     # Add (or update) an entry for a commit author. This method uses information
     # in the JSON object returned by Github to add (or update) a user in the
     # metadata database with a full user entry (both Git and Github details).
@@ -284,9 +295,9 @@ module GHTorrent
     # Github API v2 if unsuccessful.
     #
     # ==Parameters:
-    #  user::
-    #     The email to lookup the user by
-    #
+    # [email]  The email to lookup the user by
+    # [email]  The user's name
+    # [followers]  If true, the user's followers will be retrieved
     # == Returns:
     # If the user can be retrieved, it is returned as a Hash. Otherwise,
     # the result is nil
@@ -334,8 +345,9 @@ module GHTorrent
     # [user]  The email or login name to which this repo belongs
     # [repo]  The repo name
     #
-    # == Returns: If the repo can be retrieved, it is returned as a Hash.
-    #             Otherwise, the result is nil
+    # == Returns:
+    #  If the repo can be retrieved, it is returned as a Hash. Otherwise,
+    #  the result is nil
     def ensure_repo(user, repo)
 
       ensure_user(user, false)
@@ -360,7 +372,7 @@ module GHTorrent
       end
     end
 
-  private
+    private
 
     ##
     # Convert a string value to boolean, the SQL way
@@ -388,7 +400,6 @@ module GHTorrent
   end
   # Base exception for all GHTorrent exceptions
   class GHTorrentException < Exception
-
   end
 
 end
