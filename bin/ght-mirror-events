@@ -44,23 +44,47 @@ class GHTMirrorEvents < GHTorrent::Command
 
   attr_reader :settings
 
+  def initialize(args)
+    super(args)
+    @args = args
+    @name = self.class.name
+  end
+
+  def store_count(events)
+    stored = Array.new
+    new = dupl = 0
+    events.each do |e|
+      if find(:events, {'id' => e['id']}).empty?
+        stored << e
+        new += 1
+        store(:events, e)
+        info "Added #{e['id']}"
+      else
+        info "Already got #{e['id']}"
+        dupl += 1
+      end
+    end
+    return new, dupl, stored
+  end
+
   # Retrieve events from Github, store them in the DB
   def retrieve(exchange)
     begin
       new = dupl = 0
-      events = @gh.get_events
+      events = api_request "https://api.github.com/events"
+      (new, dupl, stored) = store_count events
 
-      events.each do |e|
-        unless @persister.find(:events, {'id' => e['id']}).empty?
-          info "Already got #{e['id']}"
-          dupl += 1
-          next
-        end
+      # This means that first page cannot contain all new events. Go
+      # up to 10 pages back to find all new events not contained in first page.
+      if dupl == 0
+        events = paged_api_request "https://api.github.com/events", 10
+        (new1, dupl1, stored1) = store_count events
+        stored = stored | stored1
+        new = new + new1
+        new
+      end
 
-        new += 1
-        @persister.store(:events, e)
-        info "Added #{e['id']}"
-
+      stored.each {|e|
         msg = JSON.dump(e)
         key = "evt.%s" % e['type']
         exchange.publish msg, :persistent => true, :routing_key => key
@@ -110,7 +134,7 @@ class GHTMirrorEvents < GHTorrent::Command
       # Initial delay for the retrieve event loop
       retrieval_delay = config(:mirror_pollevery)
 
-      # Retrieve commits.
+      # Retrieve events
       retriever = EventMachine.add_periodic_timer(retrieval_delay) do
         (new, dupl) = retrieve exchange
         dupl_msgs += dupl
