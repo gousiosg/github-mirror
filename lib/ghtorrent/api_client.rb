@@ -43,7 +43,7 @@ module GHTorrent
 
     # A paged request. Used when the result can expand to more than one
     # result pages.
-    def paged_api_request(url)
+    def paged_api_request(url, pages = -1)
 
       data = api_request_raw(url)
 
@@ -51,10 +51,18 @@ module GHTorrent
 
       unless data.meta['link'].nil?
         links = parse_links(data.meta['link'])
+
+        if pages > 0
+          pages = pages - 1
+          if pages == 0
+            return parse_request_result(data)
+          end
+        end
+
         if links['next'].nil?
           parse_request_result(data)
         else
-          parse_request_result(data) | paged_api_request(links['next'])
+          parse_request_result(data) | paged_api_request(links['next'], pages)
         end
       else
         parse_request_result(data)
