@@ -23,6 +23,11 @@ mirror:
   persister: mongo #or no-op
   uniq_id: 'ext_ref_id' # Field that links persister entries to SQL entries
 
+  # Number of commit pages to retrieve when a new repo is added. Each page
+  # contains 30 commits. Increasing this number much will slow down browsing
+  # significantly in new installations.
+  commit_pages_new_repo: 3
+
 mongo:
   host: 127.0.0.1      # Mongo's IP addr
   port: 27017          # Mongo's port

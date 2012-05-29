@@ -47,6 +47,7 @@ module GHTorrent
         :mirror_reqrate => "mirror.reqrate",
         :mirror_pollevery => "mirror.pollevery",
         :mirror_persister => "mirror.persister",
+        :mirror_commit_pages_new_repo => "mirror.commit_pages_new_repo",
 
         :uniq_id => "uniq_id"
     }

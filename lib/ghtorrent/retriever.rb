@@ -122,7 +122,7 @@ module GHTorrent
                  end
 
       url = ghurl "repos/#{user}/#{repo}/commits?last_sha=#{last_sha}"
-      commits = paged_api_request(url, 10)
+      commits = paged_api_request(url, config(:mirror_commit_pages_new_repo))
 
       commits.reduce(Array.new) do |acc, c|
         commit = @persister.find(:commits, {'sha' => "#{c['sha']}"})
