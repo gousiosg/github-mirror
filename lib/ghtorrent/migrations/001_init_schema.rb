@@ -12,7 +12,7 @@ Sequel.migration do
       String :email, :null => true, :unique => true
       TrueClass :hireable, :null => true
       String :bio, :null => true
-      Time :created_at, :null => false
+      DateTime :created_at, :null => false, :default=>Sequel::CURRENT_TIMESTAMP
     end
 
     puts("Creating table projects")
@@ -23,7 +23,7 @@ Sequel.migration do
       String :name, :null => false
       String :description
       String :language
-      Time :created_at, :null => false
+      DateTime :created_at, :null => false, :default=>Sequel::CURRENT_TIMESTAMP
     end
 
     puts("Creating table commits")
@@ -32,7 +32,8 @@ Sequel.migration do
       String :sha, :size => 40, :unique => true
       foreign_key :author_id, :users
       foreign_key :committer_id, :users
-      Time :created_at, :null => false
+      foreign_key :project_id, :projects
+      DateTime :created_at, :null => false, :default=>Sequel::CURRENT_TIMESTAMP
     end
 
     puts("Creating table commit_parents")
