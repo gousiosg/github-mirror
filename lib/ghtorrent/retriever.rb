@@ -112,6 +112,31 @@ module GHTorrent
       end
     end
 
+    # Retrieve all project commits or 500 (whatever comes first),
+    # starting from the provided +sha+
+    def retrieve_commits(repo, sha, user)
+      last_sha = if sha.nil?
+                  "master"
+                 else
+                  sha
+                 end
+
+      url = ghurl "repos/#{user}/#{repo}/commits?last_sha=#{last_sha}"
+      commits = paged_api_request(url, 10)
+
+      commits.reduce(Array.new) do |acc, c|
+        commit = @persister.find(:commits, {'sha' => "#{c['sha']}"})
+
+        if commit.empty?
+          acc << retrieve_commit(repo, c['sha'], user)
+        else
+          debug "Retriever: Already got commit #{repo} -> #{c['sha']}"
+        end
+        acc
+      end
+    end
+
+
     def retrieve_repo(user, repo)
       stored_repo = @persister.find(:repos, {'owner.login' => user,
                                              'name' => repo })

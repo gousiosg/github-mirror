@@ -78,49 +78,44 @@ module GHTorrent
         return
       end
 
-      commits = @db[:commits]
-      commit = commits.first(:sha => sha)
-
-      if commit.nil?
-        @db.transaction(:rollback => :reraise) do
-          ensure_repo(user, repo)
-          c = retrieve_commit(repo, sha, user)
-
-          author = commit_user(c['author'], c['commit']['author'])
-          commiter = commit_user(c['committer'], c['commit']['committer'])
-
-          commits.insert(:sha => sha,
-                         :author_id => author[:id],
-                         :committer_id => commiter[:id],
-                         :created_at => date(c['commit']['author']['date']),
-                         :ext_ref_id => c[@ext_uniq]
-          )
-
-          #c['parents'].each do |p|
-          #  url = p['url'].split(/\//)
-          #  get_commit url[4], url[5], url[7]
-          #
-          #  commit = commits.first(:sha => sha)
-          #  parent = commits.first(:sha => url[7])
-          #  @db[:commit_parents].insert(:commit_id => commit[:id],
-          #                              :parent_id => parent[:id])
-          #  @log.info "Added parent #{parent[:sha]} to commit #{sha}"
-          #end
-        end
-        debug "GHTorrent: Transaction committed"
-      else
-        debug "GHTorrent: Commit #{sha} exists"
+      transaction do
+        ensure_repo(user, repo)
+        store_commit(retrieve_commit(repo, sha, user), repo, user)
+        #c['parents'].each do |p|
+        #  url = p['url'].split(/\//)
+        #  get_commit url[4], url[5], url[7]
+        #
+        #  commit = commits.first(:sha => sha)
+        #  parent = commits.first(:sha => url[7])
+        #  @db[:commit_parents].insert(:commit_id => commit[:id],
+        #                              :parent_id => parent[:id])
+        #  @log.info "Added parent #{parent[:sha]} to commit #{sha}"
+        #end
       end
     end
 
     ##
-    # Get all commits (as many as allowed by Github's API restrictions)
+    # Get as many commits for a repository as allowed by Github
     #
     # ==Parameters:
     # [user]  The user to whom the repo belongs.
     # [repo]  The repo to look for commits into.
-    def get_commits(user, repo)
+    def ensure_commits(user, repo)
+      userid = @db[:users].filter(:login => user).first[:id]
+      repoid = @db[:projects].filter(:owner_id => userid,
+                                     :name => repo).first[:id]
 
+      latest = @db[:commits].filter(:project_id => repoid).order(:created_at).last
+      commits = if latest.nil?
+                  retrieve_commits(repo, nil, user)
+                else
+                  retrieve_commits(repo, latest[:sha], user)
+                end
+
+      commits.map{|c| store_commit(c, repo, user)}
+    end
+
+    def ensure_parents
 
     end
 
@@ -131,10 +126,8 @@ module GHTorrent
     # Resolution of how
     #
     # ==Parameters:
-    #  githubuser::
-    #     A hash containing the user's Github login
-    #  commituser::
-    #     A hash containing the Git commit's user name and email
+    # [githubuser]  A hash containing the user's Github login
+    # [commituser]  A hash containing the Git commit's user name and email
     # == Returns:
     # The (added/modified) user entry as a Hash.
     def commit_user(githubuser, commituser)
@@ -366,6 +359,7 @@ module GHTorrent
 
         info "GHTorrent: New repo #{repo}"
         repos.first(:name => repo)
+        ensure_commits(user, repo)
       else
         debug "GHTorrent: Repo #{repo} exists"
         currepo
@@ -373,6 +367,44 @@ module GHTorrent
     end
 
     private
+
+    # Store a commit contained in a hash. First check whether the commit exists.
+    def store_commit(c, repo, user)
+      commits = @db[:commits]
+      commit = commits.first(:sha => c['sha'])
+
+      if commit.nil?
+        author = commit_user(c['author'], c['commit']['author'])
+        commiter = commit_user(c['committer'], c['commit']['committer'])
+
+
+        userid = @db[:users].filter(:login => user).first[:id]
+        repoid = @db[:projects].filter(:owner_id => userid,
+                                       :name => repo).first[:id]
+
+        commits.insert(:sha => c['sha'],
+                       :author_id => author[:id],
+                       :committer_id => commiter[:id],
+                       :project_id => repoid,
+                       :created_at => date(c['commit']['author']['date']),
+                       :ext_ref_id => c[@ext_uniq]
+        )
+        debug "GHTorrent: New commit #{repo} -> #{c['sha']} "
+      else
+        debug "GHTorrent: Commit #{repo} -> #{c['sha']} exists"
+      end
+    end
+
+    # Run a block in a DB transaction. Exceptions trigger transaction rollback
+    # and are rethrown.
+    def transaction(&block)
+      start_time = Time.now
+      @db.transaction(:rollback => :reraise, :isolation => :committed) do
+        yield block
+      end
+      total = Time.now.to_ms - start_time.to_ms
+      debug "GHTorrent: Transaction committed (#{total} ms)"
+    end
 
     ##
     # Convert a string value to boolean, the SQL way
@@ -391,7 +423,7 @@ module GHTorrent
     # - yyyy-mm-ddThh:mm:ssZ
     # - yyyy/mm/dd hh:mm:ss {+/-}hhmm
     def date(arg)
-      Time.parse(arg).to_i
+      Time.parse(arg)#.to_i
     end
 
     def is_valid_email(email)
@@ -401,7 +433,12 @@ module GHTorrent
   # Base exception for all GHTorrent exceptions
   class GHTorrentException < Exception
   end
+end
 
+class Time
+  def to_ms
+    (self.to_f * 1000.0).to_i
+  end
 end
 
 # vim: set sta sts=2 shiftwidth=2 sw=2 et ai :
