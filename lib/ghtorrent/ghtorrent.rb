@@ -80,17 +80,9 @@ module GHTorrent
 
       transaction do
         ensure_repo(user, repo)
-        store_commit(retrieve_commit(repo, sha, user), repo, user)
-        #c['parents'].each do |p|
-        #  url = p['url'].split(/\//)
-        #  get_commit url[4], url[5], url[7]
-        #
-        #  commit = commits.first(:sha => sha)
-        #  parent = commits.first(:sha => url[7])
-        #  @db[:commit_parents].insert(:commit_id => commit[:id],
-        #                              :parent_id => parent[:id])
-        #  @log.info "Added parent #{parent[:sha]} to commit #{sha}"
-        #end
+        c = retrieve_commit(repo, sha, user)
+        store_commit(c, repo, user)
+        ensure_parents(c)
       end
     end
 
@@ -112,11 +104,35 @@ module GHTorrent
                   retrieve_commits(repo, latest[:sha], user)
                 end
 
-      commits.map{|c| store_commit(c, repo, user)}
+      commits.map{|c| store_commit(c, repo, user); ensure_parents(c)}
     end
 
-    def ensure_parents
+    ##
+    # Get the parents for a specific commit. The commit must be first stored
+    # in the database.
+    def ensure_parents(commit)
+      commits = @db[:commits]
+      commit['parents'].each do |p|
+          parents =  @db[:commit_parents]
+          url = p['url'].split(/\//)
+          this = commits.first(:sha => commit['sha'])
+          parent = commits.first(:sha => url[7])
 
+          if parent.nil?
+            store_commit(retrieve_commit(url[5], url[7], url[4]), url[5], url[4])
+            parent = commits.first(:sha => url[7])
+          end
+
+          if parents.first(:commit_id => this[:id],
+                           :parent_id => parent[:id]).nil?
+
+            parents.insert(:commit_id => this[:id],
+                           :parent_id => parent[:id])
+            info "Added parent #{parent[:sha]} to commit #{this[:sha]}"
+          else
+            info "Parent #{parent[:sha]} for commit #{this[:sha]} exists"
+          end
+        end
     end
 
     ##
