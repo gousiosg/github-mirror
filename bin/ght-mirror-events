@@ -41,6 +41,7 @@ class GHTMirrorEvents < GHTorrent::Command
   include GHTorrent::Settings
   include GHTorrent::Logging
   include GHTorrent::Persister
+  include GHTorrent::APIClient
 
   attr_reader :settings
 
@@ -54,10 +55,10 @@ class GHTMirrorEvents < GHTorrent::Command
     stored = Array.new
     new = dupl = 0
     events.each do |e|
-      if find(:events, {'id' => e['id']}).empty?
+      if @persister.find(:events, {'id' => e['id']}).empty?
         stored << e
         new += 1
-        store(:events, e)
+        @persister.store(:events, e)
         info "Added #{e['id']}"
       else
         info "Already got #{e['id']}"
@@ -84,7 +85,7 @@ class GHTMirrorEvents < GHTorrent::Command
         new
       end
 
-      stored.each {|e|
+      stored.each do |e|
         msg = JSON.dump(e)
         key = "evt.%s" % e['type']
         exchange.publish msg, :persistent => true, :routing_key => key

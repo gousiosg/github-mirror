@@ -32,7 +32,6 @@ module GHTorrent
 
     ENTITIES = [:users, :commits, :followers, :repos, :events]
 
-
     # Stores +data+ into +entity+. Returns a unique key for the stored entry.
     def store(entity, data = {})
       unless ENTITIES.include?(entity)
