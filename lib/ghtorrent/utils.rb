@@ -28,6 +28,11 @@
 
 module GHTorrent
   module Utils
+
+    def self.included(other)
+      other.extend self
+    end
+
     # Read a value whose format is "foo.bar.baz" from a hierarchical map
     # (the result of a JSON parse or a Mongo query), where a dot represents
     # one level deep in the result hierarchy.
@@ -52,6 +57,14 @@ module GHTorrent
           # This indicates a malformed entry
           return nil
         end
+      end
+    end
+
+    def user_type(type)
+      if type == "User"
+        "USR"
+      else
+        "ORG"
       end
     end
   end

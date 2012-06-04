@@ -30,7 +30,7 @@ module GHTorrent
 
   class BaseAdapter
 
-    ENTITIES = [:users, :commits, :followers, :repos, :events]
+    ENTITIES = [:users, :commits, :followers, :repos, :events, :org_members]
 
     # Stores +data+ into +entity+. Returns a unique key for the stored entry.
     def store(entity, data = {})

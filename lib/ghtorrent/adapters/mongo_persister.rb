@@ -63,7 +63,8 @@ module GHTorrent
           :commits => get_collection("commits"),
           :repos => get_collection("repos"),
           :followers => get_collection("followers"),
-          :events => get_collection("events")
+          :events => get_collection("events"),
+          :org_members => get_collection("org_members")
       }
 
       # Ensure that the necessary indexes exist
@@ -71,6 +72,7 @@ module GHTorrent
       ensure_index(:commits, "sha")
       ensure_index(:repos, "name")
       ensure_index(:followers, "follows")
+      ensure_index(:org_members, "org")
     end
 
 

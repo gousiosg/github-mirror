@@ -29,8 +29,8 @@
 module GHTorrent
   module Retriever
 
+    include GHTorrent::Utils
     include GHTorrent::APIClient
-    include GHTorrent::Settings
 
     def initialize(settings)
       super(settings)
@@ -50,10 +50,12 @@ module GHTorrent
 
         unq = @persister.store(:users, u)
         u[@uniq] = unq
-        info "Retriever: New user #{user}"
+        what = user_type(u['type'])
+        info "Retriever: New #{what} #{user}"
         u
       else
-        debug "Retriever: Already got user #{user}"
+        what = user_type(stored_user.first['type'])
+        debug "Retriever: Already got #{what} #{user}"
         stored_user.first
       end
     end
@@ -69,7 +71,7 @@ module GHTorrent
       r
     end
 
-    def retrieve_new_user_followers(user)
+    def retrieve_user_followers(user)
       stored_followers = @persister.find(:followers, {'follows' => user})
 
       followers = paged_api_request(ghurl "users/#{user}/followers")
@@ -91,6 +93,7 @@ module GHTorrent
       @persister.find(:followers, {'follows' => user})
     end
 
+    # Retrieve a single commit from a repo
     def retrieve_commit(repo, sha, user)
       commit = @persister.find(:commits, {'sha' => "#{sha}"})
 
@@ -156,6 +159,42 @@ module GHTorrent
         debug "Retriever: Already got repo #{user} -> #{repo}"
         stored_repo.first
       end
+    end
+
+    # Retrieve organizations the provided user participates into
+    def retrieve_orgs(user)
+      url = ghurl "users/#{user}/orgs"
+      orgs = paged_api_request(url)
+      orgs.map{|o| retrieve_org(o['login'])}
+    end
+
+    # Retrieve a single organization
+    def retrieve_org(org)
+      retrieve_user_byusername(org)
+    end
+
+    # Retrieve organization members
+    def retrieve_org_members(org)
+      url = ghurl "orgs/#{org}/members"
+      stored_org_members = @persister.find(:org_members, {'org' => org})
+
+      org_members = paged_api_request(ghurl "orgs/#{org}/members")
+      org_members.each do |x|
+        x['org'] = org
+
+        exists = !stored_org_members.find { |f|
+          f['org'] == user && f['login'] == x['login']
+        }.nil?
+
+        if not exists
+          @persister.store(:org_members, x)
+          info "Retriever: Added member #{org} -> #{x['login']}"
+        else
+          debug "Retriever: Member #{org} -> #{x['login']} exists"
+        end
+      end
+
+      @persister.find(:org_members, {'org' => org}).map{|o| retrieve_org(o['login'])}
     end
 
     # Get current Github events
