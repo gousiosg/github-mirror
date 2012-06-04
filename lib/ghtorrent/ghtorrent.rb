@@ -159,13 +159,13 @@ module GHTorrent
       login = githubuser['login'] unless githubuser.nil?
 
       if login.nil?
-        ensure_user("#{name}<#{email}>", true)
+        ensure_user("#{name}<#{email}>", true, false)
       else
         dbuser = users.first(:login => login)
         byemail = users.first(:email => email)
         if dbuser.nil?
           # We do not have the user in the database yet. Add him
-          added = ensure_user(login, true)
+          added = ensure_user(login, true, false)
           if byemail.nil?
             #
             users.filter(:login => login).update(:name => name) if added[:name].nil?
@@ -205,7 +205,7 @@ module GHTorrent
     # == Returns:
     # If the user can be retrieved, it is returned as a Hash. Otherwise,
     # the result is nil
-    def ensure_user(user, followers)
+    def ensure_user(user, followers, orgs)
       # Github only supports alpa-nums and dashes in its usernames.
       # All other sympbols are treated as emails.
       u = if not user.match(/^[A-Za-z0-9\-]*$/)
@@ -215,10 +215,13 @@ module GHTorrent
             rescue Exception
               raise new GHTorrentException("Not a valid email address: #{user}")
             end
-            ensure_user_byemail(email.strip, name.strip, followers)
+            ensure_user_byemail(email.strip, name.strip)
           else
-            ensure_user_byuname(user, followers)
+            ensure_user_byuname(user)
           end
+
+      ensure_user_followers(user) unless followers
+      ensure_orgs(user) unless orgs
       return u
     end
 
@@ -231,7 +234,7 @@ module GHTorrent
     # == Returns:
     # If the user can be retrieved, it is returned as a Hash. Otherwise,
     # the result is nil
-    def ensure_user_byuname(user, followers)
+    def ensure_user_byuname(user)
       users = @db[:users]
       usr = users.first(:login => user)
 
@@ -252,13 +255,11 @@ module GHTorrent
                      :hireable => boolean(u['hirable']),
                      :bio => u['bio'],
                      :location => u['location'],
+                     :type =>  user_type(u['type']),
                      :created_at => date(u['created_at']),
                      :ext_ref_id => u[@ext_uniq])
 
         info "GHTorrent: New user #{user}"
-
-        # Get the user's followers
-        ensure_user_followers(user) if followers
 
         users.first(:login => user)
       else
@@ -276,11 +277,11 @@ module GHTorrent
     # [user]  The user login to find followers by
     def ensure_user_followers(user, ts = Time.now)
 
-      followers = retrieve_new_user_followers(user)
+      followers = retrieve_user_followers(user)
       followers.each { |f|
         follower = f['login']
-        ensure_user(user, false)
-        ensure_user(follower, false)
+        ensure_user(user, false, false)
+        ensure_user(follower, false, false)
 
         userid = @db[:users].select(:id).first(:login => user)[:id]
         followerid = @db[:users].select(:id).first(:login => follower)[:id]
@@ -310,7 +311,7 @@ module GHTorrent
     # == Returns:
     # If the user can be retrieved, it is returned as a Hash. Otherwise,
     # the result is nil
-    def ensure_user_byemail(email, name, followers)
+    def ensure_user_byemail(email, name)
       users = @db[:users]
       usr = users.first(:email => email)
 
@@ -338,7 +339,6 @@ module GHTorrent
                        :created_at => date(u['user']['created_at']),
                        :ext_ref_id => u[@ext_uniq])
           debug "GHTorrent: Found #{email} through API v2 query"
-          ensure_user_followers(user) if followers
           users.first(:email => email)
         end
       else
@@ -359,7 +359,7 @@ module GHTorrent
     #  the result is nil
     def ensure_repo(user, repo)
 
-      ensure_user(user, false)
+      ensure_user(user, true, true)
       repos = @db[:projects]
       currepo = repos.first(:name => repo)
 
@@ -379,6 +379,49 @@ module GHTorrent
       else
         debug "GHTorrent: Repo #{repo} exists"
         currepo
+      end
+    end
+
+    ##
+    # Make sure that the organizations the user participates into exist
+    #
+    # ==Parameters:
+    # [user]  The login name of the user to check the organizations for
+    #
+    def ensure_orgs(user)
+      user = @db[:users].first(:login => user)
+      retrieve_orgs(user).map{|o| ensure_participates(user, o)}
+    end
+
+    ##
+    # Make sure that a user belongs to the provided organization
+    #
+    # ==Parameters:
+    # [user] The login name of the user to check the organizations for
+    # [org]  The login name of the organization to check whether the user
+    #        belongs in
+    #
+    def ensure_participates(user, org)
+      ensure_org(org)
+      org_members = @db[:organization_members]
+      org_members.find()
+
+    end
+
+    ##
+    # Make sure that an organization exists
+    #
+    # ==Parameters:
+    # [org]  The login name of the organization
+    #
+    def ensure_org(org)
+      org = db[:users].find(:login => org, :type => 'org')
+
+      if org.nil?
+        ensure_user(org, false, false)
+      else
+        debug "GHTorrent: Organization #{org} exists"
+        org
       end
     end
 
