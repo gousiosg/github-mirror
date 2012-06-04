@@ -197,31 +197,31 @@ module GHTorrent
     ##
     # Ensure that a user exists, or fetch its latest state from Github
     # ==Parameters:
-    #  user::
-    #     The full email address in RFC 822 format
-    #     or a login name to lookup the user by
-    #  followers::
-    #     A boolean value indicating whether to retrieve the user's followers
-    # == Returns:
+    #  [user] The full email address in RFC 822 format or a login name to lookup
+    #         the user by
+    #  [followers] A boolean value indicating whether to retrieve the user's
+    #              followers
+    #  [orgs] A boolean value indicating whether to retrieve the organizations
+    #         the user participates into
+    # ==Returns:
     # If the user can be retrieved, it is returned as a Hash. Otherwise,
     # the result is nil
     def ensure_user(user, followers, orgs)
       # Github only supports alpa-nums and dashes in its usernames.
       # All other sympbols are treated as emails.
-      u = if not user.match(/^[A-Za-z0-9\-]*$/)
-            begin
-              name, email = user.split("<")
-              email = email.split(">")[0]
-            rescue Exception
-              raise new GHTorrentException("Not a valid email address: #{user}")
-            end
-            ensure_user_byemail(email.strip, name.strip)
-          else
-            ensure_user_byuname(user)
-          end
-
-      ensure_user_followers(user) unless followers
-      ensure_orgs(user) unless orgs
+      if not user.match(/^[A-Za-z0-9\-]*$/)
+        begin
+          name, email = user.split("<")
+          email = email.split(">")[0]
+        rescue Exception
+          raise new GHTorrentException("Not a valid email address: #{user}")
+        end
+        u = ensure_user_byemail(email.strip, name.strip)
+      else
+        u = ensure_user_byuname(user)
+        ensure_user_followers(user) if followers
+        ensure_orgs(user) if orgs
+      end
       return u
     end
 
@@ -374,8 +374,8 @@ module GHTorrent
                      :ext_ref_id => r[@ext_uniq])
 
         info "GHTorrent: New repo #{repo}"
-        repos.first(:name => repo)
         ensure_commits(user, repo)
+        repos.first(:name => repo)
       else
         debug "GHTorrent: Repo #{repo} exists"
         currepo
@@ -389,8 +389,8 @@ module GHTorrent
     # [user]  The login name of the user to check the organizations for
     #
     def ensure_orgs(user)
-      user = @db[:users].first(:login => user)
-      retrieve_orgs(user).map{|o| ensure_participates(user, o)}
+      usr = @db[:users].first(:login => user)
+      retrieve_orgs(user).map{|o| ensure_participation(user, o['login'])}
     end
 
     ##
@@ -401,10 +401,22 @@ module GHTorrent
     # [org]  The login name of the organization to check whether the user
     #        belongs in
     #
-    def ensure_participates(user, org)
-      ensure_org(org)
+    def ensure_participation(user, organization)
+      org = ensure_org(organization)
+      usr = ensure_user(user, false, false)
+
       org_members = @db[:organization_members]
-      org_members.find()
+      participates = org_members.first(:user_id => usr[:id], :org_id => org[:id])
+
+      if participates.nil?
+        org_members.insert(:user_id => usr[:id],
+                           :org_id => org[:id])
+        info "GHTorrent: Added participation #{organization} -> #{user}"
+        org_members.first(:user_id => usr[:id], :org_id => org[:id])
+      else
+        debug "GHTorrent: Participation #{organization} -> #{user} exists"
+        participates
+      end
 
     end
 
@@ -414,14 +426,14 @@ module GHTorrent
     # ==Parameters:
     # [org]  The login name of the organization
     #
-    def ensure_org(org)
-      org = db[:users].find(:login => org, :type => 'org')
+    def ensure_org(organization)
+      org = @db[:users].find(:login => organization, :type => 'org')
 
       if org.nil?
         ensure_user(org, false, false)
       else
-        debug "GHTorrent: Organization #{org} exists"
-        org
+        debug "GHTorrent: Organization #{organization} exists"
+        org.first
       end
     end
 
