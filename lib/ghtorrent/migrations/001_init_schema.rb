@@ -47,6 +47,7 @@ Sequel.migration do
     create_table :followers do
       foreign_key :user_id, :users, :null => false
       foreign_key :follower_id, :users, :null => false
+      DateTime :created_at, :null => false, :default=>Sequel::CURRENT_TIMESTAMP
       primary_key [:user_id, :follower_id]
     end
   end
