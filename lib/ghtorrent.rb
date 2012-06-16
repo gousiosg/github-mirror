@@ -1,7 +1,7 @@
 #require 'ghtorrent-old/ghtorrent-old'
 
 module GHTorrent
-  VERSION = 0.2
+  VERSION = 0.3
 end
 
 require 'ghtorrent/command'
