@@ -197,6 +197,58 @@ module GHTorrent
       @persister.find(:org_members, {'org' => org}).map{|o| retrieve_org(o['login'])}
     end
 
+    # Retrieve all commit comments for a specific repository
+    def retrieve_repo_comments(repo, user)
+      commit_comments = paged_api_request(ghurl "/repos/#{user}/#{repo}/comments")
+      stored_comments = @persister.find(:commit_comments,
+                                        {'repo' => repo,
+                                         'user' => user})
+      store_commit_comments(repo, user, commit_comments, stored_comments)
+    end
+
+    # Retrieve all comments for a single commit
+    def retrieve_commit_comments(user, repo, sha)
+      # Optimization: if no commits comments are registered for the repo
+      # get them en masse
+      items = @persister.count(:commit_comments, {'repo' => repo, 'user' => user})
+      if items == 0
+        retrieve_repo_comments(repo, user)
+        return retrieve_commit_comments(user, repo, sha)
+      end
+
+      stored_comments = @persister.find(:commit_comments, {'commit_id' => sha})
+      retrieved_comments = paged_api_request(ghurl "/repos/#{user}/#{repo}/commits/#{sha}/comments")
+      store_commit_comments(repo, user, stored_comments, retrieved_comments)
+      @persister.find(:commit_comments, {'commit_id' => sha})
+    end
+
+    # Retrieve a single comment
+    def retrieve_commit_comment(user, repo, id)
+      # Optimization: if no commits comments are registered for the repo
+      # get them en masse
+      items = @persister.count(:commit_comments, {'repo' => repo, 'user' => user})
+      if items == 0
+        retrieve_repo_comments(repo, user)
+        return retrieve_commit_comment(user, repo, id)
+      end
+
+      comment = @persister.find(:commit_comments, {'repo' => repo,
+                                                   'user' => user, 'id' => id})
+      if comment.empty?
+        r = api_request(ghurl "/repos/#{user}/#{repo}/comments/#{id}")
+        r['repo'] = repo
+        r['user'] = user
+        @persister.store(:commit_comments, r)
+        info "Retriever: Added commit comment #{r['commit_id']} -> #{r['id']}"
+        r[@uniq] = r['_id']
+        r
+      else
+        debug "Retriever: Commit comment #{comment['commit_id']} -> #{comment['id']} exists"
+        comment[@uniq] = comment['_id']
+        comment
+      end
+    end
+
     # Get current Github events
     def get_events
       api_request "https://api.github.com/events"
@@ -210,6 +262,25 @@ module GHTorrent
 
     def ghurl_v2(path)
       config(:mirror_urlbase_v2) + path
+    end
+
+    def store_commit_comments(repo, user, stored_comments, retrieved_comments)
+      retrieved_comments.each do |x|
+
+        exists = !stored_comments.find { |f|
+          f['commit_id'] == x['commit_id'] && f['id'] == x['id']
+        }.nil?
+
+        unless exists
+          x['repo'] = repo
+          x['user'] = user
+
+          @persister.store(:commit_comments, x)
+          info "Retriever: Added commit comment #{x['commit_id']} -> #{x['id']}"
+        else
+          debug "Retriever: Commit comment #{x['commit_id']} -> #{x['id']} exists"
+        end
+      end
     end
   end
 end

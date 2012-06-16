@@ -64,7 +64,8 @@ module GHTorrent
           :repos => get_collection("repos"),
           :followers => get_collection("followers"),
           :events => get_collection("events"),
-          :org_members => get_collection("org_members")
+          :org_members => get_collection("org_members"),
+          :commit_comments => get_collection("commit_comments")
       }
 
       # Ensure that the necessary indexes exist
@@ -73,30 +74,20 @@ module GHTorrent
       ensure_index(:repos, "name")
       ensure_index(:followers, "follows")
       ensure_index(:org_members, "org")
+      ensure_index(:commit_comments, "repo")
+      ensure_index(:commit_comments, "user")
+      ensure_index(:commit_comments, "commit_id")
     end
 
 
     def store(entity, data = {})
       super
-      col = @enttodb[entity]
-
-      if col.nil?
-        raise GHTorrentException.new("Mongo: Entity #{entity} not supported")
-      end
-
-      col.insert(data).to_s
+      get_entity(entity).insert(data).to_s
     end
 
     def find(entity, query = {})
       super
-
-      col = @enttodb[entity]
-
-      if col.nil?
-        raise GHTorrentException.new("Mongo: Entity #{entity} not supported")
-      end
-
-      result = col.find(query)
+      result = get_entity(entity).find(query)
       result.to_a.map { |r|
         r[@uniq] = r['_id'].to_s;
         r.to_h
@@ -109,10 +100,25 @@ module GHTorrent
       raise NotImplementedError
     end
 
+    # Count the number of items returned by +query+
+    def count(entity, query)
+      super
+      get_entity(entity).count(:query => query)
+    end
+
     private
 
     def get_collection(col)
       @mongo.collection(col.to_s)
+    end
+
+    def get_entity(entity)
+      col = @enttodb[entity]
+
+      if col.nil?
+        raise GHTorrentException.new("Mongo: Entity #{entity} not supported")
+      end
+      col
     end
 
     # Declare an index on +field+ for +collection+ if it does not exist

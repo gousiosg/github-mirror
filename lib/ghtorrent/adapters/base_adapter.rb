@@ -30,7 +30,9 @@ module GHTorrent
 
   class BaseAdapter
 
-    ENTITIES = [:users, :commits, :followers, :repos, :events, :org_members]
+    ENTITIES = [:users, :commits, :followers, :repos, :events, :org_members,
+        :commit_comments
+    ]
 
     # Stores +data+ into +entity+. Returns a unique key for the stored entry.
     def store(entity, data = {})
@@ -82,6 +84,14 @@ module GHTorrent
 
     # Find the record identified by +id+ in +entity+
     def find_by_ext_ref_id(entity, id)
+      unless ENTITIES.include?(entity)
+        throw GHTorrentException.new("Perister: Entity #{entity} not known")
+      end
+    end
+
+    # Count the number of entries returned by +query+ without retrieving them.
+    # The +query+ can be any query supported by +find+.
+    def count(entity, query = {})
       unless ENTITIES.include?(entity)
         throw GHTorrentException.new("Perister: Entity #{entity} not known")
       end

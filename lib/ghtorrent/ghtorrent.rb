@@ -79,11 +79,19 @@ module GHTorrent
       end
 
       transaction do
-        ensure_repo(user, repo)
-        c = retrieve_commit(repo, sha, user)
-        store_commit(c, repo, user)
-        ensure_parents(c)
+        ensure_commit(repo, sha, user)
       end
+    end
+
+    ##
+    # Make sure a commit exists
+    def ensure_commit(repo, sha, user)
+      ensure_repo(user, repo)
+      c = retrieve_commit(repo, sha, user)
+      store_commit(c, repo, user)
+      ensure_commit_comments(user, repo, sha)
+      ensure_parents(c)
+      c
     end
 
     ##
@@ -104,7 +112,11 @@ module GHTorrent
                   retrieve_commits(repo, latest[:sha], user)
                 end
 
-      commits.map{|c| store_commit(c, repo, user); ensure_parents(c)}
+      commits.map do |c|
+        store_commit(c, repo, user);
+        ensure_commit_comments(user, repo, c[:sha])
+        ensure_parents(c)
+      end
     end
 
     ##
@@ -434,6 +446,71 @@ module GHTorrent
       else
         debug "GHTorrent: Organization #{organization} exists"
         org.first
+      end
+    end
+
+
+    ##
+    # Get all comments for a commit
+    #
+    # ==Parameters:
+    # [user]  The login name of the organization
+    def ensure_commit_comments(user, repo, sha)
+      commit_id = @db[:commits].first(:sha => sha)
+      stored_comments = @db[:commit_comments].find(:commit_id => commit_id)
+      commit_commets = retrieve_commit_comments(user, repo, sha)
+      user_id = @db[:users].first(:login => user)[:id]
+
+      not_saved = commit_commets.reduce([]) do |acc, x|
+        if stored_comments.find{|y| y[:comment_id] == x['comment_id']}.nil?
+          acc << x
+        else
+          acc
+        end
+      end
+
+      not_saved.each do |c|
+        @db[:commit_comments].insert(
+          :commit_id => commit_id,
+          :user_id => user_id,
+          :body => c['body'],
+          :line => c['line'],
+          :position => c['position'],
+          :comment_id => c['id'],
+          :ext_ref_id => c['ext_ref_id'],
+          :created_at => date(c['created_at'])
+        )
+        info "GHTorrent: Added commit comment #{sha} -> #{user}"
+      end
+    end
+
+    ##
+    # Get a specific comment
+    #
+    # ==Parameters:
+    # [user]  The login name of the organization
+    def ensure_commit_comment(user, repo, id)
+      stored_comment = @db[:commit_comments].first(:comment_id => id)
+
+      if stored_comment.nil?
+        retrieved = retrieve_commit_comment(user, repo, id)
+        commit = ensure_commit(repo, retrieved['commit_id'], user)
+        user = ensure_user(user, false, false)
+        @db[:commit_comments].insert(
+            :commit_id => commit[:id],
+            :user_id => user[:id],
+            :body => retrieved['body'],
+            :line => retrieved['line'],
+            :position => retrieved['position'],
+            :comment_id => retrieved['id'],
+            :ext_ref_id => retrieved['ext_ref_id'],
+            :created_at => date(retrieved['created_at'])
+        )
+        @db[:commit_comments].first(:comment_id => id)
+        info "GHTorrent: Added commit comment #{commit[:sha]} -> #{user}"
+      else
+        info "GHTorrent: Commit comment #{id} exists"
+        stored_comment
       end
     end
 
