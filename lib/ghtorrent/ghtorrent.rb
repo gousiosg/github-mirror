@@ -79,6 +79,7 @@ module GHTorrent
       end
 
       transaction do
+        ensure_repo(user, repo)
         ensure_commit(repo, sha, user)
       end
     end
@@ -86,7 +87,6 @@ module GHTorrent
     ##
     # Make sure a commit exists
     def ensure_commit(repo, sha, user)
-      ensure_repo(user, repo)
       c = retrieve_commit(repo, sha, user)
       store_commit(c, repo, user)
       ensure_commit_comments(user, repo, sha)
@@ -113,9 +113,7 @@ module GHTorrent
                 end
 
       commits.map do |c|
-        store_commit(c, repo, user);
-        ensure_commit_comments(user, repo, c[:sha])
-        ensure_parents(c)
+        ensure_commit(repo, c['sha'], user)
       end
     end
 

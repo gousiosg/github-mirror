@@ -199,7 +199,7 @@ module GHTorrent
 
     # Retrieve all commit comments for a specific repository
     def retrieve_repo_comments(repo, user)
-      commit_comments = paged_api_request(ghurl "/repos/#{user}/#{repo}/comments")
+      commit_comments = paged_api_request(ghurl "repos/#{user}/#{repo}/comments")
       stored_comments = @persister.find(:commit_comments,
                                         {'repo' => repo,
                                          'user' => user})
@@ -207,35 +207,35 @@ module GHTorrent
     end
 
     # Retrieve all comments for a single commit
-    def retrieve_commit_comments(user, repo, sha)
+    def retrieve_commit_comments(user, repo, sha, reentrer = false)
       # Optimization: if no commits comments are registered for the repo
       # get them en masse
-      items = @persister.count(:commit_comments, {'repo' => repo, 'user' => user})
-      if items == 0
-        retrieve_repo_comments(repo, user)
-        return retrieve_commit_comments(user, repo, sha)
-      end
+      #items = @persister.count(:commit_comments, {'repo' => repo, 'user' => user})
+      #if items == 0 && !reentrer
+      #  retrieve_repo_comments(repo, user)
+      #  return retrieve_commit_comments(user, repo, sha, true)
+      #end
 
       stored_comments = @persister.find(:commit_comments, {'commit_id' => sha})
-      retrieved_comments = paged_api_request(ghurl "/repos/#{user}/#{repo}/commits/#{sha}/comments")
+      retrieved_comments = paged_api_request(ghurl "repos/#{user}/#{repo}/commits/#{sha}/comments")
       store_commit_comments(repo, user, stored_comments, retrieved_comments)
       @persister.find(:commit_comments, {'commit_id' => sha})
     end
 
     # Retrieve a single comment
-    def retrieve_commit_comment(user, repo, id)
+    def retrieve_commit_comment(user, repo, id, reentrer = false)
       # Optimization: if no commits comments are registered for the repo
       # get them en masse
-      items = @persister.count(:commit_comments, {'repo' => repo, 'user' => user})
-      if items == 0
-        retrieve_repo_comments(repo, user)
-        return retrieve_commit_comment(user, repo, id)
-      end
+      #items = @persister.count(:commit_comments, {'repo' => repo, 'user' => user})
+      #if items == 0 && !reentrer
+      #  retrieve_repo_comments(repo, user)
+      #  return retrieve_commit_comment(user, repo, id)
+      #end
 
       comment = @persister.find(:commit_comments, {'repo' => repo,
                                                    'user' => user, 'id' => id})
       if comment.empty?
-        r = api_request(ghurl "/repos/#{user}/#{repo}/comments/#{id}")
+        r = api_request(ghurl "repos/#{user}/#{repo}/comments/#{id}")
         r['repo'] = repo
         r['user'] = user
         @persister.store(:commit_comments, r)
