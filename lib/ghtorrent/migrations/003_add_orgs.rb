@@ -10,8 +10,8 @@ Sequel.migration do
     end
 
     puts("Updating users with default values")
-    DB.transaction(:rollback => :reraise, :isolation => :committed) do
-      DB[:users].update(:type => "USR")
+    transaction(:rollback => :reraise, :isolation => :committed) do
+      self[:users].update(:type => "USR")
     end
 
     puts("Creating table organization-members")
