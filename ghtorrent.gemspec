@@ -3,7 +3,7 @@ require 'rake'
 ts = `git log --date=raw lib/ghtorrent.rb |grep Date|head|tr -s ' '|cut -f2 -d' '|head -n 1`
 date = Time.at(ts.to_i).strftime("%Y-%m-%d")
 
-ver = `cat lib/ghtorrent.rb |grep VERSION|cut -f2 -d'='`.strip
+ver = `cat lib/ghtorrent.rb |grep VERSION|cut -f2 -d'='|tr -d "'"`.strip
 
 Gem::Specification.new do |s|
   s.name         = 'ghtorrent'
