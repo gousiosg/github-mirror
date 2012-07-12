@@ -41,6 +41,7 @@ module GHTorrent
       }
 
       # Ensure that the necessary indexes exist
+      ensure_index(:events, "id")
       ensure_index(:users, "login")
       ensure_index(:commits, "sha")
       ensure_index(:repos, "name")
