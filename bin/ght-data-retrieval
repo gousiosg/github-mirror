@@ -7,6 +7,7 @@ require 'pp'
 class GHTDataRetrieval < GHTorrent::Command
 
   include GHTorrent::Settings
+  include GHTorrent::Logging
 
   attr_reader :settings, :name
 
@@ -51,11 +52,11 @@ class GHTDataRetrieval < GHTorrent::Command
 
     # Graceful exit
     Signal.trap('INT') {
-      info ("Received SIGINT, exiting")
+      info "Received SIGINT, exiting"
       AMQP.stop { EM.stop }
     }
     Signal.trap('TERM') {
-      info ("Received SIGTERM, exiting")
+      info "Received SIGTERM, exiting"
       AMQP.stop { EM.stop }
     }
 
@@ -72,7 +73,7 @@ class GHTDataRetrieval < GHTorrent::Command
         queue = channel.queue("#{h}s", {:durable => true})\
                        .bind(exchange, :routing_key => "evt.#{h}")
 
-        puts "Binding handler #{h} to routing key evt.#{h}"
+        info "Binding handler #{h} to routing key evt.#{h}"
 
         queue.subscribe(:ack => true) do |headers, msg|
           begin
