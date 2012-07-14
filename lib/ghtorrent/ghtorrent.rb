@@ -37,12 +37,7 @@ module GHTorrent
     ##
     # Ensure that a user exists, or fetch its latest state from Github
     # ==Parameters:
-    #  user::
-    #     The email or login name to lookup the user by
-    #
-    # == Returns:
-    # If the user can be retrieved, it is returned as a Hash. Otherwise,
-    # the result is nil
+    #  [user] The email or login name to lookup the user by
     def get_commit(user, repo, sha)
 
       unless sha.match(/[a-f0-9]{40}$/)
@@ -53,6 +48,20 @@ module GHTorrent
       transaction do
         ensure_repo(user, repo)
         ensure_commit(repo, sha, user)
+      end
+    end
+
+    ##
+    # Add a user as member to a project
+    # ==Parameters:
+    #  [owner] The login of the repository owner
+    #  [repo] The name of the repository
+    #  [new_member] The login of the member to add
+    #  [date_added] The timestamp that the add event took place
+    def get_project_member(owner, repo, new_member, date_added)
+      transaction do
+        ensure_repo(owner, repo)
+        ensure_project_member(owner, repo, new_member, date_added)
       end
     end
 
@@ -357,10 +366,57 @@ module GHTorrent
 
         info "GHTorrent: New repo #{repo}"
         ensure_commits(user, repo)
+        ensure_project_members(user, repo)
         repos.first(:name => repo)
       else
         debug "GHTorrent: Repo #{repo} exists"
         currepo
+      end
+    end
+
+
+    ##
+    # Make sure that a project has all the registered members defined
+    def ensure_project_members(user, repo)
+      currepo = @db[:projects].first(:name => repo)
+      curuser = @db[:users].first(:login => user)
+      project_members = @db[:project_members].filter(:user_id => curuser[:id],
+                                                   :repo_id => currepo[:id])
+
+      a = retrieve_repo_collaborators(user, repo).reduce([]) do |acc, x|
+        if project_members.find { |y| y[:user_id] == x['user_id'] }.nil?
+          acc << x
+        else
+          acc
+        end
+      end
+      a.map { |x| ensure_project_member(user, repo, x['login'], nil) }
+    end
+
+    ##
+    # Make sure that a project has all the registered members defined
+    def ensure_project_member(owner, repo, new_member, date_added)
+      pr_members = @db[:project_members]
+      new_user = ensure_user(new_member, true, false)
+      owner_id = @db[:users].first(:login => owner)[:id]
+      project = @db[:projects].first(:owner_id => owner_id, :name => repo)
+
+      memb_exist = pr_members.first(:user_id => new_user[:id],
+                                    :repo_id => project[:id])
+
+      if memb_exist.nil?
+        added = if date_added.nil? then Time.now else date_added end
+        pr_members.insert(
+            :user_id => new_user[:id],
+            :repo_id => project[:id],
+            :created_at => date(added)
+        )
+        info "GHTorrent: Added project member #{repo} -> #{new_member}"
+      else
+        if date_added.nil?
+          pr_members.filter(:user_id => new_user[:id])\
+                    .update(:created_at => date(date_added))
+        end
       end
     end
 
@@ -376,7 +432,7 @@ module GHTorrent
     end
 
     ##
-    # Make sure that a user belongs to the provided organization
+    # Make sure that a user participates to the provided organization
     #
     # ==Parameters:
     # [user] The login name of the user to check the organizations for
@@ -427,11 +483,11 @@ module GHTorrent
     # [user]  The login name of the organization
     def ensure_commit_comments(user, repo, sha)
       commit_id = @db[:commits].first(:sha => sha)
-      stored_comments = @db[:commit_comments].find(:commit_id => commit_id)
-      commit_commets = retrieve_commit_comments(user, repo, sha)
+      stored_comments = @db[:commit_comments].filter(:commit_id => commit_id)
+      commit_comments = retrieve_commit_comments(user, repo, sha)
       user_id = @db[:users].first(:login => user)[:id]
 
-      not_saved = commit_commets.reduce([]) do |acc, x|
+      not_saved = commit_comments.reduce([]) do |acc, x|
         if stored_comments.find{|y| y[:comment_id] == x['comment_id']}.nil?
           acc << x
         else
@@ -541,7 +597,11 @@ module GHTorrent
     # - yyyy-mm-ddThh:mm:ssZ
     # - yyyy/mm/dd hh:mm:ss {+/-}hhmm
     def date(arg)
-      Time.parse(arg)#.to_i
+      if arg.class != Time
+        Time.parse(arg)#.to_i
+      else
+        arg
+      end
     end
 
     def is_valid_email(email)

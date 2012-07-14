@@ -38,8 +38,18 @@ class GHTDataRetrieval < GHTorrent::Command
     #@gh.get_followers followed
   end
 
+  def MemberEvent(evt)
+    data = parse evt
+    owner = data['actor']['login']
+    repo = data['repo']['name'].split(/\//)[1]
+    new_member = data['payload']['member']['login']
+    created_at = data['created_at']
+
+    @gh.get_project_member(owner, repo, new_member, created_at)
+  end
+
   def handlers
-    %w(PushEvent WatchEvent FollowEvent)
+    %w(PushEvent WatchEvent FollowEvent MemberEvent)
   end
 
   def prepare_options(options)

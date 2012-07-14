@@ -221,6 +221,33 @@ module GHTorrent
       end
     end
 
+    # Retrieve collaborators for a repository
+    def retrieve_repo_collaborators(user, repo)
+
+      url = ghurl "repos/#{user}/#{repo}/collaborators"
+      stored_collaborators = @persister.find(:repo_collaborators,
+                                             {'repo' => repo, 'owner' => user})
+
+      collaborators = paged_api_request url
+      collaborators.each do |x|
+        x['repo'] = repo
+        x['owner'] = user
+
+        exists = !stored_collaborators.find { |f|
+          f['login'] == x['login']
+        }.nil?
+
+        if not exists
+          @persister.store(:repo_collaborators, x)
+          info "Retriever: Added collaborator #{repo} -> #{x['login']}"
+        else
+          debug "Retriever: Collaborator #{repo} -> #{x['login']} exists"
+        end
+      end
+
+      @persister.find(:repo_collaborators, {'repo' => repo, 'owner' => user})
+    end
+
     # Get current Github events
     def get_events
       api_request "https://api.github.com/events"

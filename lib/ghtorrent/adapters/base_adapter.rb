@@ -3,7 +3,7 @@ module GHTorrent
   class BaseAdapter
 
     ENTITIES = [:users, :commits, :followers, :repos, :events, :org_members,
-        :commit_comments
+        :commit_comments, :repo_collaborators
     ]
 
     # Stores +data+ into +entity+. Returns a unique key for the stored entry.
