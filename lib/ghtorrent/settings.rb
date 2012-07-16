@@ -21,7 +21,7 @@ module GHTorrent
         :mirror_persister => "mirror.persister",
         :mirror_commit_pages_new_repo => "mirror.commit_pages_new_repo",
 
-        :uniq_id => "uniq_id"
+        :uniq_id => "mirror.uniq_id"
     }
 
     def config(key)
