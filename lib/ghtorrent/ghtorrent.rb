@@ -66,13 +66,28 @@ module GHTorrent
     end
 
     ##
+    # Add a commit comment to a commit
+    # ==Parameters:
+    #  [owner] The login of the repository owner
+    #  [repo] The name of the repository
+    #  [new_member] The login of the member to add
+    #  [date_added] The timestamp that the add event took place
+    def get_commit_comment(user, repo, comment_id, date_added)
+      transaction do
+        ensure_repo(user, repo)
+        ensure_commit_comment(user, repo, comment_id, date_added)
+      end
+    end
+
+    ##
     # Make sure a commit exists
-    def ensure_commit(repo, sha, user)
+    #
+    def ensure_commit(repo, sha, user, comments = true)
       c = retrieve_commit(repo, sha, user)
-      store_commit(c, repo, user)
-      ensure_commit_comments(user, repo, sha)
+      stored = store_commit(c, repo, user)
       ensure_parents(c)
-      c
+      ensure_commit_comments(user, repo, sha) if comments
+      stored
     end
 
     ##
@@ -216,6 +231,7 @@ module GHTorrent
       return u
     end
 
+
     ##
     # Ensure that a user exists, or fetch its latest state from Github
     # ==Parameters:
@@ -239,19 +255,49 @@ module GHTorrent
                   end
                 end
 
-        users.insert(:login => u['login'],
-                     :name => u['name'],
-                     :company => u['company'],
-                     :email => email,
-                     :hireable => boolean(u['hirable']),
-                     :bio => u['bio'],
-                     :location => u['location'],
-                     :type =>  user_type(u['type']),
-                     :created_at => date(u['created_at']),
-                     :ext_ref_id => u[@ext_uniq])
+        if not email.nil?
+          # Check whether a user has been added by email before
+          byemail = users.first(:email => email)
+          unless byemail.nil?
+            users.filter(:email => email).update(:login => u['login'],
+                           :name => u['name'],
+                           :company => u['company'],
+                           :hireable => boolean(u['hirable']),
+                           :bio => u['bio'],
+                           :location => u['location'],
+                           :type => user_type(u['type']),
+                           :created_at => date(u['created_at']),
+                           :ext_ref_id => u[@ext_uniq]
+            )
+            info "GHTorrent: Updating user #{user} (email #{email})"
+          else
+            users.insert(:login => u['login'],
+                         :name => u['name'],
+                         :company => u['company'],
+                         :email => email,
+                         :hireable => boolean(u['hirable']),
+                         :bio => u['bio'],
+                         :location => u['location'],
+                         :type => user_type(u['type']),
+                         :created_at => date(u['created_at']),
+                         :ext_ref_id => u[@ext_uniq])
 
-        info "GHTorrent: New user #{user}"
+            info "GHTorrent: New user #{user}"
+          end
+        else
+          users.insert(:login => u['login'],
+                       :name => u['name'],
+                       :company => u['company'],
+                       :email => email,
+                       :hireable => boolean(u['hirable']),
+                       :bio => u['bio'],
+                       :location => u['location'],
+                       :type => user_type(u['type']),
+                       :created_at => date(u['created_at']),
+                       :ext_ref_id => u[@ext_uniq])
 
+          info "GHTorrent: New user #{user}"
+        end
         users.first(:login => user)
       else
         debug "GHTorrent: User #{user} exists"
@@ -274,8 +320,8 @@ module GHTorrent
         ensure_user(user, false, false)
         ensure_user(follower, false, false)
 
-        userid = @db[:users].select(:id).first(:login => user)[:id]
-        followerid = @db[:users].select(:id).first(:login => follower)[:id]
+        userid = @db[:users].first(:login => user)[:id]
+        followerid = @db[:users].first(:login => follower)[:id]
         followers = @db[:followers]
 
         if followers.first(:user_id => userid, :follower_id => followerid).nil?
@@ -352,7 +398,8 @@ module GHTorrent
 
       ensure_user(user, true, true)
       repos = @db[:projects]
-      currepo = repos.first(:name => repo)
+      curuser = @db[:users].first(:login => user)
+      currepo = repos.first(:owner_id => curuser[:id], :name => repo)
 
       if currepo.nil?
         r = retrieve_repo(user, repo)
@@ -367,7 +414,7 @@ module GHTorrent
         info "GHTorrent: New repo #{repo}"
         ensure_commits(user, repo)
         ensure_project_members(user, repo)
-        repos.first(:name => repo)
+        repos.first(:owner_id => curuser[:id], :name => repo)
       else
         debug "GHTorrent: Repo #{repo} exists"
         currepo
@@ -378,23 +425,22 @@ module GHTorrent
     ##
     # Make sure that a project has all the registered members defined
     def ensure_project_members(user, repo)
-      currepo = @db[:projects].first(:name => repo)
       curuser = @db[:users].first(:login => user)
+      currepo = @db[:projects].first(:owner_id => curuser[:id], :name => repo)
       project_members = @db[:project_members].filter(:user_id => curuser[:id],
                                                    :repo_id => currepo[:id])
 
-      a = retrieve_repo_collaborators(user, repo).reduce([]) do |acc, x|
+      retrieve_repo_collaborators(user, repo).reduce([]) do |acc, x|
         if project_members.find { |y| y[:user_id] == x['user_id'] }.nil?
           acc << x
         else
           acc
         end
-      end
-      a.map { |x| ensure_project_member(user, repo, x['login'], nil) }
+      end.map { |x| ensure_project_member(user, repo, x['login'], nil) }
     end
 
     ##
-    # Make sure that a project has all the registered members defined
+    # Make sure that a project member exists in a project
     def ensure_project_member(owner, repo, new_member, date_added)
       pr_members = @db[:project_members]
       new_user = ensure_user(new_member, true, false)
@@ -406,16 +452,20 @@ module GHTorrent
 
       if memb_exist.nil?
         added = if date_added.nil? then Time.now else date_added end
+        retrieved = retrieve_repo_collaborator(owner, repo, new_member)
         pr_members.insert(
             :user_id => new_user[:id],
             :repo_id => project[:id],
-            :created_at => date(added)
+            :created_at => date(added),
+            :ext_ref_id => retrieved[@ext_uniq]
         )
         info "GHTorrent: Added project member #{repo} -> #{new_member}"
       else
-        if date_added.nil?
-          pr_members.filter(:user_id => new_user[:id])\
+        unless date_added.nil?
+          pr_members.filter(:user_id => new_user[:id],
+                            :repo_id => project[:id])\
                     .update(:created_at => date(date_added))
+          info "GHTorrent: Updating  #{repo} -> #{new_member}"
         end
       end
     end
@@ -482,32 +532,20 @@ module GHTorrent
     # ==Parameters:
     # [user]  The login name of the organization
     def ensure_commit_comments(user, repo, sha)
-      commit_id = @db[:commits].first(:sha => sha)
+      commit_id = @db[:commits].first(:sha => sha)[:id]
       stored_comments = @db[:commit_comments].filter(:commit_id => commit_id)
       commit_comments = retrieve_commit_comments(user, repo, sha)
-      user_id = @db[:users].first(:login => user)[:id]
+      #user_id = @db[:users].first(:login => user)[:id]
 
       not_saved = commit_comments.reduce([]) do |acc, x|
-        if stored_comments.find{|y| y[:comment_id] == x['comment_id']}.nil?
+        if stored_comments.find{|y| y[:comment_id] == x['id']}.nil?
           acc << x
         else
           acc
         end
       end
 
-      not_saved.each do |c|
-        @db[:commit_comments].insert(
-          :commit_id => commit_id,
-          :user_id => user_id,
-          :body => c['body'],
-          :line => c['line'],
-          :position => c['position'],
-          :comment_id => c['id'],
-          :ext_ref_id => c['ext_ref_id'],
-          :created_at => date(c['created_at'])
-        )
-        info "GHTorrent: Added commit comment #{sha} -> #{user}"
-      end
+      not_saved.map{|x| ensure_commit_comment(user, repo, x['id'], nil)}
     end
 
     ##
@@ -515,12 +553,19 @@ module GHTorrent
     #
     # ==Parameters:
     # [user]  The login name of the organization
-    def ensure_commit_comment(user, repo, id)
+    def ensure_commit_comment(user, repo, id, created_at)
       stored_comment = @db[:commit_comments].first(:comment_id => id)
 
       if stored_comment.nil?
         retrieved = retrieve_commit_comment(user, repo, id)
-        commit = ensure_commit(repo, retrieved['commit_id'], user)
+
+        if retrieved.nil?
+          debug "GHTorrent: Commit comment #{id} deleted"
+          return
+        end
+
+        # FIXME: This gets called recursively from ensure_commit
+        commit = ensure_commit(repo, retrieved['commit_id'], user, comments = false)
         user = ensure_user(user, false, false)
         @db[:commit_comments].insert(
             :commit_id => commit[:id],
@@ -529,11 +574,11 @@ module GHTorrent
             :line => retrieved['line'],
             :position => retrieved['position'],
             :comment_id => retrieved['id'],
-            :ext_ref_id => retrieved['ext_ref_id'],
+            :ext_ref_id => retrieved[@ext_uniq],
             :created_at => date(retrieved['created_at'])
         )
+        info "GHTorrent: Added commit comment #{commit[:sha]} -> #{user[:login]}"
         @db[:commit_comments].first(:comment_id => id)
-        info "GHTorrent: Added commit comment #{commit[:sha]} -> #{user}"
       else
         info "GHTorrent: Commit comment #{id} exists"
         stored_comment
@@ -563,9 +608,11 @@ module GHTorrent
                        :created_at => date(c['commit']['author']['date']),
                        :ext_ref_id => c[@ext_uniq]
         )
+        commits.first(:sha => c['sha'])
         debug "GHTorrent: New commit #{repo} -> #{c['sha']} "
       else
         debug "GHTorrent: Commit #{repo} -> #{c['sha']} exists"
+        commit
       end
     end
 
