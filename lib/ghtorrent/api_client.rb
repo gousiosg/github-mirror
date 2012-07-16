@@ -90,9 +90,12 @@ module GHTorrent
       end
 
       @num_api_calls += 1
-      debug "APIClient: Request: #{url} (num_calls = #{@num_api_calls})"
       begin
-        open(url)
+        start_time = Time.now
+        contents = open(url)
+        total = Time.now.to_ms - start_time.to_ms
+        debug "APIClient: Request: #{url} (#{@num_api_calls} calls, #{total} ms)"
+        contents
       rescue OpenURI::HTTPError => e
         case e.io.status[0].to_i
           # The following indicate valid Github return codes
