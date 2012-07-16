@@ -211,82 +211,70 @@ module GHTorrent
 
     # Retrieve all collaborators for a repository
     def retrieve_repo_collaborators(user, repo)
-
-      url = ghurl "repos/#{user}/#{repo}/collaborators"
-      stored_collaborators = @persister.find(:repo_collaborators,
-                                             {'repo' => repo, 'owner' => user})
-
-      collaborators = paged_api_request url
-      collaborators.each do |x|
-        x['repo'] = repo
-        x['owner'] = user
-
-        exists = !stored_collaborators.find { |f|
-          f['login'] == x['login']
-        }.nil?
-
-        if not exists
-          @persister.store(:repo_collaborators, x)
-          info "Retriever: Added collaborator #{repo} -> #{x['login']}"
-        else
-          debug "Retriever: Collaborator #{repo} -> #{x['login']} exists"
-        end
-      end
-
-      @persister.find(:repo_collaborators, {'repo' => repo, 'owner' => user})
+      repo_bound_items(user, repo, :repo_collaborators,
+                       "repos/#{user}/#{repo}/watchers", 'login')
     end
 
     # Retrieve a single repository collaborator
     def retrieve_repo_collaborator(user, repo, new_member)
-
-      collaborator = @persister.find(:repo_collaborators,
-                                     {'repo' => repo,
-                                      'owner' => user,
-                                      'login' => new_member})
-
-      if collaborator.empty?
-        retrieve_repo_collaborators(user, repo).find{|x| x['login'] == new_member}
-      else
-        collaborator.first
-      end
+      repo_bound_item(user, repo, new_member, :repo_collaborators,
+                      "repos/#{user}/#{repo}/collaborators", 'login')
     end
 
     # Retrieve all watchers for a repository
     def retrieve_watchers(user, repo)
-      stored_watchers = @persister.find(:watchers,
-                                        {'repo' => repo, 'owner' => user})
-
-      watchers = paged_api_request(ghurl "repos/#{user}/#{repo}/watchers")
-      watchers.each do |x|
-        x['repo'] = repo
-        x['owner'] = user
-
-        exists = !stored_watchers.find { |f|
-          f['login'] == x['login']
-        }.nil?
-
-        if not exists
-          @persister.store(:watchers, x)
-          info "Retriever: Added watcher #{repo} -> #{x['login']}"
-        else
-          debug "Retriever: Watcher #{repo} -> #{x['login']} exists"
-        end
-      end
-
-      @persister.find(:watchers, {'repo' => repo, 'owner' => user})
+      repo_bound_items(user, repo, :watchers,
+                       "repos/#{user}/#{repo}/watchers", 'login')
     end
 
     # Retrieve a single watcher for a repositry
     def retrieve_watcher(user, repo, watcher)
-      stored_watcher = @persister.find(:watchers,
-                                {'repo' => repo,
-                                 'owner' => user,
-                                 'login' => watcher})
+      repo_bound_item(user, repo, watcher, :watchers,
+                      "repos/#{user}/#{repo}/watchers", 'login')
+    end
 
-      if stored_watcher.empty?
-        retrieve_watchers(user, repo).find{|x| x['login'] == watcher}
+    def retrieve_pull_requests(user, repo)
+
+    end
+
+    def retrieve_pull_request(user, repo, pullreq_id)
+
+    end
+
+    def repo_bound_items(user, repo, entity, url, descriminator)
+      stored_items = @persister.find(entity,
+                                     {'repo' => repo, 'owner' => user})
+
+      items = paged_api_request(ghurl url)
+      items.each do |x|
+        x['repo'] = repo
+        x['owner'] = user
+
+        exists = !stored_items.find { |f|
+          f[descriminator] == x[descriminator]
+        }.nil?
+
+        if not exists
+          @persister.store(entity, x)
+          info "Retriever: Added #{entity} #{repo} -> #{x[descriminator]}"
+        else
+          debug "Retriever: #{entity} #{repo} -> #{x[descriminator]} exists"
+        end
+      end
+      @persister.find(entity, {'repo' => repo, 'owner' => user})
+    end
+
+    def repo_bound_item(user, repo, item_id, entity, url, descriminator)
+      stored_item = @persister.find(entity,
+                                       {'repo' => repo,
+                                        'owner' => user,
+                                        descriminator => item_id})
+
+      if stored_item.empty?
+        repo_bound_items(user, repo, entity, url, descriminator).\
+                    find{|x| x[descriminator] == item_id}
       else
-        stored_watcher.first
+        stored_item.first
       end
     end
 
