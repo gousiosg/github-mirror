@@ -1,3 +1,5 @@
+require 'uri'
+
 module GHTorrent
   module Retriever
 
@@ -32,11 +34,11 @@ module GHTorrent
       end
     end
 
-    # Try Github API v2 user search by email. This is optional info, so
+    # Try Github user search by email. This is optional info, so
     # it may not return any data.
-    # http://develop.github.com/p/users.html
+    # http://developer.github.com/v3/search/#email-search
     def retrieve_user_byemail(email, name)
-      url = ghurl_v2("user/email/#{email}")
+      url = ghurl("legacy/user/email/#{URI.escape(email)}")
       r = api_request(url)
 
       return nil if r.empty?
@@ -259,10 +261,6 @@ module GHTorrent
 
     def ghurl(path)
       config(:mirror_urlbase) + path
-    end
-
-    def ghurl_v2(path)
-      config(:mirror_urlbase_v2) + path
     end
 
   end
