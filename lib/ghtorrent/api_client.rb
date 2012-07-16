@@ -104,6 +104,7 @@ module GHTorrent
             STDERR.puts "#{url}: #{e.io.status[1]}"
             return nil
           else # Server error or HTTP conditions that Github does not report
+            STDERR.puts "#{url}"
             raise e
         end
       end
