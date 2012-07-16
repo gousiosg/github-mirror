@@ -35,11 +35,11 @@ class GHTDataRetrieval < GHTorrent::Command
 
   def FollowEvent(evt)
     data = parse evt
-    user = data['actor']['login']
-    #@gh.get_followed user
-
+    follower = data['actor']['login']
     followed = data['payload']['target']['login']
-    #@gh.get_followers followed
+    created_at = data['created_at']
+
+    @gh.get_follower(follower, followed, created_at)
   end
 
   def MemberEvent(evt)

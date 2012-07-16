@@ -94,6 +94,20 @@ module GHTorrent
     end
 
     ##
+    # Add a follower to user
+    # ==Parameters:
+    #  [follower] The login of the repository owner
+    #  [followed] The name of the repository
+    #  [date_added] The timestamp that the add event took place
+    def get_follower(follower, followed, date_added)
+      transaction do
+        ensure_user(follower, false, false)
+        ensure_user(followed, false, false)
+        ensure_user_followers(followed, date_added)
+      end
+    end
+
+    ##
     # Make sure a commit exists
     #
     def ensure_commit(repo, sha, user, comments = true)
@@ -326,27 +340,35 @@ module GHTorrent
     #
     # ==Parameters:
     # [user]  The user login to find followers by
-    def ensure_user_followers(user, ts = Time.now)
+    def ensure_user_followers(user, date_added = nil)
+      followers = @db[:followers]
+      userid = @db[:users].first(:login => user)[:id]
 
-      followers = retrieve_user_followers(user)
-      followers.each { |f|
+      retrieved = retrieve_user_followers(user)
+      retrieved.each { |f|
         follower = f['login']
         ensure_user(user, false, false)
         ensure_user(follower, false, false)
 
-        userid = @db[:users].first(:login => user)[:id]
         followerid = @db[:users].first(:login => follower)[:id]
-        followers = @db[:followers]
+
 
         if followers.first(:user_id => userid, :follower_id => followerid).nil?
-          @db[:followers].insert(:user_id => userid,
-                                 :follower_id => followerid,
-                                 :created_at => ts,
-                                 :ext_ref_id => f[@ext_uniq]
+          added = if date_added.nil? then Time.now else date_added end
+          followers.insert(:user_id => userid,
+                           :follower_id => followerid,
+                           :created_at => added,
+                           :ext_ref_id => f[@ext_uniq]
           )
           info "GHTorrent: User #{follower} follows #{user}"
         else
-          info "User #{follower} already follows #{user}"
+          unless date_added.nil?
+            followers.filter(:user_id => userid,
+                             :follower_id => followerid).\
+                      update(:created_at => date(date_added))
+            info "GHTorrent: Updated follower #{follower} -> #{user}"
+          end
+          debug "GHTorrent: User #{follower} already follows #{user}"
         end
       }
     end
