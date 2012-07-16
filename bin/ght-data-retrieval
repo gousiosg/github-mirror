@@ -25,8 +25,12 @@ class GHTDataRetrieval < GHTorrent::Command
 
   def WatchEvent(evt)
     data = parse evt
-    user = data['actor']['login']
-    #@gh.get_watched user, evt
+    owner = data['repo']['name'].split(/\//)[0]
+    repo = data['repo']['name'].split(/\//)[1]
+    watcher = data['actor']['login']
+    created_at = data['created_at']
+
+    @gh.get_watcher owner, repo, watcher, created_at
   end
 
   def FollowEvent(evt)

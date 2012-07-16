@@ -233,8 +233,7 @@ module GHTorrent
         end
       end
 
-      @persister.find(:repo_collaborators, {'repo' => repo, 'owner' => user}).\
-                 map{|x| x[@uniq] = x['_id']; x}
+      @persister.find(:repo_collaborators, {'repo' => repo, 'owner' => user})
     end
 
     # Retrieve a single repository collaborator
@@ -246,9 +245,48 @@ module GHTorrent
                                       'login' => new_member})
 
       if collaborator.empty?
-        retrieve_repo_collaborators(user, repo).find{|x| x.login == new_member}.first
+        retrieve_repo_collaborators(user, repo).find{|x| x['login'] == new_member}
       else
         collaborator.first
+      end
+    end
+
+    # Retrieve all watchers for a repository
+    def retrieve_watchers(user, repo)
+      stored_watchers = @persister.find(:watchers,
+                                        {'repo' => repo, 'owner' => user})
+
+      watchers = paged_api_request(ghurl "repos/#{user}/#{repo}/watchers")
+      watchers.each do |x|
+        x['repo'] = repo
+        x['owner'] = user
+
+        exists = !stored_watchers.find { |f|
+          f['login'] == x['login']
+        }.nil?
+
+        if not exists
+          @persister.store(:watchers, x)
+          info "Retriever: Added watcher #{repo} -> #{x['login']}"
+        else
+          debug "Retriever: Watcher #{repo} -> #{x['login']} exists"
+        end
+      end
+
+      @persister.find(:watchers, {'repo' => repo, 'owner' => user})
+    end
+
+    # Retrieve a single watcher for a repositry
+    def retrieve_watcher(user, repo, watcher)
+      stored_watcher = @persister.find(:watchers,
+                                {'repo' => repo,
+                                 'owner' => user,
+                                 'login' => watcher})
+
+      if stored_watcher.empty?
+        retrieve_watchers(user, repo).find{|x| x['login'] == watcher}
+      else
+        stored_watcher.first
       end
     end
 

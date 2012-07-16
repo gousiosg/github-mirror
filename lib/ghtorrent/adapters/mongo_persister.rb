@@ -38,7 +38,8 @@ module GHTorrent
           :events => get_collection("events"),
           :org_members => get_collection("org_members"),
           :commit_comments => get_collection("commit_comments"),
-          :repo_collaborators => get_collection("repo_collaborators")
+          :repo_collaborators => get_collection("repo_collaborators"),
+          :watchers => get_collection("watchers")
       }
 
       # Ensure that the necessary indexes exist
@@ -53,8 +54,11 @@ module GHTorrent
       ensure_index(:commit_comments, "commit_id")
       ensure_index(:repo_collaborators, "repo")
       ensure_index(:repo_collaborators, "owner")
+      ensure_index(:repo_collaborators, "login")
+      ensure_index(:watchers, "repo")
+      ensure_index(:watchers, "owner")
+      ensure_index(:watchers, "login")
     end
-
 
     def store(entity, data = {})
       super

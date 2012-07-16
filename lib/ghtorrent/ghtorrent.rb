@@ -68,14 +68,28 @@ module GHTorrent
     ##
     # Add a commit comment to a commit
     # ==Parameters:
-    #  [owner] The login of the repository owner
+    #  [user] The login of the repository owner
     #  [repo] The name of the repository
-    #  [new_member] The login of the member to add
+    #  [comment_id] The login of the member to add
     #  [date_added] The timestamp that the add event took place
     def get_commit_comment(user, repo, comment_id, date_added)
       transaction do
         ensure_repo(user, repo)
         ensure_commit_comment(user, repo, comment_id, date_added)
+      end
+    end
+
+    ##
+    # Add a watcher to a repository
+    # ==Parameters:
+    #  [owner] The login of the repository owner
+    #  [repo] The name of the repository
+    #  [watcher] The login of the member to add
+    #  [date_added] The timestamp that the add event took place
+    def get_watcher(owner, repo, watcher, date_added)
+      transaction do
+        ensure_repo(owner, repo)
+        ensure_watcher(owner, repo, watcher, date_added)
       end
     end
 
@@ -339,7 +353,7 @@ module GHTorrent
 
     ##
     # Try to retrieve a user by email. Search the DB first, fall back to
-    # Github API v2 if unsuccessful.
+    # Github search API if unsuccessful.
     #
     # ==Parameters:
     # [email]  The email to lookup the user by
@@ -357,7 +371,7 @@ module GHTorrent
         u = retrieve_user_byemail(email, name)
 
         if u.nil? or u['user'].nil? or u['user']['login'].nil?
-          debug "GHTorrent: Cannot find #{email} through API v2 query"
+          debug "GHTorrent: Cannot find #{email} through search API query"
           users.insert(:email => email,
                        :name => name,
                        :login => (0...8).map { 65.+(rand(25)).chr }.join,
@@ -375,7 +389,7 @@ module GHTorrent
                        :location => u['user']['location'],
                        :created_at => date(u['user']['created_at']),
                        :ext_ref_id => u[@ext_uniq])
-          debug "GHTorrent: Found #{email} through API v2 query"
+          debug "GHTorrent: Found #{email} through search API query"
           users.first(:email => email)
         end
       else
@@ -414,13 +428,13 @@ module GHTorrent
         info "GHTorrent: New repo #{repo}"
         ensure_commits(user, repo)
         ensure_project_members(user, repo)
+        ensure_watchers(user, repo)
         repos.first(:owner_id => curuser[:id], :name => repo)
       else
         debug "GHTorrent: Repo #{repo} exists"
         currepo
       end
     end
-
 
     ##
     # Make sure that a project has all the registered members defined
@@ -431,7 +445,7 @@ module GHTorrent
                                                    :repo_id => currepo[:id])
 
       retrieve_repo_collaborators(user, repo).reduce([]) do |acc, x|
-        if project_members.find { |y| y[:user_id] == x['user_id'] }.nil?
+        if project_members.find { |y| y[:login] == x['login'] }.nil?
           acc << x
         else
           acc
@@ -443,7 +457,7 @@ module GHTorrent
     # Make sure that a project member exists in a project
     def ensure_project_member(owner, repo, new_member, date_added)
       pr_members = @db[:project_members]
-      new_user = ensure_user(new_member, true, false)
+      new_user = ensure_user(new_member, false, false)
       owner_id = @db[:users].first(:login => owner)[:id]
       project = @db[:projects].first(:owner_id => owner_id, :name => repo)
 
@@ -512,7 +526,7 @@ module GHTorrent
     # Make sure that an organization exists
     #
     # ==Parameters:
-    # [org]  The login name of the organization
+    # [organization]  The login name of the organization
     #
     def ensure_org(organization)
       org = @db[:users].find(:login => organization, :type => 'org')
@@ -525,12 +539,13 @@ module GHTorrent
       end
     end
 
-
     ##
     # Get all comments for a commit
     #
     # ==Parameters:
     # [user]  The login name of the organization
+    # [user]  The repository containing the commit whose comments will be retrieved
+    # [sha]  The commit sha to retrieve comments for
     def ensure_commit_comments(user, repo, sha)
       commit_id = @db[:commits].first(:sha => sha)[:id]
       stored_comments = @db[:commit_comments].filter(:commit_id => commit_id)
@@ -553,6 +568,9 @@ module GHTorrent
     #
     # ==Parameters:
     # [user]  The login name of the organization
+    # [repo]  The repository containing the commit whose comment will be retrieved
+    # [id]  The comment id to retrieve
+    # [created_at]  The timestamp that the comment was made.
     def ensure_commit_comment(user, repo, id, created_at)
       stored_comment = @db[:commit_comments].first(:comment_id => id)
 
@@ -564,7 +582,6 @@ module GHTorrent
           return
         end
 
-        # FIXME: This gets called recursively from ensure_commit
         commit = ensure_commit(repo, retrieved['commit_id'], user, comments = false)
         user = ensure_user(user, false, false)
         @db[:commit_comments].insert(
@@ -585,6 +602,55 @@ module GHTorrent
       end
     end
 
+    ##
+    # Make sure that
+    def ensure_watchers(owner, repo)
+      curuser = @db[:users].first(:login => owner)
+      currepo = @db[:projects].first(:owner_id => curuser[:id],
+                                     :name => repo)
+      watchers = @db[:watchers].filter(:user_id => curuser[:id],
+                                       :repo_id => currepo[:id])
+
+      retrieve_watchers(owner, repo).reduce([]) do |acc, x|
+        if watchers.find { |y| y[:login] == x['login'] }.nil?
+          acc << x
+        else
+          acc
+        end
+      end.map { |x| ensure_watcher(owner, repo, x['login']) }
+    end
+
+    ##
+    # Make sure that a project member exists in a project
+    def ensure_watcher(owner, repo, watcher, date_added = nil)
+      watchers = @db[:watchers]
+      new_watcher = ensure_user(watcher, false, false)
+      owner_id = @db[:users].first(:login => owner)[:id]
+      project = @db[:projects].first(:owner_id => owner_id, :name => repo)
+
+      memb_exist = watchers.first(:user_id => new_watcher[:id],
+                                    :repo_id => project[:id])
+
+      if memb_exist.nil?
+        added = if date_added.nil? then Time.now else date_added end
+        retrieved = retrieve_watcher(owner, repo, watcher)
+        watchers.insert(
+            :user_id => new_watcher[:id],
+            :repo_id => project[:id],
+            :created_at => date(added),
+            :ext_ref_id => retrieved[@ext_uniq]
+        )
+        info "GHTorrent: Added watcher #{repo} -> #{watcher}"
+      else
+        unless date_added.nil?
+          watchers.filter(:user_id => new_watcher[:id],
+                          :repo_id => project[:id])\
+                  .update(:created_at => date(date_added))
+          info "GHTorrent: Updating  #{repo} -> #{watcher}"
+        end
+      end
+    end
+
     private
 
     # Store a commit contained in a hash. First check whether the commit exists.
@@ -595,7 +661,6 @@ module GHTorrent
       if commit.nil?
         author = commit_user(c['author'], c['commit']['author'])
         commiter = commit_user(c['committer'], c['commit']['committer'])
-
 
         userid = @db[:users].filter(:login => user).first[:id]
         repoid = @db[:projects].filter(:owner_id => userid,
