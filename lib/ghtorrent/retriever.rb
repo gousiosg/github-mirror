@@ -212,38 +212,66 @@ module GHTorrent
     # Retrieve all collaborators for a repository
     def retrieve_repo_collaborators(user, repo)
       repo_bound_items(user, repo, :repo_collaborators,
-                       "repos/#{user}/#{repo}/watchers", 'login')
+                       "repos/#{user}/#{repo}/collaborators",
+                       {'repo' => repo, 'owner' => user},
+                       'login')
     end
 
     # Retrieve a single repository collaborator
     def retrieve_repo_collaborator(user, repo, new_member)
       repo_bound_item(user, repo, new_member, :repo_collaborators,
-                      "repos/#{user}/#{repo}/collaborators", 'login')
+                      "repos/#{user}/#{repo}/collaborators",
+                      {'repo' => repo, 'owner' => user},
+                      'login')
     end
 
     # Retrieve all watchers for a repository
     def retrieve_watchers(user, repo)
       repo_bound_items(user, repo, :watchers,
-                       "repos/#{user}/#{repo}/watchers", 'login')
+                       "repos/#{user}/#{repo}/watchers",
+                       {'repo' => repo, 'owner' => user},
+                       'login')
     end
 
     # Retrieve a single watcher for a repositry
     def retrieve_watcher(user, repo, watcher)
       repo_bound_item(user, repo, watcher, :watchers,
-                      "repos/#{user}/#{repo}/watchers", 'login')
+                      "repos/#{user}/#{repo}/watchers",
+                      {'repo' => repo, 'owner' => user},
+                      'login')
     end
 
     def retrieve_pull_requests(user, repo)
-
+      repo_bound_items(user, repo, :pull_requests,
+                       "/repos/#{user}/#{repo}/pulls",
+                       {'repo' => repo, 'owner' => user},
+                       'updated_at')
     end
 
-    def retrieve_pull_request(user, repo, pullreq_id)
-
+    def retrieve_pull_request_history(user, repo, pullreq_id)
+      repo_bound_items(user, repo, :pull_requests,
+                      "/repos/#{user}/#{repo}/pulls/#{pullreq_id}",
+                      {'repo' => repo, 'owner' => user, 'number' => pullreq_id},
+                      'updated_at')
     end
 
-    def repo_bound_items(user, repo, entity, url, descriminator)
-      stored_items = @persister.find(entity,
-                                     {'repo' => repo, 'owner' => user})
+    def retrieve_pull_request_instance(user, repo, pullreq_id, updated_at)
+      repo_bound_item(user, repo, pullreq_id, :pull_requests,
+                      "/repos/#{user}/#{repo}/pulls/#{pullreq_id}",
+                      {'repo' => repo, 'owner' => user,
+                       'number' => pullreq_id, 'updated_at' => updated_at},
+                      'updated_at')
+    end
+
+    # Get current Github events
+    def get_events
+      api_request "https://api.github.com/events"
+    end
+
+    private
+
+    def repo_bound_items(user, repo, entity, url, selector, descriminator)
+      stored_items = @persister.find(entity, selector)
 
       items = paged_api_request(ghurl url)
       items.each do |x|
@@ -261,29 +289,20 @@ module GHTorrent
           debug "Retriever: #{entity} #{repo} -> #{x[descriminator]} exists"
         end
       end
-      @persister.find(entity, {'repo' => repo, 'owner' => user})
+      @persister.find(entity, selector)
     end
 
-    def repo_bound_item(user, repo, item_id, entity, url, descriminator)
-      stored_item = @persister.find(entity,
-                                       {'repo' => repo,
-                                        'owner' => user,
-                                        descriminator => item_id})
+    def repo_bound_item(user, repo, item_id, entity, url, selector, descriminator)
+      selector.merge!({descriminator => item_id})
+      stored_item = @persister.find(entity, selector)
 
       if stored_item.empty?
-        repo_bound_items(user, repo, entity, url, descriminator).\
-                    find{|x| x[descriminator] == item_id}
+        repo_bound_items(user, repo, entity, url, selector, descriminator).\
+                        find{|x| x[descriminator] == item_id}
       else
         stored_item.first
       end
     end
-
-    # Get current Github events
-    def get_events
-      api_request "https://api.github.com/events"
-    end
-
-    private
 
     def ghurl(path)
       config(:mirror_urlbase) + path

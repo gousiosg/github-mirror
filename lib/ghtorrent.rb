@@ -1,5 +1,5 @@
 module GHTorrent
-  VERSION = '0.4'
+  VERSION = '0.5'
 
   # Route keys used for setting up queues for events, using GHTorrent
   ROUTEKEY_CREATE = "evt.CreateEvent"

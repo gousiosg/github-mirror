@@ -108,6 +108,19 @@ module GHTorrent
     end
 
     ##
+    # Get a pull request and record the changes it affects
+    # ==Parameters:
+    #  [owner] The owner of the repository to which the pullreq will be applied
+    #  [repo] The repository to which the pullreq will be applied
+    #  [pullreq_id] The ID of the pull request relative to the repository
+    #  [created_at] The date of the pull request event
+    def get_pull_request(owner, repo, pullreq_id)
+      transaction do
+        ensure_pull_request(owner, repo, pullreq_id)
+      end
+    end
+
+    ##
     # Make sure a commit exists
     #
     def ensure_commit(repo, sha, user, comments = true)
@@ -463,8 +476,7 @@ module GHTorrent
     def ensure_project_members(user, repo)
       curuser = @db[:users].first(:login => user)
       currepo = @db[:projects].first(:owner_id => curuser[:id], :name => repo)
-      project_members = @db[:project_members].filter(:user_id => curuser[:id],
-                                                   :repo_id => currepo[:id])
+      project_members = @db[:project_members].filter(:repo_id => currepo[:id])
 
       retrieve_repo_collaborators(user, repo).reduce([]) do |acc, x|
         if project_members.find { |y| y[:login] == x['login'] }.nil?
@@ -489,6 +501,7 @@ module GHTorrent
       if memb_exist.nil?
         added = if date_added.nil? then Time.now else date_added end
         retrieved = retrieve_repo_collaborator(owner, repo, new_member)
+
         pr_members.insert(
             :user_id => new_user[:id],
             :repo_id => project[:id],
@@ -630,8 +643,7 @@ module GHTorrent
       curuser = @db[:users].first(:login => owner)
       currepo = @db[:projects].first(:owner_id => curuser[:id],
                                      :name => repo)
-      watchers = @db[:watchers].filter(:user_id => curuser[:id],
-                                       :repo_id => currepo[:id])
+      watchers = @db[:watchers].filter(:repo_id => currepo[:id])
 
       retrieve_watchers(owner, repo).reduce([]) do |acc, x|
         if watchers.find { |y| y[:login] == x['login'] }.nil?
@@ -651,7 +663,7 @@ module GHTorrent
       project = @db[:projects].first(:owner_id => owner_id, :name => repo)
 
       memb_exist = watchers.first(:user_id => new_watcher[:id],
-                                    :repo_id => project[:id])
+                                  :repo_id => project[:id])
 
       if memb_exist.nil?
         added = if date_added.nil? then Time.now else date_added end
@@ -671,6 +683,120 @@ module GHTorrent
           info "GHTorrent: Updating  #{repo} -> #{watcher}"
         end
       end
+    end
+
+    ##
+    # Process all pull requests
+    def ensure_pull_requests(owner, repo)
+      curuser = @db[:users].first(:login => owner)
+      currepo = @db[:projects].first(:owner_id => curuser[:id],
+                                     :name => repo)
+      pull_reqs = @db[:pull_requests].filter(:base_repo_id => currepo[:id])
+
+      retrieve_pull_requests(owner, repo).reduce([]) do |acc, x|
+        if pull_reqs.find { |y| y[:pullreq_id] == x['number'] }.nil?
+          acc << x
+        else
+          acc
+        end
+      end.map { |x| ensure_pull_request(owner, repo, x['number']) }
+    end
+
+    ##
+    # Process a pull request
+    def ensure_pull_request(owner, repo, pullreq_id)
+      pulls_reqs = @db[:pull_requests]
+      pull_req_history = @db[:pull_request_history]
+      owner_id = @db[:users].first(:login => owner)[:id]
+      project = @db[:projects].first(:owner_id => owner_id, :name => repo)
+
+      # Adds a pull request history event
+      add_history = Proc.new do |id, ts, unq, act|
+        pull_req_history.insert(
+            :pull_request_id => id,
+            :created_at => ts,
+            :ext_ref_id => unq,
+            :action => act
+        )
+      end
+
+      pull_req_exists = pulls_reqs.first(:base_repo_id => project[:id],
+                                         :pullreq_id => pullreq_id)
+
+      if pull_req_exists.nil?
+
+        # If the pull request has not been processed before, only one entry
+        # for the pull request will be returned by the following call.
+        # This is because the retrieval process will only retrieve the latest
+        # version of the pull request as returned by Github.
+        retrieved = retrieve_pull_request_history(owner, repo, pullreq_id).last
+
+        head_repo = ensure_repo(retrieved['head']['repo']['owner']['login'],
+                                retrieved['head']['repo']['name'])
+
+        head_commit = ensure_commit(retrieved['head']['repo']['owner']['login'],
+                                    retrieved['head']['repo']['name'],
+                                    retrieved['head']['sha'])
+
+        base_repo = ensure_repo(retrieved['base']['repo']['owner']['login'],
+                                retrieved['base']['repo']['name'])
+
+        base_commit = ensure_commit(retrieved['base']['repo']['owner']['login'],
+                                    retrieved['base']['repo']['name'],
+                                    retrieved['base']['sha'])
+
+        pull_req_user = ensure_user(retrieved['user']['login'], false, false)
+
+        merged = if retrieved['merged_at'].nil? then false else true end
+        closed = if retrieved['closed_at'].nil? then false else true end
+
+        pulls_reqs.insert(
+            :head_repo_id => head_repo[:id],
+            :base_repo_id => base_repo[:id],
+            :head_commit_id => head_commit[:id],
+            :base_commit_id => base_commit[:id],
+            :user_id => pull_req_user[:id],
+            :pullreq_id => pullreq_id,
+            :merged => merged
+        )
+
+        new_pull_req = pulls_reqs.first(:base_repo_id => project[:id],
+                                        :pullreq_id => pullreq_id)
+
+        add_history.call(new_pull_req[:id], date(retrieved['created_at']),
+                         retrieved[@ext_uniq], 'opened')
+        add_history.call(new_pull_req[:id], date(retrieved['merged_at']),
+                         retrieved[@ext_uniq], 'merged') if merged
+        add_history.call(new_pull_req[:id], date(retrieved['closed_at']),
+                         retrieved[@ext_uniq], 'closed') if closed
+      else
+        retrieved = retrieve_pull_request_history(owner, repo, pullreq_id).sort { |x, y|
+          date(x['updated_at']).to_i <=> date(y['updated_at']).to_i
+        }.last
+
+        merged = if retrieved['merged_at'].nil? then false else true end
+        closed = if retrieved['closed_at'].nil? then false else true end
+
+        add_history.call(new_pull_req[:id], date(retrieved['merged_at']),
+                         retrieved[@ext_uniq], 'merged') if merged
+
+        add_history.call(new_pull_req[:id], date(retrieved['closed_at']),
+                         retrieved[@ext_uniq], 'closed') if closed
+      end
+
+      ensure_pull_request_commits(owner, repo, pullreq_id)
+      ensure_pull_request_comments(owner, repo, pullreq_id)
+
+      pulls_reqs.first(:base_repo_id => project[:id],
+                       :pullreq_id => pullreq_id)
+    end
+
+    def ensure_pull_request_comments(owner, repo, pullreq_id, date_added = nil)
+
+    end
+
+    def ensure_pull_request_commits(owner, repo, pullreq_id)
+
     end
 
     private

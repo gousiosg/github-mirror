@@ -19,7 +19,8 @@ class GHTDataRetrieval < GHTorrent::Command
     data = parse evt
     data['payload']['commits'].each do |c|
       url = c['url'].split(/\//)
-      @gh.get_commit url[4], url[5], url[7]
+
+      #@gh.get_commit url[4], url[5], url[7]
     end
   end
 
@@ -39,7 +40,7 @@ class GHTDataRetrieval < GHTorrent::Command
     followed = data['payload']['target']['login']
     created_at = data['created_at']
 
-    @gh.get_follower(follower, followed, created_at)
+    #@gh.get_follower(follower, followed, created_at)
   end
 
   def MemberEvent(evt)
@@ -59,11 +60,17 @@ class GHTDataRetrieval < GHTorrent::Command
     id = data['payload']['comment']['id']
     created_at = data['created_at']
 
-    @gh.get_commit_comment(user, repo, id, created_at)
+    #@gh.get_commit_comment(user, repo, id, created_at)
+  end
+
+  def PullRequestEvent(evt)
+    data = parse evt
+
+
   end
 
   def handlers
-    %w(PushEvent WatchEvent FollowEvent MemberEvent CommitCommentEvent)
+    %w(PushEvent WatchEvent FollowEvent MemberEvent CommitCommentEvent PullRequestEvent)
   end
 
   def prepare_options(options)
