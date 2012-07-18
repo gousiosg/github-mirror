@@ -27,6 +27,10 @@ mirror:
   # significantly in new installations.
   commit_pages_new_repo: 3
 
+  # Locally cache requests. Only useful for speeding up debugging.
+  cache: false
+  cache_dir: /var/tmp
+
 mongo:
   host: 127.0.0.1      # Mongo's IP addr
   port: 27017          # Mongo's port

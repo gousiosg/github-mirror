@@ -11,6 +11,9 @@ module GHTorrent
     def initialize(settings)
       @num_api_calls = 0
       @ts = Time.now().tv_sec()
+      @settings = settings
+      @cache = config(:cache)
+      @cache_dir = config(:cache_dir)
     end
 
     # A paged request. Used when the result can expand to more than one
@@ -64,6 +67,7 @@ module GHTorrent
         []
       else
         json = result.read
+
         if json.nil?
           []
         else
@@ -89,12 +93,35 @@ module GHTorrent
         @ts = Time.now().tv_sec()
       end
 
-      @num_api_calls += 1
+
       begin
         start_time = Time.now
-        contents = open(url)
+        from_cache = false
+
+        contents = if @cache
+          sig = Digest::SHA1.hexdigest url
+          file = File.join(@cache_dir, sig)
+
+          if File.exist?(file)
+            f = File.open(file, 'r')
+            from_cache = true
+            YAML::load(f)
+          else
+            result = open(url)
+            @num_api_calls += 1
+            tocache = Cachable.new(result)
+            f = File.open(file, 'w')
+            YAML::dump tocache, f
+            f.close
+            tocache
+          end
+        else
+          open(url)
+          @num_api_calls += 1
+        end
+
         total = Time.now.to_ms - start_time.to_ms
-        debug "APIClient: Request: #{url} (#{@num_api_calls} calls, #{total} ms)"
+        debug "APIClient: Request: #{url} (#{@num_api_calls} calls, #{if from_cache then "from cache, " end} Total: #{total} ms)"
         contents
       rescue OpenURI::HTTPError => e
         case e.io.status[0].to_i
@@ -113,4 +140,23 @@ module GHTorrent
       end
     end
   end
+end
+
+class Cachable
+
+  include OpenURI::Meta
+
+  attr_reader :base_uri, :meta, :status
+
+  def initialize(response)
+    @data = response.read
+    @base_uri = response.base_uri
+    @meta = response.meta
+    @status = response.status
+  end
+
+  def read
+    @data
+  end
+
 end
