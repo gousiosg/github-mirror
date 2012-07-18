@@ -42,7 +42,6 @@ Sequel.migration do
       foreign_key :pull_request_id, :pull_requests, :null => false
       DateTime :created_at, :null => false, :default=>Sequel::CURRENT_TIMESTAMP
       String :ext_ref_id, :null => false, :size => 24, :default => "0"
-      String :ext_ref_id, :null => false, :size => 24, :default => "0"
     end
 
   end

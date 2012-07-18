@@ -242,25 +242,22 @@ module GHTorrent
     end
 
     def retrieve_pull_requests(user, repo)
+      open = "repos/#{user}/#{repo}/pulls"
+      closed = "repos/#{user}/#{repo}/pulls?state=closed"
       repo_bound_items(user, repo, :pull_requests,
-                       "/repos/#{user}/#{repo}/pulls",
+                       [open, closed],
                        {'repo' => repo, 'owner' => user},
-                       'updated_at')
+                       'number')
     end
 
-    def retrieve_pull_request_history(user, repo, pullreq_id)
-      repo_bound_items(user, repo, :pull_requests,
-                      "/repos/#{user}/#{repo}/pulls/#{pullreq_id}",
-                      {'repo' => repo, 'owner' => user, 'number' => pullreq_id},
-                      'updated_at')
-    end
-
-    def retrieve_pull_request_instance(user, repo, pullreq_id, updated_at)
+    def retrieve_pull_request(user, repo, pullreq_id)
+      open = "repos/#{user}/#{repo}/pulls"
+      closed = "repos/#{user}/#{repo}/pulls?state=closed"
       repo_bound_item(user, repo, pullreq_id, :pull_requests,
-                      "/repos/#{user}/#{repo}/pulls/#{pullreq_id}",
+                      [open, closed],
                       {'repo' => repo, 'owner' => user,
-                       'number' => pullreq_id, 'updated_at' => updated_at},
-                      'updated_at')
+                       'number' => pullreq_id},
+                      'number')
     end
 
     # Get current Github events
@@ -270,10 +267,15 @@ module GHTorrent
 
     private
 
-    def repo_bound_items(user, repo, entity, url, selector, descriminator)
+    def repo_bound_items(user, repo, entity, urls, selector, descriminator)
       stored_items = @persister.find(entity, selector)
 
-      items = paged_api_request(ghurl url)
+      items = if urls.class == Array
+                urls.map { |url| paged_api_request(ghurl url) }.flatten
+              else
+                paged_api_request(ghurl urls)
+              end
+
       items.each do |x|
         x['repo'] = repo
         x['owner'] = user

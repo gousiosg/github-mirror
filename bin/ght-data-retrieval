@@ -65,8 +65,12 @@ class GHTDataRetrieval < GHTorrent::Command
 
   def PullRequestEvent(evt)
     data = parse evt
+    owner = data['payload']['pull_request']['base']['repo']['owner']['login']
+    repo = data['payload']['pull_request']['base']['repo']['name']
+    pullreq_id = data['payload']['number']
 
 
+    @gh.get_pull_request(owner, repo, pullreq_id)
   end
 
   def handlers

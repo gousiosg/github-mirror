@@ -113,9 +113,9 @@ module GHTorrent
     #  [owner] The owner of the repository to which the pullreq will be applied
     #  [repo] The repository to which the pullreq will be applied
     #  [pullreq_id] The ID of the pull request relative to the repository
-    #  [created_at] The date of the pull request event
     def get_pull_request(owner, repo, pullreq_id)
       transaction do
+        ensure_repo(owner, repo)
         ensure_pull_request(owner, repo, pullreq_id)
       end
     end
@@ -725,25 +725,27 @@ module GHTorrent
 
       if pull_req_exists.nil?
 
-        # If the pull request has not been processed before, only one entry
-        # for the pull request will be returned by the following call.
-        # This is because the retrieval process will only retrieve the latest
-        # version of the pull request as returned by Github.
-        retrieved = retrieve_pull_request_history(owner, repo, pullreq_id).last
+        retrieved = retrieve_pull_request(owner, repo, pullreq_id)
+
+        if retrieved.nil?
+          warn "GHTorrent: Cannot retrieve pull request (#{owner}/#{repo} #{pullreq_id})"
+          return
+        end
 
         head_repo = ensure_repo(retrieved['head']['repo']['owner']['login'],
                                 retrieved['head']['repo']['name'])
 
-        head_commit = ensure_commit(retrieved['head']['repo']['owner']['login'],
-                                    retrieved['head']['repo']['name'],
-                                    retrieved['head']['sha'])
+        head_commit = ensure_commit(retrieved['head']['repo']['name'],
+                                    retrieved['head']['sha'],
+                                    retrieved['head']['repo']['owner']['login'])
 
         base_repo = ensure_repo(retrieved['base']['repo']['owner']['login'],
                                 retrieved['base']['repo']['name'])
 
-        base_commit = ensure_commit(retrieved['base']['repo']['owner']['login'],
-                                    retrieved['base']['repo']['name'],
-                                    retrieved['base']['sha'])
+        base_commit = ensure_commit(retrieved['base']['repo']['name'],
+                                    retrieved['base']['sha'],
+                                    retrieved['base']['repo']['owner']['login']
+                                    )
 
         pull_req_user = ensure_user(retrieved['user']['login'], false, false)
 
@@ -770,7 +772,7 @@ module GHTorrent
         add_history.call(new_pull_req[:id], date(retrieved['closed_at']),
                          retrieved[@ext_uniq], 'closed') if closed
       else
-        retrieved = retrieve_pull_request_history(owner, repo, pullreq_id).sort { |x, y|
+        retrieved = retrieve_pull_request(owner, repo, pullreq_id).sort { |x, y|
           date(x['updated_at']).to_i <=> date(y['updated_at']).to_i
         }.last
 
@@ -821,8 +823,8 @@ module GHTorrent
                        :created_at => date(c['commit']['author']['date']),
                        :ext_ref_id => c[@ext_uniq]
         )
-        commits.first(:sha => c['sha'])
         debug "GHTorrent: New commit #{repo} -> #{c['sha']} "
+        commits.first(:sha => c['sha'])
       else
         debug "GHTorrent: Commit #{repo} -> #{c['sha']} exists"
         commit
