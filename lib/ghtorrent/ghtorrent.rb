@@ -24,13 +24,14 @@ module GHTorrent
     def get_db
 
       @db = Sequel.connect(config(:sql_url))
-
+      #@db.loggers << @logger
       if @db.tables.empty?
         dir = File.join(File.dirname(__FILE__), 'migrations')
         puts "Database empty, running migrations from #{dir}"
         Sequel.extension :migration
         Sequel::Migrator.apply(@db, dir)
       end
+
       @db
     end
 
@@ -732,12 +733,20 @@ module GHTorrent
           return
         end
 
-        head_repo = ensure_repo(retrieved['head']['repo']['owner']['login'],
-                                retrieved['head']['repo']['name'])
+        # Pull requests might be deleted between publishing them and
+        # processing them...
+        if retrieved['head']['repo'].nil?
+          head_repo = head_commit = nil
+          warn "GHTorrent: Pull request head repo #{owner}/#{repo} deleted."
+        else
 
-        head_commit = ensure_commit(retrieved['head']['repo']['name'],
-                                    retrieved['head']['sha'],
-                                    retrieved['head']['repo']['owner']['login'])
+          head_repo = ensure_repo(retrieved['head']['repo']['owner']['login'],
+                                  retrieved['head']['repo']['name'])
+
+          head_commit = ensure_commit(retrieved['head']['repo']['name'],
+                                      retrieved['head']['sha'],
+                                      retrieved['head']['repo']['owner']['login'])
+        end
 
         base_repo = ensure_repo(retrieved['base']['repo']['owner']['login'],
                                 retrieved['base']['repo']['name'])
@@ -753,13 +762,12 @@ module GHTorrent
         closed = if retrieved['closed_at'].nil? then false else true end
 
         pulls_reqs.insert(
-            :head_repo_id => head_repo[:id],
+            :head_repo_id => if not head_repo.nil? then head_repo[:id] end,
             :base_repo_id => base_repo[:id],
-            :head_commit_id => head_commit[:id],
+            :head_commit_id => if not head_commit.nil? then head_commit[:id] end,
             :base_commit_id => base_commit[:id],
             :user_id => pull_req_user[:id],
-            :pullreq_id => pullreq_id,
-            :merged => merged
+            :pullreq_id => pullreq_id
         )
 
         new_pull_req = pulls_reqs.first(:base_repo_id => project[:id],
