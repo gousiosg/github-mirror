@@ -7,13 +7,13 @@ Sequel.migration do
 
     create_table :pull_requests do
       primary_key :id
-      foreign_key :head_repo_id, :projects, :null => false
+      foreign_key :head_repo_id, :projects
       foreign_key :base_repo_id, :projects, :null => false
-      foreign_key :head_commit_id, :commits, :null => false
+      foreign_key :head_commit_id, :commits
       foreign_key :base_commit_id, :commits, :null => false
       foreign_key :user_id, :users, :null => false
-      Integer :pullreq_id, :null => false, :unique => true
-      TrueClass :merged, :null => false
+      Integer :pullreq_id, :null => false
+      unique([:pullreq_id, :base_repo_id])
     end
 
     puts("Adding table pull request history")

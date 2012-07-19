@@ -6,7 +6,8 @@ Sequel.migration do
     puts("Adding organization descriminator field to table users")
 
     alter_table :users do
-      add_column :type, "enum('USR', 'ORG')", :null => false
+      add_column :type, String, :null => false, :default => 'USR'
+      add_constraint(:type_allowed_values, :type => %w[USR ORG])
     end
 
     puts("Updating users with default values")
