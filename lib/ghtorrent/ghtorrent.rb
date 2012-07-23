@@ -1,5 +1,11 @@
 require 'sequel'
 
+require 'ghtorrent/time'
+require 'ghtorrent/logging'
+require 'ghtorrent/settings'
+require 'ghtorrent/retriever'
+require 'ghtorrent/persister'
+
 module GHTorrent
   class Mirror
 
@@ -8,12 +14,10 @@ module GHTorrent
     include GHTorrent::Retriever
     include GHTorrent::Persister
 
-    attr_reader :settings, :persister
+    attr_reader :settings, :persister, :ext_uniq
 
-    def initialize(configuration)
-
-      @settings = YAML::load_file configuration
-      super(@settings)
+    def initialize(settings)
+      @settings = settings
       @ext_uniq = config(:uniq_id)
       @logger = Logger.new(STDOUT)
       @persister = connect(:mongo, @settings)
@@ -527,7 +531,6 @@ module GHTorrent
     # [user]  The login name of the user to check the organizations for
     #
     def ensure_orgs(user)
-      usr = @db[:users].first(:login => user)
       retrieve_orgs(user).map{|o| ensure_participation(user, o['login'])}
     end
 
@@ -618,7 +621,7 @@ module GHTorrent
           return
         end
 
-        commit = ensure_commit(repo, retrieved['commit_id'], user, comments = false)
+        commit = ensure_commit(repo, retrieved['commit_id'], user)
         user = ensure_user(user, false, false)
         @db[:commit_comments].insert(
             :commit_id => commit[:id],
@@ -877,15 +880,6 @@ module GHTorrent
     def is_valid_email(email)
       email =~ /^[a-zA-Z][\w\.-]*[a-zA-Z0-9]@[a-zA-Z0-9][\w\.-]*[a-zA-Z0-9]\.[a-zA-Z][a-zA-Z\.]*[a-zA-Z]$/
     end
-  end
-  # Base exception for all GHTorrent exceptions
-  class GHTorrentException < Exception
-  end
-end
-
-class Time
-  def to_ms
-    (self.to_f * 1000.0).to_i
   end
 end
 

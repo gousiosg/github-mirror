@@ -2,9 +2,14 @@ require 'rubygems'
 require 'yaml'
 require 'amqp'
 require 'eventmachine'
-require 'ghtorrent'
 require 'json'
 require 'logger'
+
+require 'ghtorrent/api_client'
+require 'ghtorrent/settings'
+require 'ghtorrent/logging'
+require 'ghtorrent/persister'
+require 'ghtorrent/command'
 
 class GHTMirrorEvents < GHTorrent::Command
 
@@ -12,14 +17,6 @@ class GHTMirrorEvents < GHTorrent::Command
   include GHTorrent::Logging
   include GHTorrent::Persister
   include GHTorrent::APIClient
-
-  attr_reader :settings
-
-  def initialize(args)
-    super(args)
-    @args = args
-    @name = self.class.name
-  end
 
   def store_count(events)
     stored = Array.new
@@ -67,13 +64,7 @@ class GHTMirrorEvents < GHTorrent::Command
     end
   end
 
-  def prepare_options(options)
-    @name = "ght-mirror-events"
-  end
-
   def go
-    @gh = GHTorrent::Mirror.new(options[:config])
-    @settings = @gh.settings
     @persister = connect(:mongo, @settings)
     @logger = Logger.new(STDOUT)
 

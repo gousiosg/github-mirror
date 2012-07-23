@@ -3,18 +3,14 @@ require 'set'
 require 'open-uri'
 require 'json'
 
+require 'ghtorrent/logging'
+require 'ghtorrent/settings'
+require 'ghtorrent/time'
+
 module GHTorrent
   module APIClient
     include GHTorrent::Logging
     include GHTorrent::Settings
-
-    def initialize(settings)
-      @num_api_calls = 0
-      @ts = Time.now().tv_sec()
-      @settings = settings
-      @cache = config(:cache)
-      @cache_dir = config(:cache_dir)
-    end
 
     # A paged request. Used when the result can expand to more than one
     # result pages.
@@ -78,6 +74,11 @@ module GHTorrent
 
     # Do the actual request and return the result object
     def api_request_raw(url)
+      @num_api_calls ||= 0
+      @ts ||= Time.now().tv_sec()
+      @cache ||= config(:cache)
+      @cache_dir ||= config(:cache_dir)
+
       #Rate limiting to avoid error requests
       if Time.now().tv_sec() - @ts < 60 then
         if @num_api_calls >= @settings['mirror']['reqrate'].to_i
@@ -92,7 +93,6 @@ module GHTorrent
         @num_api_calls = 0
         @ts = Time.now().tv_sec()
       end
-
 
       begin
         start_time = Time.now

@@ -1,5 +1,7 @@
 require 'yaml'
 
+require 'ghtorrent/utils'
+
 module GHTorrent
   module Settings
 
@@ -32,6 +34,10 @@ module GHTorrent
 
     def merge(more_keys)
       more_keys.each {|k,v| CONFIGKEYS[k] = v}
+    end
+
+    def settings
+      raise Exception("Uninitialized")
     end
 
   end

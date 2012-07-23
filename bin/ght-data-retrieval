@@ -1,8 +1,12 @@
 require 'rubygems'
 require 'amqp'
 require 'json'
-require 'ghtorrent'
 require 'pp'
+
+require 'ghtorrent/ghtorrent'
+require 'ghtorrent/settings'
+require 'ghtorrent/logging'
+require 'ghtorrent/command'
 
 class GHTDataRetrieval < GHTorrent::Command
 
@@ -77,13 +81,8 @@ class GHTDataRetrieval < GHTorrent::Command
     %w(PushEvent WatchEvent FollowEvent MemberEvent CommitCommentEvent PullRequestEvent)
   end
 
-  def prepare_options(options)
-      @name = "ght-data-retrieval"
-  end
-
   def go
-    @gh = GHTorrent::Mirror.new(options[:config])
-    @settings = @gh.settings
+    @gh = GHTorrent::Mirror.new(@settings)
 
     # Graceful exit
     Signal.trap('INT') {

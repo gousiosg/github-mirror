@@ -1,4 +1,5 @@
 require 'mongo'
+require 'ghtorrent/adapters/base_adapter'
 
 module GHTorrent
 

@@ -1,19 +1,27 @@
 require 'uri'
 
+require 'ghtorrent/api_client'
+require 'ghtorrent/settings'
+require 'ghtorrent/utils'
+require 'ghtorrent/gh_torrent_exception'
+
 module GHTorrent
   module Retriever
 
+    include GHTorrent::Settings
     include GHTorrent::Utils
     include GHTorrent::APIClient
 
-    def initialize(settings)
-      super(settings)
-      @settings = settings
-      @uniq = config(:uniq_id)
+    def ext_uniq
+      raise Exception("Unimplemented")
+    end
+
+    def persister
+      raise Exception("Unimplemented")
     end
 
     def retrieve_user_byusername(user)
-      stored_user = @persister.find(:users, {'login' => user})
+      stored_user = persister.find(:users, {'login' => user})
       if stored_user.empty?
         url = ghurl "users/#{user}"
         u = api_request(url)
@@ -22,8 +30,8 @@ module GHTorrent
           throw GHTorrentException.new("Cannot find user #{user}")
         end
 
-        unq = @persister.store(:users, u)
-        u[@uniq] = unq
+        unq = persister.store(:users, u)
+        u[ext_uniq] = unq
         what = user_type(u['type'])
         info "Retriever: New #{what} #{user}"
         u
@@ -46,7 +54,7 @@ module GHTorrent
     end
 
     def retrieve_user_followers(user)
-      stored_followers = @persister.find(:followers, {'follows' => user})
+      stored_followers = persister.find(:followers, {'follows' => user})
 
       followers = paged_api_request(ghurl "users/#{user}/followers")
       followers.each do |x|
@@ -57,19 +65,19 @@ module GHTorrent
         }.nil?
 
         if not exists
-          @persister.store(:followers, x)
+          persister.store(:followers, x)
           info "Retriever: Added follower #{user} -> #{x['login']}"
         else
           debug "Retriever: Follower #{user} -> #{x['login']} exists"
         end
       end
 
-      @persister.find(:followers, {'follows' => user})
+      persister.find(:followers, {'follows' => user})
     end
 
     # Retrieve a single commit from a repo
     def retrieve_commit(repo, sha, user)
-      commit = @persister.find(:commits, {'sha' => "#{sha}"})
+      commit = persister.find(:commits, {'sha' => "#{sha}"})
 
       if commit.empty?
         url = ghurl "repos/#{user}/#{repo}/commits/#{sha}"
@@ -79,9 +87,9 @@ module GHTorrent
           throw GHTorrentException.new("Cannot find commit #{user}/#{repo}/#{sha}")
         end
 
-        unq = @persister.store(:commits, c)
+        unq = persister.store(:commits, c)
         info "Retriever: New commit #{repo} -> #{sha}"
-        c[@uniq] = unq
+        c[ext_uniq] = unq
         c
       else
         debug "Retriever: Already got commit #{repo} -> #{sha}"
@@ -108,7 +116,7 @@ module GHTorrent
 
 
     def retrieve_repo(user, repo)
-      stored_repo = @persister.find(:repos, {'owner.login' => user,
+      stored_repo = persister.find(:repos, {'owner.login' => user,
                                              'name' => repo })
       if stored_repo.empty?
         url = ghurl "repos/#{user}/#{repo}"
@@ -118,9 +126,9 @@ module GHTorrent
           throw GHTorrentException.new("Cannot find repo #{user}/#{repo}")
         end
 
-        unq = @persister.store(:repos, r)
+        unq = persister.store(:repos, r)
         info "Retriever: New repo #{user} -> #{repo}"
-        r[@uniq] = unq
+        r[ext_uniq] = unq
         r
       else
         debug "Retriever: Already got repo #{user} -> #{repo}"
@@ -142,8 +150,7 @@ module GHTorrent
 
     # Retrieve organization members
     def retrieve_org_members(org)
-      url = ghurl "orgs/#{org}/members"
-      stored_org_members = @persister.find(:org_members, {'org' => org})
+      stored_org_members = persister.find(:org_members, {'org' => org})
 
       org_members = paged_api_request(ghurl "orgs/#{org}/members")
       org_members.each do |x|
@@ -154,39 +161,38 @@ module GHTorrent
         }.nil?
 
         if not exists
-          @persister.store(:org_members, x)
+          persister.store(:org_members, x)
           info "Retriever: Added member #{org} -> #{x['login']}"
         else
           debug "Retriever: Member #{org} -> #{x['login']} exists"
         end
       end
 
-      @persister.find(:org_members, {'org' => org}).map{|o| retrieve_org(o['login'])}
+      persister.find(:org_members, {'org' => org}).map{|o| retrieve_org(o['login'])}
     end
 
     # Retrieve all comments for a single commit
     def retrieve_commit_comments(user, repo, sha)
-      stored_comments = @persister.find(:commit_comments, {'commit_id' => sha})
       retrieved_comments = paged_api_request(ghurl "repos/#{user}/#{repo}/commits/#{sha}/comments")
 
-      retrieved_comments.each{ |x|
+      retrieved_comments.each { |x|
         x['repo'] = repo
         x['user'] = user
         x['commit_id'] = sha
 
-        if @persister.find(:commit_comments, {'repo' => repo,
+        if persister.find(:commit_comments, {'repo' => repo,
                                               'user' => user,
                                               'id' => x['id']}).empty?
-          @persister.store(:commit_comments, x)
+          persister.store(:commit_comments, x)
         end
       }
-      @persister.find(:commit_comments, {'commit_id' => sha})#.map{|x| x[@uniq] = x['_id']; x}
-  end
+      persister.find(:commit_comments, {'commit_id' => sha}) #.map{|x| x[ext_uniq] = x['_id']; x}
+    end
 
-  # Retrieve a single comment
+    # Retrieve a single comment
     def retrieve_commit_comment(user, repo, id)
 
-      comment = @persister.find(:commit_comments, {'repo' => repo,
+      comment = persister.find(:commit_comments, {'repo' => repo,
                                                    'user' => user,
                                                    'id' => id}).first
       if comment.nil?
@@ -199,9 +205,9 @@ module GHTorrent
 
         r['repo'] = repo
         r['user'] = user
-        @persister.store(:commit_comments, r)
+        persister.store(:commit_comments, r)
         info "Retriever: Added commit comment #{r['commit_id']} -> #{r['id']}"
-        r[@uniq] = r['_id']
+        r[ext_uniq] = r['_id']
         r
       else
         debug "Retriever: Commit comment #{comment['commit_id']} -> #{comment['id']} exists"
@@ -268,7 +274,7 @@ module GHTorrent
     private
 
     def repo_bound_items(user, repo, entity, urls, selector, descriminator)
-      stored_items = @persister.find(entity, selector)
+      stored_items = persister.find(entity, selector)
 
       items = if urls.class == Array
                 urls.map { |url| paged_api_request(ghurl url) }.flatten
@@ -285,18 +291,18 @@ module GHTorrent
         }.nil?
 
         if not exists
-          @persister.store(entity, x)
+          persister.store(entity, x)
           info "Retriever: Added #{entity} #{repo} -> #{x[descriminator]}"
         else
           debug "Retriever: #{entity} #{repo} -> #{x[descriminator]} exists"
         end
       end
-      @persister.find(entity, selector)
+      persister.find(entity, selector)
     end
 
     def repo_bound_item(user, repo, item_id, entity, url, selector, descriminator)
       selector.merge!({descriminator => item_id})
-      stored_item = @persister.find(entity, selector)
+      stored_item = persister.find(entity, selector)
 
       if stored_item.empty?
         repo_bound_items(user, repo, entity, url, selector, descriminator).\

@@ -13,14 +13,23 @@ require 'etc'
 module GHTorrent
   class Command
 
-    attr_reader :args, :options, :name
-
     # Specify the run method for subclasses.
     class << self
       def run(args = ARGV)
-        command = new(args)
+        attr_accessor :args
+        attr_accessor :settings
+        attr_accessor :name
+        attr_accessor :options
+
+        command = new()
+
+        command.name = self.class.name
+        command.args = args
+
         command.process_options
         command.validate
+
+        command.settings = YAML::load_file command.options[:config]
 
         if command.options[:daemon]
           if Process.uid == 0
@@ -59,15 +68,10 @@ module GHTorrent
       end
     end
 
-    def initialize(args)
-      @args = args
-      @name = self.class.name
-    end
-
     # Specify and parse supported command line options.
     def process_options
       command = self
-      @options = Trollop::options(@args) do
+      @options = Trollop::options(command.args) do
 
         command.prepare_options(self)
 
@@ -83,8 +87,8 @@ Standard options:
             :short => 'u', :type => String
       end
 
-      @args = @args.dup
-      ARGV.clear
+      #@args = @args.dup
+      #ARGV.clear
     end
 
     # Get the version of the project
@@ -130,6 +134,10 @@ Standard options:
 
     # The actual command code.
     def go
+    end
+
+    def settings
+      @settings
     end
 
     private

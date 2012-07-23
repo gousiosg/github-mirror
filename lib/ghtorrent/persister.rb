@@ -1,3 +1,6 @@
+require 'ghtorrent/adapters/mongo_persister'
+require 'ghtorrent/adapters/noop_persister'
+
 module GHTorrent
 
   #

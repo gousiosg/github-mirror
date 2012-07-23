@@ -1,5 +1,4 @@
 require 'rubygems'
-require 'ghtorrent-old'
 require 'mongo'
 require 'amqp'
 require 'set'
@@ -8,6 +7,11 @@ require 'optparse'
 require 'ostruct'
 require 'pp'
 require "amqp/extensions/rabbitmq"
+
+require 'ghtorrent/settings'
+require 'ghtorrent/logging'
+require 'ghtorrent/persister'
+require 'ghtorrent/command'
 
 class GHTLoad < GHTorrent::Command
 
@@ -63,10 +67,6 @@ Loads object ids from a collection to a queue for further processing.
   end
 
   def go
-    @gh = GHTorrent::Mirror.new(options[:config])
-    @settings = @gh.settings
-
-    GH.init(options[:config])
     # Message tags await publisher ack
     awaiting_ack = SortedSet.new
 
