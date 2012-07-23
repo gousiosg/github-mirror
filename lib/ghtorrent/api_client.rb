@@ -130,7 +130,7 @@ module GHTorrent
               401, # Unauthorized
               403, # Forbidden
               404, # Not found
-              422 : # Unprocessable entity
+              422 then # Unprocessable entity
             STDERR.puts "#{url}: #{e.io.status[1]}"
             return nil
           else # Server error or HTTP conditions that Github does not report
