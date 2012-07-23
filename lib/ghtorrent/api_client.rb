@@ -12,6 +12,12 @@ module GHTorrent
     include GHTorrent::Logging
     include GHTorrent::Settings
 
+    # This is to fix an annoying bug in JRuby's SSL not being able to
+    # verify a valid certificate.
+    if defined? JRUBY_VERSION
+      OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
+    end
+
     # A paged request. Used when the result can expand to more than one
     # result pages.
     def paged_api_request(url, pages = -1)
@@ -121,7 +127,7 @@ module GHTorrent
         end
 
         total = Time.now.to_ms - start_time.to_ms
-        debug "APIClient: Request: #{url} (#{@num_api_calls} calls, #{if from_cache then "from cache, " end} Total: #{total} ms)"
+        debug "APIClient: Request: #{url} (#{@num_api_calls} calls,#{if from_cache then " from cache, " end} Total: #{total} ms)"
         contents
       rescue OpenURI::HTTPError => e
         case e.io.status[0].to_i
