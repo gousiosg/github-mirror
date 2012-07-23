@@ -18,6 +18,10 @@ class GHTMirrorEvents < GHTorrent::Command
   include GHTorrent::Persister
   include GHTorrent::APIClient
 
+  def logger
+    @logger
+  end
+
   def store_count(events)
     stored = Array.new
     new = dupl = 0
@@ -70,11 +74,11 @@ class GHTMirrorEvents < GHTorrent::Command
 
     # Graceful exit
     Signal.trap('INT') {
-      info ("Received SIGINT, exiting")
+      info "Received SIGINT, exiting"
       AMQP.stop { EM.stop }
     }
     Signal.trap('TERM') {
-      info ("Received SIGTERM, exiting")
+      info "Received SIGTERM, exiting"
       AMQP.stop { EM.stop }
     }
 

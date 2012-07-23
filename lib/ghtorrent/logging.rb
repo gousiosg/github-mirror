@@ -21,21 +21,25 @@ module GHTorrent
 
     # Log a message at the given level.
     def log(level, msg)
-      return unless @logger
+
       case level
         when :fatal then
-          @logger.fatal msg
+          logger.fatal msg
         when :error then
-          @logger.error msg
+          logger.error msg
         when :warn then
-          @logger.warn msg
+          logger.warn msg
         when :info then
-          @logger.info msg
+          logger.info msg
         when :debug then
-          @logger.debug msg
+          logger.debug msg
         else
-          @logger.debug msg
+          logger.debug msg
       end
+    end
+
+    def logger
+      raise Exception.new("Unimplemented")
     end
   end
 end

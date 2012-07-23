@@ -86,9 +86,6 @@ Standard options:
         opt :user, 'run as the specified user (only when started as root)',
             :short => 'u', :type => String
       end
-
-      #@args = @args.dup
-      #ARGV.clear
     end
 
     # Get the version of the project
@@ -134,10 +131,6 @@ Standard options:
 
     # The actual command code.
     def go
-    end
-
-    def settings
-      @settings
     end
 
     private

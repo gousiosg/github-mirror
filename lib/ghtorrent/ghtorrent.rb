@@ -14,7 +14,7 @@ module GHTorrent
     include GHTorrent::Retriever
     include GHTorrent::Persister
 
-    attr_reader :settings, :persister, :ext_uniq
+    attr_reader :settings, :persister, :ext_uniq, :logger
 
     def initialize(settings)
       @settings = settings

@@ -37,7 +37,7 @@ module GHTorrent
     end
 
     def settings
-      raise Exception("Uninitialized")
+      raise Exception("Unimplemented")
     end
 
   end

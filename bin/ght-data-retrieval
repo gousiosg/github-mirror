@@ -13,8 +13,6 @@ class GHTDataRetrieval < GHTorrent::Command
   include GHTorrent::Settings
   include GHTorrent::Logging
 
-  attr_reader :settings, :name
-
   def parse(msg)
     JSON.parse(msg)
   end
@@ -79,6 +77,10 @@ class GHTDataRetrieval < GHTorrent::Command
 
   def handlers
     %w(PushEvent WatchEvent FollowEvent MemberEvent CommitCommentEvent PullRequestEvent)
+  end
+
+  def logger
+    @gh.logger
   end
 
   def go
