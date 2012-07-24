@@ -88,11 +88,11 @@ module GHTorrent
         end
 
         unq = persister.store(:commits, c)
-        info "Retriever: New commit #{repo} -> #{sha}"
+        info "Retriever: New commit #{user}/#{repo} -> #{sha}"
         c[ext_uniq] = unq
         c
       else
-        debug "Retriever: Already got commit #{repo} -> #{sha}"
+        debug "Retriever: Already got commit #{user}/#{repo} -> #{sha}"
         commit.first
       end
     end

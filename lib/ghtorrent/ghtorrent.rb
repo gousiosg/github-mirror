@@ -136,6 +136,7 @@ module GHTorrent
          and c['commit']['comment_count'] > 0
         ensure_commit_comments(user, repo, sha) if comments
       end
+      ensure_repo_commit(user, repo, sha)
       stored
     end
 
@@ -188,6 +189,34 @@ module GHTorrent
             info "Parent #{parent[:sha]} for commit #{this[:sha]} exists"
           end
         end
+    end
+
+    ##
+    # Make sure that a commit has been associated with the provided repo
+    # ==Parameters:
+    #  [user] The user that owns the repo this commit has been submitted to
+    #  [repo] The repo receiving the commit
+    #  [sha] The commit SHA
+    def ensure_repo_commit(user, repo, sha)
+      userid = @db[:users].first(:login => user)[:id]
+      projectid = @db[:projects].first(:owner_id => userid,
+                                     :name => repo)[:id]
+      commitid = @db[:commits].first(:sha => sha)[:id]
+
+      exists = @db[:project_commits].first(:project_id => projectid,
+                                           :commit_id => commitid)
+      if exists.nil?
+        @db[:project_commits].insert(
+            :project_id => projectid,
+            :commit_id => commitid
+        )
+        info "GHTorrent: added commit #{user}/#{repo} -> sha"
+        @db[:project_commits].first(:project_id => projectid,
+                                    :commit_id => commitid)
+      else
+        debug "GHTorrent: commit #{user}/#{repo} -> sha exists"
+        exists
+      end
     end
 
     ##
@@ -279,7 +308,6 @@ module GHTorrent
       end
       return u
     end
-
 
     ##
     # Ensure that a user exists, or fetch its latest state from Github
@@ -837,10 +865,10 @@ module GHTorrent
                        :created_at => date(c['commit']['author']['date']),
                        :ext_ref_id => c[@ext_uniq]
         )
-        debug "GHTorrent: New commit #{repo} -> #{c['sha']} "
+        debug "GHTorrent: New commit #{user}/#{repo} -> #{c['sha']} "
         commits.first(:sha => c['sha'])
       else
-        debug "GHTorrent: Commit #{repo} -> #{c['sha']} exists"
+        debug "GHTorrent: Commit #{user}/#{repo} -> #{c['sha']} exists"
         commit
       end
     end
