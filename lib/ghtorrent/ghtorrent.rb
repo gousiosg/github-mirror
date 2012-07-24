@@ -27,7 +27,7 @@ module GHTorrent
     # db related functions
     def get_db
 
-      @db = Sequel.connect(config(:sql_url))
+      @db = Sequel.connect(config(:sql_url), :encoding => 'utf8')
       #@db.loggers << @logger
       if @db.tables.empty?
         dir = File.join(File.dirname(__FILE__), 'migrations')
@@ -624,7 +624,7 @@ module GHTorrent
           return
         end
 
-        commit = ensure_commit(repo, retrieved['commit_id'], user)
+        commit = ensure_commit(repo, retrieved['commit_id'], user, false)
         user = ensure_user(user, false, false)
         @db[:commit_comments].insert(
             :commit_id => commit[:id],
