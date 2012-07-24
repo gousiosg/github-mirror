@@ -16,26 +16,9 @@ Sequel.migration do
                                     self[:commits].select(:project_id, :id))
     end
 
-    #puts("Droping column project_id from commits")
-    #alter_table :commits do
-    #  drop_column :project_id
-    #end
-
   end
 
   down do
-
-    #puts("Adding column project_it to commits")
-    #alter_table :commits do
-    #  add_foreign_key :project_id, :projects
-    #end
-
-    puts("Migrating data from project_commits to commits")
-    transaction(:rollback => :reraise, :isolation => :committed) do
-      self[:project_commits].all do |r|
-        self[:commits].filter(:id => r[:commit_id]).update(:project_id => r[:project_id])
-      end
-    end
 
     drop_table :project_commits
   end
