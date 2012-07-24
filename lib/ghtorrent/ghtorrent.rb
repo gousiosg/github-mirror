@@ -132,7 +132,10 @@ module GHTorrent
       c = retrieve_commit(repo, sha, user)
       stored = store_commit(c, repo, user)
       ensure_parents(c)
-      ensure_commit_comments(user, repo, sha) if comments
+      if not c['commit']['comment_count'].nil? \
+         and c['commit']['comment_count'] > 0
+        ensure_commit_comments(user, repo, sha) if comments
+      end
       stored
     end
 
@@ -234,7 +237,7 @@ module GHTorrent
                 :company => added['company'],
                 :location => added['location'],
                 :hireable => added['hireable'],
-                :bio => added['bio'],
+                :bio => (added['bio'][0..254] unless added['bio'].nil?),
                 :created_at => added['created_at']
             )
           end
@@ -309,7 +312,7 @@ module GHTorrent
                            :name => u['name'],
                            :company => u['company'],
                            :hireable => boolean(u['hirable']),
-                           :bio => u['bio'],
+                           :bio => (u['bio'][0..254] unless u['bio'].nil?),
                            :location => u['location'],
                            :type => user_type(u['type']),
                            :created_at => date(u['created_at']),
@@ -322,7 +325,7 @@ module GHTorrent
                          :company => u['company'],
                          :email => email,
                          :hireable => boolean(u['hirable']),
-                         :bio => u['bio'],
+                         :bio => (u['bio'][0..254] unless u['bio'].nil?),
                          :location => u['location'],
                          :type => user_type(u['type']),
                          :created_at => date(u['created_at']),
@@ -336,7 +339,7 @@ module GHTorrent
                        :company => u['company'],
                        :email => email,
                        :hireable => boolean(u['hirable']),
-                       :bio => u['bio'],
+                       :bio => (u['bio'][0..254] unless u['bio'].nil?),
                        :location => u['location'],
                        :type => user_type(u['type']),
                        :created_at => date(u['created_at']),
