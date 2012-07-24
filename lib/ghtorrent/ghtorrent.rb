@@ -184,9 +184,9 @@ module GHTorrent
 
             parents.insert(:commit_id => this[:id],
                            :parent_id => parent[:id])
-            info "Added parent #{parent[:sha]} to commit #{this[:sha]}"
+            info "GHTorrent: Added parent #{parent[:sha]} to commit #{this[:sha]}"
           else
-            info "Parent #{parent[:sha]} for commit #{this[:sha]} exists"
+            debug "GHTorrent: Parent #{parent[:sha]} for commit #{this[:sha]} exists"
           end
         end
     end
@@ -210,11 +210,11 @@ module GHTorrent
             :project_id => projectid,
             :commit_id => commitid
         )
-        info "GHTorrent: added commit #{user}/#{repo} -> sha"
+        info "GHTorrent: Added commit #{user}/#{repo} -> #{sha}"
         @db[:project_commits].first(:project_id => projectid,
                                     :commit_id => commitid)
       else
-        debug "GHTorrent: commit #{user}/#{repo} -> sha exists"
+        debug "GHTorrent: Commit #{user}/#{repo} -> #{sha} exists"
         exists
       end
     end

@@ -97,14 +97,10 @@ module GHTorrent
       end
     end
 
-    # Retrieve all project commits or 500 (whatever comes first),
+    # Retrieve up to 30 * +:mirror_commit_pages_new_repo+ commits
     # starting from the provided +sha+
     def retrieve_commits(repo, sha, user)
-      last_sha = if sha.nil?
-                  "master"
-                 else
-                  sha
-                 end
+      last_sha = if sha.nil? then "master" else sha end
 
       url = ghurl "repos/#{user}/#{repo}/commits?last_sha=#{last_sha}"
       commits = paged_api_request(url, config(:mirror_commit_pages_new_repo))
