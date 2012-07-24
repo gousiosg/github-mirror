@@ -747,12 +747,12 @@ module GHTorrent
 
       # Adds a pull request history event
       add_history = Proc.new do |id, ts, unq, act|
-        pull_req_history.insert(
+        pull_req_history.find_or_create(
             :pull_request_id => id,
             :created_at => ts,
             :ext_ref_id => unq,
             :action => act
-        )
+        ){}
       end
 
       pull_req_exists = pulls_reqs.first(:base_repo_id => project[:id],
@@ -814,9 +814,10 @@ module GHTorrent
         add_history.call(new_pull_req[:id], date(retrieved['closed_at']),
                          retrieved[@ext_uniq], 'closed') if closed
       else
-        retrieved = retrieve_pull_request(owner, repo, pullreq_id).sort { |x, y|
-          date(x['updated_at']).to_i <=> date(y['updated_at']).to_i
-        }.last
+        # A new pull request event for an existing pull request denotes
+        # an update to the pull request status. Retrieve the pull request
+        # and update accordingly.
+        retrieved = retrieve_pull_request(owner, repo, pullreq_id)
 
         merged = if retrieved['merged_at'].nil? then false else true end
         closed = if retrieved['closed_at'].nil? then false else true end
@@ -826,6 +827,9 @@ module GHTorrent
 
         add_history.call(new_pull_req[:id], date(retrieved['closed_at']),
                          retrieved[@ext_uniq], 'closed') if closed
+
+        pulls_reqs.filter(:id => pull_req_exists[:id]).\
+                   update(:merged => true) if merged
       end
 
       ensure_pull_request_commits(owner, repo, pullreq_id)
