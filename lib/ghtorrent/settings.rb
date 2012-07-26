@@ -25,7 +25,9 @@ module GHTorrent
 
         :uniq_id => "mirror.uniq_id",
         :cache   => "mirror.cache",
-        :cache_dir => "mirror.cache_dir"
+        :cache_dir => "mirror.cache_dir",
+
+        :attach_ip => "mirror.attach_ip"
     }
 
     def config(key)

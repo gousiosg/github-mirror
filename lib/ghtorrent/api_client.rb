@@ -113,7 +113,7 @@ module GHTorrent
             from_cache = true
             YAML::load(f)
           else
-            result = open(url)
+            result = do_request(url)
             @num_api_calls += 1
             tocache = Cachable.new(result)
             f = File.open(file, 'w')
@@ -122,7 +122,7 @@ module GHTorrent
             tocache
           end
         else
-          open(url)
+          do_request(url)
           @num_api_calls += 1
         end
 
@@ -145,6 +145,47 @@ module GHTorrent
         end
       end
     end
+
+    def do_request(url)
+      @attach_ip ||= config(:attach_ip)
+
+      if @attach_ip.nil?
+        open(url)
+      else
+        attach_to(@attach_ip) do
+          open(url)
+        end
+      end
+    end
+
+    # Attach to a specific IP address if the machine has multiple
+    def attach_to(ip)
+      TCPSocket.instance_eval do
+        (class << self; self; end).instance_eval do
+          alias_method :original_open, :open
+
+          define_method(:open) do |conn_address, conn_port|
+            original_open(conn_address, conn_port, ip)
+          end
+        end
+      end
+
+      result = begin
+        yield
+      rescue Exception => e
+        raise e
+      ensure
+        TCPSocket.instance_eval do
+          (class << self; self; end).instance_eval do
+            alias_method :open, :original_open
+            remove_method :original_open
+          end
+        end
+      end
+
+      result
+    end
+
   end
 end
 

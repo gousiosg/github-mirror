@@ -34,6 +34,10 @@ mirror:
   cache: false
   cache_dir: /var/tmp
 
+  # On a machine with multiple IP addresses, select the one to send the
+  # HTTP requests from.
+  attach_ip: 145.94.188.25
+
 mongo:
   host: 127.0.0.1      # Mongo's IP addr
   port: 27017          # Mongo's port
