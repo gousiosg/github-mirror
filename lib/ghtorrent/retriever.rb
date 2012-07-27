@@ -53,6 +53,17 @@ module GHTorrent
       r
     end
 
+    def retrieve_user_follower(followed, follower)
+      stored_item = persister.find(:followers, {'follows' => followed,
+                                                'login' => follower})
+
+      if stored_item.empty?
+        retrieve_user_followers(followed).find{|x| x['login'] == follower}
+      else
+        stored_item.first
+      end
+    end
+
     def retrieve_user_followers(user)
       stored_followers = persister.find(:followers, {'follows' => user})
 

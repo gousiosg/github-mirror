@@ -106,9 +106,9 @@ module GHTorrent
     #  [date_added] The timestamp that the add event took place
     def get_follower(follower, followed, date_added)
       transaction do
-        ensure_user(follower, false, false)
-        ensure_user(followed, false, false)
-        ensure_user_followers(followed, date_added)
+        ensure_user(follower, true, true)
+        ensure_user(followed, true, true)
+        ensure_user_follower(followed, follower, date_added)
       end
     end
 
@@ -389,37 +389,56 @@ module GHTorrent
     #
     # ==Parameters:
     # [user]  The user login to find followers by
-    def ensure_user_followers(user, date_added = nil)
-      followers = @db[:followers]
-      userid = @db[:users].first(:login => user)[:id]
+    def ensure_user_followers(followed, date_added = nil)
+      time = Time.now
+      curuser = @db[:users].first(:login => followed)
+      followers = @db.from(:followers, :users).\
+          where(:followers__follower_id => :users__id).
+          where(:followers__user_id => curuser[:id]).select(:login).all
 
-      retrieved = retrieve_user_followers(user)
-      retrieved.each { |f|
-        follower = f['login']
-        ensure_user(user, false, false)
-        ensure_user(follower, false, false)
-
-        followerid = @db[:users].first(:login => follower)[:id]
-
-
-        if followers.first(:user_id => userid, :follower_id => followerid).nil?
-          added = if date_added.nil? then Time.now else date_added end
-          followers.insert(:user_id => userid,
-                           :follower_id => followerid,
-                           :created_at => added,
-                           :ext_ref_id => f[@ext_uniq]
-          )
-          info "GHTorrent: User #{follower} follows #{user}"
+      retrieve_user_followers(followed).reduce([]) do |acc, x|
+        if followers.find {|y| y[:login] == x['login']}.nil?
+          acc << x
         else
-          unless date_added.nil?
-            followers.filter(:user_id => userid,
-                             :follower_id => followerid).\
-                      update(:created_at => date(date_added))
-            info "GHTorrent: Updated follower #{follower} -> #{user}"
-          end
-          debug "GHTorrent: User #{follower} already follows #{user}"
+          acc
         end
-      }
+      end.map { |x| ensure_user_follower(followed, x['login'], time) }
+    end
+
+    ##
+    # Make sure that a user follows another one
+    def ensure_user_follower(followed, follower, date_added)
+      ensure_user(follower, false, false)
+
+      followers = @db[:followers]
+      followed_id = @db[:users].first(:login => followed)[:id]
+      follower_id = @db[:users].first(:login => follower)[:id]
+
+      follower_exists = followers.first(:user_id => followed_id,
+                                        :follower_id => follower_id)
+
+      if follower_exists.nil?
+        added = if date_added.nil? then Time.now else date_added end
+        retrieved = retrieve_user_follower(followed, follower)
+
+        if retrieved.nil?
+          warn "Follower #{follower} does not exist for user #{followed}"
+          return
+        end
+
+        followers.insert(:user_id => followed_id,
+                         :follower_id => follower_id,
+                         :created_at => added,
+                         :ext_ref_id => retrieved[@ext_uniq])
+        info "GHTorrent: User #{follower} follows #{followed}"
+      else
+        unless date_added.nil?
+          followers.filter(:user_id => followed_id,
+                           :follower_id => follower_id)\
+                    .update(:created_at => date(date_added))
+          debug "GHTorrent: Updating follower #{followed} -> #{follower}"
+        end
+      end
     end
 
     ##
@@ -628,7 +647,6 @@ module GHTorrent
       commit_id = @db[:commits].first(:sha => sha)[:id]
       stored_comments = @db[:commit_comments].filter(:commit_id => commit_id)
       commit_comments = retrieve_commit_comments(user, repo, sha)
-      #user_id = @db[:users].first(:login => user)[:id]
 
       not_saved = commit_comments.reduce([]) do |acc, x|
         if stored_comments.find{|y| y[:comment_id] == x['id']}.nil?
