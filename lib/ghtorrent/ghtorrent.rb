@@ -510,17 +510,20 @@ module GHTorrent
     ##
     # Make sure that a project has all the registered members defined
     def ensure_project_members(user, repo)
+      time = Time.now
       curuser = @db[:users].first(:login => user)
       currepo = @db[:projects].first(:owner_id => curuser[:id], :name => repo)
-      project_members = @db[:project_members].filter(:repo_id => currepo[:id])
+      project_members = @db.from(:project_members, :users).\
+          where(:project_members__user_id => :users__id).\
+          where(:project_members__repo_id => currepo[:id]).select(:login).all
 
       retrieve_repo_collaborators(user, repo).reduce([]) do |acc, x|
-        if project_members.find { |y| y[:login] == x['login'] }.nil?
+        if project_members.find {|y| y[:login] == x['login']}.nil?
           acc << x
         else
           acc
         end
-      end.map { |x| ensure_project_member(user, repo, x['login'], nil) }
+      end.map { |x| ensure_project_member(user, repo, x['login'], time) }
     end
 
     ##
@@ -537,6 +540,11 @@ module GHTorrent
       if memb_exist.nil?
         added = if date_added.nil? then Time.now else date_added end
         retrieved = retrieve_repo_collaborator(owner, repo, new_member)
+
+        if retrieved.nil?
+          warn "Project member #{new_member} does not exist"
+          return
+        end
 
         pr_members.insert(
             :user_id => new_user[:id],
