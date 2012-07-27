@@ -288,17 +288,17 @@ module GHTorrent
 
         if not exists
           persister.store(entity, x)
-          info "Retriever: Added #{entity} #{repo} -> #{x[descriminator]}"
+          info "Retriever: Added #{entity} #{user}/#{repo} -> #{x[descriminator]}"
         else
-          debug "Retriever: #{entity} #{repo} -> #{x[descriminator]} exists"
+          debug "Retriever: #{entity} #{user}/#{repo} -> #{x[descriminator]} exists"
         end
       end
       persister.find(entity, selector)
     end
 
     def repo_bound_item(user, repo, item_id, entity, url, selector, descriminator)
-      selector.merge!({descriminator => item_id})
-      stored_item = persister.find(entity, selector)
+      instance_selector = selector.merge({descriminator => item_id})
+      stored_item = persister.find(entity, instance_selector)
 
       if stored_item.empty?
         repo_bound_items(user, repo, entity, url, selector, descriminator).\

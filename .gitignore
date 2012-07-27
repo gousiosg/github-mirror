@@ -9,3 +9,4 @@
 *.ipr
 *.iws
 *.db
+config.yaml
