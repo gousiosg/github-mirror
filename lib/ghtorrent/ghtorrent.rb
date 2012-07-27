@@ -708,6 +708,12 @@ module GHTorrent
       if memb_exist.nil?
         added = if date_added.nil? then Time.now else date_added end
         retrieved = retrieve_watcher(owner, repo, watcher)
+
+        if retrieved.nil?
+          warn "Watcher #{watcher} no longer watches #{owner}/#{repo}"
+          return
+        end
+
         watchers.insert(
             :user_id => new_watcher[:id],
             :repo_id => project[:id],
