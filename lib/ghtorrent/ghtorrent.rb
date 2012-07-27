@@ -675,18 +675,23 @@ module GHTorrent
     ##
     # Make sure that
     def ensure_watchers(owner, repo)
+      time = Time.now
       curuser = @db[:users].first(:login => owner)
       currepo = @db[:projects].first(:owner_id => curuser[:id],
                                      :name => repo)
-      watchers = @db[:watchers].filter(:repo_id => currepo[:id])
+      watchers = @db.from(:watchers, :users).\
+          where(:watchers__user_id => :users__id).\
+          where(:watchers__repo_id => currepo[:id]).select(:login).all
 
       retrieve_watchers(owner, repo).reduce([]) do |acc, x|
-        if watchers.find { |y| y[:login] == x['login'] }.nil?
+        if watchers.find { |y|
+          y[:login] == x['login']
+        }.nil?
           acc << x
         else
           acc
         end
-      end.map { |x| ensure_watcher(owner, repo, x['login']) }
+      end.map { |x| ensure_watcher(owner, repo, x['login'], time) }
     end
 
     ##
