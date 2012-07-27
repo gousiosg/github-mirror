@@ -38,6 +38,12 @@ module GHTorrent
       more_keys.each {|k,v| CONFIGKEYS[k] = v}
     end
 
+    def merge_config_values(values)
+      values.reduce(settings) {|acc, k|
+        acc.merge_recursive write_value(settings, CONFIGKEYS[k[0]], k[1])
+      }
+    end
+
     def settings
       raise Exception("Unimplemented")
     end
