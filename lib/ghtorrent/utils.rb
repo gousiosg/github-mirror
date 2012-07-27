@@ -1,3 +1,5 @@
+require 'ghtorrent/hash'
+
 module GHTorrent
   module Utils
 
@@ -5,9 +7,8 @@ module GHTorrent
       other.extend self
     end
 
-    # Read a value whose format is "foo.bar.baz" from a hierarchical map
-    # (the result of a JSON parse or a Mongo query), where a dot represents
-    # one level deep in the result hierarchy.
+    # Read the value for a key whose format is "foo.bar.baz" from a hierarchical
+    # map, where a dot represents one level deep in the hierarchy.
     def read_value(from, key)
       return from if key.nil? or key == ""
 
@@ -30,6 +31,23 @@ module GHTorrent
           return nil
         end
       end
+    end
+
+    # Overwrite an existing +key+ whose format is "foo.bar" (where a dot
+    # represents one level deep in the hierarchy) in hash +to+ with +value+.
+    # If the key does not exist, it will be added at the appropriate depth level
+    def write_value(to, key, value)
+      return to if key.nil? or key == ""
+
+      prev = nil
+      key.split(/\./).reverse.each {|x|
+        a = Hash.new
+        a[x] = if prev.nil? then value else prev end
+        prev = a
+        a
+      }
+
+      to.merge_recursive(prev)
     end
 
     def user_type(type)
