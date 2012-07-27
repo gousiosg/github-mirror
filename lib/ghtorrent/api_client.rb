@@ -149,7 +149,7 @@ module GHTorrent
     def do_request(url)
       @attach_ip ||= config(:attach_ip)
 
-      if @attach_ip.nil?
+      if @attach_ip.nil? or @attach_ip.eql? "0.0.0.0"
         open(url)
       else
         attach_to(@attach_ip) do

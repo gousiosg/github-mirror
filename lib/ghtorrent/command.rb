@@ -3,15 +3,19 @@ require 'trollop'
 require 'daemons'
 require 'etc'
 
-# Base class for all GHTorrent command line utilities. Provides basic command
-# line argument parsing and command bootstraping support. The order of
-# initialization is the following:
-# prepare_options
-# validate
-# go
+require 'ghtorrent/settings'
 
 module GHTorrent
+
+  # Base class for all GHTorrent command line utilities. Provides basic command
+  # line argument parsing and command bootstraping support. The order of
+  # initialization is the following:
+  # prepare_options
+  # validate
+  # go
   class Command
+
+    include GHTorrent::Settings
 
     # Specify the run method for subclasses.
     class << self
@@ -30,6 +34,12 @@ module GHTorrent
         command.validate
 
         command.settings = YAML::load_file command.options[:config]
+
+        unless command.options[:addr].nil?
+          command.settings = command.override_config(command.settings,
+                                                     :attach_ip,
+                                                     command.options[:addr])
+        end
 
         if command.options[:daemon]
           if Process.uid == 0
@@ -68,7 +78,7 @@ module GHTorrent
       end
     end
 
-    # Specify and parse supported command line options.
+    # Specify and parse top-level command line options.
     def process_options
       command = self
       @options = Trollop::options(command.args) do
@@ -82,6 +92,8 @@ Standard options:
         opt :config, 'config.yaml file location', :short => 'c',
             :default => 'config.yaml'
         opt :verbose, 'verbose mode', :short => 'v'
+        opt :addr, 'ip address to use for performing requests', :short => 'a',
+            :type => String
         opt :daemon, 'run as daemon', :short => 'd'
         opt :user, 'run as the specified user (only when started as root)',
             :short => 'u', :type => String
@@ -103,18 +115,19 @@ Standard options:
     # provided by this class.
     def validate
       if options[:config].nil?
-        unless (file_exists?("config.yaml") or file_exists?("/etc/ghtorrent/config.yaml"))
-          Trollop::die "No config file in default locations (., /etc/ghtorrent)
-                      you need to specify the #{:config} parameter. Read the
-                      documentation on how to create a config.yaml file."
+        unless (file_exists?("config.yaml"))
+          Trollop::die "No config file in default location (#{Dir.pwd}). You
+                        need to specify the #{:config} parameter. Read the
+                        documentation on how to create a config.yaml file."
         end
       else
-        Trollop::die "Cannot find file #{options[:config]}" unless file_exists?(options[:config])
+        Trollop::die "Cannot find file #{options[:config]}" \
+          unless file_exists?(options[:config])
       end
 
       unless @options[:user].nil?
         if not Process.uid == 0
-          Trollop::die "Option --user (-u) cannot be specified by normal users"
+          Trollop::die "Option --user (-u) can only be specified by root"
         end
           begin
             Etc.getpwnam(@options[:user])
@@ -133,6 +146,11 @@ Standard options:
     def go
     end
 
+    def override_config(config_file, setting, new_value)
+      STDERR.puts "Overriding configuration #{setting}=#{config(setting)} with cmd line #{new_value}"
+      merge_config_values({setting => new_value})
+    end
+
     private
 
     def file_exists?(file)
@@ -143,7 +161,6 @@ Standard options:
         false
       end
     end
-
   end
 
 end
