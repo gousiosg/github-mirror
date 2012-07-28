@@ -74,8 +74,21 @@ class GHTDataRetrieval < GHTorrent::Command
     @gh.get_pull_request(owner, repo, pullreq_id)
   end
 
+  def ForkEvent(evt)
+    data = parse evt
+    owner = data['repo']['name'].split(/\//)[0]
+    repo = data['repo']['name'].split(/\//)[1]
+    fork_id = data['payload']['forkee']['id']
+    created_at = data['created_at']
+
+    @gh.get_fork(owner, repo, fork_id, created_at)
+  end
+
+
   def handlers
-    %w(PushEvent WatchEvent FollowEvent MemberEvent CommitCommentEvent PullRequestEvent)
+    %w(PushEvent WatchEvent FollowEvent MemberEvent CommitCommentEvent \
+       PullRequestEvent ForkEvent)
+    #%w(ForkEvent)
   end
 
   def logger

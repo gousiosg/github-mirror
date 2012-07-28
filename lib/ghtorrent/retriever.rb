@@ -273,6 +273,20 @@ module GHTorrent
                       'number')
     end
 
+    def retrieve_forks(user, repo)
+      repo_bound_items(user, repo, :forks,
+                       "repos/#{user}/#{repo}/forks",
+                       {'repo' => repo, 'owner' => user},
+                       'id')
+    end
+
+    def retrieve_fork(user, repo, fork_id)
+      repo_bound_item(user, repo, fork_id, :forks,
+                       "repos/#{user}/#{repo}/forks",
+                       {'repo' => repo, 'owner' => user},
+                       'id')
+    end
+
     # Get current Github events
     def get_events
       api_request "https://api.github.com/events"

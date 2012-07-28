@@ -8,10 +8,11 @@ Sequel.migration do
     create_table :forks do
       foreign_key :forked_project_id, :projects, :null => false
       foreign_key :forked_from_id, :projects, :null => false
+      Integer :fork_id, :null => false, :unique => true
       DateTime :created_at, :null => false,
                :default => Sequel::CURRENT_TIMESTAMP
       String :ext_ref_id, :null => false, :size => 24, :default => "0"
-      primary_key([:fork_id, :forked_from_id])
+      primary_key([:forked_project_id, :forked_from_id])
     end
 
   end

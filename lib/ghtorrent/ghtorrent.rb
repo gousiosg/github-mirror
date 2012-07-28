@@ -126,6 +126,20 @@ module GHTorrent
     end
 
     ##
+    # Retrieve details about a project fork (including the forked project)
+    # ==Parameters:
+    #  [owner] The login of the repository owner
+    #  [repo] The name of the repository
+    #  [fork_id] The fork item id
+    #  [date_added] The timestamp that the add event took place
+    def get_fork(owner, repo, fork_id, date_added)
+      transaction do
+        ensure_repo(owner, repo)
+        ensure_fork(owner, repo, fork_id, date_added)
+      end
+    end
+
+    ##
     # Make sure a commit exists
     #
     def ensure_commit(repo, sha, user, comments = true)
@@ -882,6 +896,78 @@ module GHTorrent
 
     def ensure_pull_request_commits(owner, repo, pullreq_id)
 
+    end
+
+    ##
+    # Get all followers for a user. Since we do not know when the actual
+    # follow event took place, we set the created_at field to the timestamp
+    # of the method call.
+    #
+    # ==Parameters:
+    # [user]  The user login to find followers by
+    def ensure_forks(owner, repo, date_added = nil)
+      time = Time.now
+      curuser = @db[:users].first(:login => owner)
+      currepo = @db[:projects].first(:owner_id => curuser[:id],
+                                     :name => repo)
+      existing_forks = @db.from(:forks, :projects).\
+          where(:forks__forked_project_id => :projects__id). \
+          where(:forks__forked_from_id => currepo[:id]).select(:name, :login).all
+
+      retrieve_forks(owner, repo).reduce([]) do |acc, x|
+        if existing_forks.find {|y|
+          y[:login] == x['owner']['login'] && y[:name] == x['name']
+        }.nil?
+          acc << x
+        else
+          acc
+        end
+      end.map { |x| ensure_fork(owner, repo, x['id'], time) }
+    end
+
+    ##
+    # Make sure that a user follows another one
+    def ensure_fork(owner, repo, fork_id, date_added = nil)
+
+      forks = @db[:forks]
+      curuser = @db[:users].first(:login => owner)
+      forked = @db[:projects].first(:owner_id => curuser[:id],
+                                    :name => repo)
+
+      fork_exists = forks.first(:fork_id => fork_id)
+
+      if fork_exists.nil?
+        added = if date_added.nil? then Time.now else date_added end
+        retrieved = retrieve_fork(owner, repo, fork_id)
+
+        if retrieved.nil?
+          warn "Fork #{fork_id} does not exist for #{owner}/#{repo}"
+          return
+        end
+
+        forked_repo_owner = retrieved['full_name'].split(/\//)[0]
+        forked_repo_name = retrieved['full_name'].split(/\//)[1]
+
+        ensure_user(forked_repo_owner, false, false)
+        ensure_repo(forked_repo_owner, forked_repo_name)
+
+        forking_user = @db[:users].first(:login => forked_repo_owner)
+        fork = @db[:projects].first(:owner_id => forking_user[:id],
+                                    :name => forked_repo_name)
+
+        forks.insert(:forked_project_id => fork[:id],
+                     :forked_from_id => forked[:id],
+                     :fork_id => fork_id,
+                     :created_at => added,
+                     :ext_ref_id => retrieved[@ext_uniq])
+        info "GHTorrent: Added #{forked_repo_owner}/#{forked_repo_name} as fork of  #{owner}/#{repo}"
+      else
+        unless date_added.nil?
+          forks.filter(:fork_id => fork_id)\
+               .update(:created_at => date(date_added))
+          debug "GHTorrent: Updating fork #{owner}/#{repo} (#{fork_id})"
+        end
+      end
     end
 
     private
