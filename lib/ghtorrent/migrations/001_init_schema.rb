@@ -10,8 +10,6 @@ Sequel.migration do
       String :company, :null => true
       String :location, :null => true
       String :email, :null => true, :unique => true
-      TrueClass :hireable, :null => true
-      String :bio, :null => true
       DateTime :created_at, :null => false, :default=>Sequel::CURRENT_TIMESTAMP
     end
 

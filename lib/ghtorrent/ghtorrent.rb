@@ -285,8 +285,6 @@ module GHTorrent
                 :login => login,
                 :company => added['company'],
                 :location => added['location'],
-                :hireable => added['hireable'],
-                :bio => (added['bio'][0..254] unless added['bio'].nil?),
                 :created_at => added['created_at']
             )
           end
@@ -365,8 +363,6 @@ module GHTorrent
             users.filter(:email => email).update(:login => u['login'],
                            :name => u['name'],
                            :company => u['company'],
-                           :hireable => boolean(u['hirable']),
-                           :bio => (u['bio'][0..254] unless u['bio'].nil?),
                            :location => u['location'],
                            :type => user_type(u['type']),
                            :created_at => date(u['created_at']),
@@ -378,8 +374,6 @@ module GHTorrent
                          :name => u['name'],
                          :company => u['company'],
                          :email => email,
-                         :hireable => boolean(u['hirable']),
-                         :bio => (u['bio'][0..254] unless u['bio'].nil?),
                          :location => u['location'],
                          :type => user_type(u['type']),
                          :created_at => date(u['created_at']),
@@ -392,8 +386,6 @@ module GHTorrent
                        :name => u['name'],
                        :company => u['company'],
                        :email => email,
-                       :hireable => boolean(u['hirable']),
-                       :bio => (u['bio'][0..254] unless u['bio'].nil?),
                        :location => u['location'],
                        :type => user_type(u['type']),
                        :created_at => date(u['created_at']),
@@ -500,8 +492,6 @@ module GHTorrent
                        :name => u['name'],
                        :company => u['company'],
                        :email => u['email'],
-                       :hireable => nil,
-                       :bio => nil,
                        :location => u['location'],
                        :created_at => date(u['created_at']),
                        :ext_ref_id => u[@ext_uniq])
