@@ -1,6 +1,6 @@
-require 'net/http'
-require 'set'
 require 'open-uri'
+require 'net/http'
+require 'fileutils'
 require 'json'
 
 require 'ghtorrent/logging'
@@ -105,6 +105,7 @@ module GHTorrent
         from_cache = false
 
         contents = if @cache
+          FileUtils.mkdir_p(@cache_dir)
           sig = Digest::SHA1.hexdigest url
           file = File.join(@cache_dir, sig)
 
