@@ -144,6 +144,12 @@ module GHTorrent
     #
     def ensure_commit(repo, sha, user, comments = true)
       c = retrieve_commit(repo, sha, user)
+
+      if c.nil?
+        warn "Commit #{user}/#{repo} -> #{sha} does not exist"
+        return
+      end
+
       stored = store_commit(c, repo, user)
       ensure_parents(c)
       if not c['commit']['comment_count'].nil? \
@@ -338,6 +344,12 @@ module GHTorrent
 
       if usr.nil?
         u = retrieve_user_byusername(user)
+
+        if u.nil?
+          warn "User #{user} does not exist"
+          return
+        end
+
         email = unless u['email'].nil?
                   if u['email'].strip == "" then
                     nil
@@ -521,6 +533,12 @@ module GHTorrent
 
       if currepo.nil?
         r = retrieve_repo(user, repo)
+
+        if r.nil?
+          warn "Repo #{user}/#{repo} does not exist"
+          return
+        end
+
         repos.insert(:url => r['url'],
                      :owner_id => @db[:users].filter(:login => user).first[:id],
                      :name => r['name'],

@@ -27,7 +27,7 @@ module GHTorrent
         u = api_request(url)
 
         if u.empty?
-          throw GHTorrentException.new("Cannot find user #{user}")
+          return
         end
 
         unq = persister.store(:users, u)
@@ -108,7 +108,7 @@ module GHTorrent
         c = api_request(url)
 
         if c.empty?
-          throw GHTorrentException.new("Cannot find commit #{user}/#{repo}/#{sha}")
+          return
         end
 
         unq = persister.store(:commits, c)
@@ -143,7 +143,7 @@ module GHTorrent
         r = api_request(url)
 
         if r.empty?
-          throw GHTorrentException.new("Cannot find repo #{user}/#{repo}")
+          return
         end
 
         unq = persister.store(:repos, r)
