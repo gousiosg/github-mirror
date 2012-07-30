@@ -271,7 +271,6 @@ module GHTorrent
           # We do not have the user in the database yet. Add him
           added = ensure_user(login, true, false)
           if byemail.nil?
-            #
             users.filter(:login => login).update(:name => name) if added[:name].nil?
             users.filter(:login => login).update(:email => email) if added[:email].nil?
           else
@@ -356,43 +355,16 @@ module GHTorrent
                   end
                 end
 
-        if not email.nil?
-          # Check whether a user has been added by email before
-          byemail = users.first(:email => email)
-          unless byemail.nil?
-            users.filter(:email => email).update(:login => u['login'],
-                           :name => u['name'],
-                           :company => u['company'],
-                           :location => u['location'],
-                           :type => user_type(u['type']),
-                           :created_at => date(u['created_at']),
-                           :ext_ref_id => u[@ext_uniq]
-            )
-            info "GHTorrent: Updating user #{user} (email #{email})"
-          else
-            users.insert(:login => u['login'],
-                         :name => u['name'],
-                         :company => u['company'],
-                         :email => email,
-                         :location => u['location'],
-                         :type => user_type(u['type']),
-                         :created_at => date(u['created_at']),
-                         :ext_ref_id => u[@ext_uniq])
+        users.insert(:login => u['login'],
+                     :name => u['name'],
+                     :company => u['company'],
+                     :email => email,
+                     :location => u['location'],
+                     :type => user_type(u['type']),
+                     :created_at => date(u['created_at']),
+                     :ext_ref_id => u[@ext_uniq])
 
-            info "GHTorrent: New user #{user}"
-          end
-        else
-          users.insert(:login => u['login'],
-                       :name => u['name'],
-                       :company => u['company'],
-                       :email => email,
-                       :location => u['location'],
-                       :type => user_type(u['type']),
-                       :created_at => date(u['created_at']),
-                       :ext_ref_id => u[@ext_uniq])
-
-          info "GHTorrent: New user #{user}"
-        end
+        info "GHTorrent: New user #{user}"
         users.first(:login => user)
       else
         debug "GHTorrent: User #{user} exists"
@@ -465,8 +437,7 @@ module GHTorrent
     #
     # ==Parameters:
     # [email]  The email to lookup the user by
-    # [email]  The user's name
-    # [followers]  If true, the user's followers will be retrieved
+    # [name]  The user's name
     # == Returns:
     # If the user can be retrieved, it is returned as a Hash. Otherwise,
     # the result is nil
@@ -480,13 +451,15 @@ module GHTorrent
 
         if u.nil? or u['login'].nil?
           debug "GHTorrent: Cannot find #{email} through search API query"
+          login = (0...8).map { 65.+(rand(25)).chr }.join
           users.insert(:email => email,
                        :name => name,
-                       :login => (0...8).map { 65.+(rand(25)).chr }.join,
+                       :login => login,
                        :created_at => Time.now,
                        :ext_ref_id => ""
           )
-          users.first(:email => email)
+          info "GHTorrent: Added fake user #{login} -> #{email}"
+          users.first(:login => login)
         else
           users.insert(:login => u['login'],
                        :name => u['name'],
@@ -495,8 +468,8 @@ module GHTorrent
                        :location => u['location'],
                        :created_at => date(u['created_at']),
                        :ext_ref_id => u[@ext_uniq])
-          debug "GHTorrent: Found #{email} through search API query"
-          users.first(:email => email)
+          info "GHTorrent: Found #{email} through search API query"
+          users.first(:login => u['login'])
         end
       else
         debug "GHTorrent: User with email #{email} exists"
