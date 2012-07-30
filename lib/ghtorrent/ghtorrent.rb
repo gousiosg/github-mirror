@@ -474,7 +474,7 @@ module GHTorrent
 
         u = retrieve_user_byemail(email, name)
 
-        if u.nil? or u['user'].nil? or u['user']['login'].nil?
+        if u.nil? or u['login'].nil?
           debug "GHTorrent: Cannot find #{email} through search API query"
           users.insert(:email => email,
                        :name => name,
@@ -484,14 +484,14 @@ module GHTorrent
           )
           users.first(:email => email)
         else
-          users.insert(:login => u['user']['login'],
-                       :name => u['user']['name'],
-                       :company => u['user']['company'],
-                       :email => u['user']['email'],
+          users.insert(:login => u['login'],
+                       :name => u['name'],
+                       :company => u['company'],
+                       :email => u['email'],
                        :hireable => nil,
                        :bio => nil,
-                       :location => u['user']['location'],
-                       :created_at => date(u['user']['created_at']),
+                       :location => u['location'],
+                       :created_at => date(u['created_at']),
                        :ext_ref_id => u[@ext_uniq])
           debug "GHTorrent: Found #{email} through search API query"
           users.first(:email => email)

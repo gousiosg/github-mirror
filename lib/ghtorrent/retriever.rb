@@ -49,8 +49,21 @@ module GHTorrent
       url = ghurl("legacy/user/email/#{URI.escape(email)}")
       r = api_request(url)
 
-      return nil if r.empty?
-      r
+      unless r.empty? or r['user']['login'].nil?
+        info "Retriever: User #{r['user']['login']} retrieved by email #{email}"
+        retrieve_user_byusername(r['user']['login'])
+      else
+        if r.empty?
+          nil
+        else
+          u = r['user']
+          unq = persister.store(:users, u)
+          u[ext_uniq] = unq
+          what = user_type(u['type'])
+          info "Retriever: New #{what} #{user}"
+          u
+        end
+      end
     end
 
     def retrieve_user_follower(followed, follower)
