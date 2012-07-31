@@ -22,19 +22,29 @@ module GHTorrent
 
 end
 
-require 'ghtorrent/command'
+# Shared extensions to library methods
+require 'ghtorrent/hash'
+require 'ghtorrent/time'
 
+# Basic utility modules
+require 'ghtorrent/gh_torrent_exception'
 require 'ghtorrent/utils'
 require 'ghtorrent/logging'
 require 'ghtorrent/settings'
+require 'ghtorrent/cache'
 require 'ghtorrent/api_client'
-require 'ghtorrent/call_stack'
 
+# Support for command line utilities offered by this gem
+require 'ghtorrent/command'
+
+# Configuration and drivers for caching retrieved data
 require 'ghtorrent/adapters/base_adapter'
 require 'ghtorrent/adapters/mongo_persister'
 require 'ghtorrent/adapters/noop_persister'
 
+# Support for retrieving and saving intermediate results
 require 'ghtorrent/persister'
 require 'ghtorrent/retriever'
 
+# SQL database fillup methods
 require 'ghtorrent/ghtorrent'
