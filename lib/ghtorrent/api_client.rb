@@ -23,7 +23,7 @@ module GHTorrent
 
     # A paged request. Used when the result can expand to more than one
     # result pages.
-    def paged_api_request(url, pages = -1, cache = false)
+    def paged_api_request(url, pages = -1, cache = true)
 
       data = api_request_raw(url, use_cache?(cache, method = :paged))
 
@@ -70,21 +70,10 @@ module GHTorrent
                       end
       case @cache_mode
         when :dev
-          if client_request
-            case method
-              when :non_paged
-                return false
-              when :paged
-                return true
-            end
-          else
-            case method
-              when :non_paged
-                return true
-              when :paged
-                return true
-            end
+          unless client_request
+            return false
           end
+          return true
         when :prod
           if client_request
             return true
