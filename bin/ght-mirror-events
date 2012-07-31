@@ -43,7 +43,7 @@ class GHTMirrorEvents < GHTorrent::Command
   def retrieve(exchange)
     begin
       new = dupl = 0
-      events = api_request "https://api.github.com/events"
+      events = api_request "https://api.github.com/events", false
       (new, dupl, stored) = store_count events
 
       # This means that first page cannot contain all new events. Go

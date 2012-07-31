@@ -24,8 +24,10 @@ module GHTorrent
         :mirror_commit_pages_new_repo => "mirror.commit_pages_new_repo",
 
         :uniq_id => "mirror.uniq_id",
-        :cache   => "mirror.cache",
-        :cache_dir => "mirror.cache_dir",
+
+        :cache_mode      => "mirror.cache_mode",
+        :cache_dir       => "mirror.cache_dir",
+        :cache_stale_age => "mirror.cache_stale_age",
 
         :attach_ip => "mirror.attach_ip"
     }

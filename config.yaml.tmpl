@@ -30,9 +30,15 @@ mirror:
   # significantly in new installations.
   commit_pages_new_repo: 3
 
-  # Cache requests locally. Only useful for speeding up debugging.
-  cache: false
-  cache_dir: /var/tmp
+  # Location of request cache
+  cache_dir: /var/tmp/ghtorrent
+
+  # Time (in seconds) before items in the cache are considered stale
+  cache_stale_age: 604800 # One week
+
+  # Choose whether to cache all requests (dev(elopment) mode) or only
+  # requests that make sense (prod(uction) mode).
+  cache_mode: prod #or dev
 
   # On a machine with multiple IP addresses, select the one to send the
   # HTTP requests from.

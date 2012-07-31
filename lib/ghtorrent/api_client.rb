@@ -7,11 +7,13 @@ require 'json'
 require 'ghtorrent/logging'
 require 'ghtorrent/settings'
 require 'ghtorrent/time'
+require 'ghtorrent/cache'
 
 module GHTorrent
   module APIClient
     include GHTorrent::Logging
     include GHTorrent::Settings
+    include GHTorrent::Cache
 
     # This is to fix an annoying bug in JRuby's SSL not being able to
     # verify a valid certificate.
@@ -21,9 +23,9 @@ module GHTorrent
 
     # A paged request. Used when the result can expand to more than one
     # result pages.
-    def paged_api_request(url, pages = -1)
+    def paged_api_request(url, pages = -1, cache = false)
 
-      data = api_request_raw(url)
+      data = api_request_raw(url, use_cache?(cache, method = :paged))
 
       return [] if data.nil?
 
@@ -49,11 +51,53 @@ module GHTorrent
 
     # A normal request. Returns a hash or an array of hashes representing the
     # parsed JSON result.
-    def api_request(url)
-      parse_request_result api_request_raw(url)
+    def api_request(url, cache = false)
+      parse_request_result api_request_raw(url, use_cache?(cache))
     end
 
     private
+
+    # Determine whether to use cache or not, depending on the type of the
+    # request
+    def use_cache?(client_request, method = :non_paged)
+      @cache_mode ||= case config(:cache_mode)
+                        when "dev"
+                          :dev
+                        when "prod"
+                          :prod
+                        else
+                          raise GHTorrentException("")
+                      end
+      case @cache_mode
+        when :dev
+          if client_request
+            case method
+              when :non_paged
+                return false
+              when :paged
+                return true
+            end
+          else
+            case method
+              when :non_paged
+                return true
+              when :paged
+                return true
+            end
+          end
+        when :prod
+          if client_request
+            return true
+          else
+            case method
+              when :non_paged
+                return false
+              when :paged
+                return true
+            end
+          end
+      end
+    end
 
     # Parse a Github link header
     def parse_links(links)
@@ -80,11 +124,9 @@ module GHTorrent
     end
 
     # Do the actual request and return the result object
-    def api_request_raw(url)
+    def api_request_raw(url, use_cache = false)
       @num_api_calls ||= 0
       @ts ||= Time.now().tv_sec()
-      @cache ||= config(:cache)
-      @cache_dir ||= config(:cache_dir)
 
       #Rate limiting to avoid error requests
       if Time.now().tv_sec() - @ts < 60 then
@@ -105,31 +147,24 @@ module GHTorrent
         start_time = Time.now
         from_cache = false
 
-        contents = if @cache
-          FileUtils.mkdir_p(@cache_dir)
-          sig = Digest::SHA1.hexdigest url
-          file = File.join(@cache_dir, sig)
-
-          if File.exist?(file)
-            f = File.open(file, 'r')
-            from_cache = true
-            YAML::load(f)
-          else
-            result = do_request(url)
-            @num_api_calls += 1
-            tocache = Cachable.new(result)
-            f = File.open(file, 'w')
-            YAML::dump tocache, f
-            f.close
-            tocache
-          end
-        else
-          do_request(url)
-          @num_api_calls += 1
-        end
+        contents =
+            if use_cache
+              if not (cached = cache_get(url)).nil?
+                from_cache = true
+                cached
+              else
+                tocache = Cachable.new(do_request(url))
+                @num_api_calls += 1
+                cache_put(url, tocache)
+                tocache
+              end
+            else
+              @num_api_calls += 1
+              do_request(url)
+            end
 
         total = Time.now.to_ms - start_time.to_ms
-        debug "APIClient: Request: #{url} (#{@num_api_calls} calls,#{if from_cache then " from cache, " end} Total: #{total} ms)"
+        debug "APIClient: Request: #{url} (#{@num_api_calls} calls,#{if from_cache then " from cache," end} Total: #{total} ms)"
         contents
       rescue OpenURI::HTTPError => e
         case e.io.status[0].to_i
