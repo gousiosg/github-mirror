@@ -13,6 +13,7 @@ module GHTorrent
         :amqp_username => "amqp.username",
         :amqp_password => "amqp.password",
         :amqp_exchange => "amqp.exchange",
+        :amqp_prefetch  => "amqp.prefetch",
 
         :sql_url => "sql.url",
 

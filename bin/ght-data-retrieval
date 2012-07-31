@@ -113,7 +113,7 @@ class GHTDataRetrieval < GHTorrent::Command
                :username => config(:amqp_username),
                :password => config(:amqp_password)) do |connection|
 
-      channel = AMQP::Channel.new(connection, :prefetch => 5)
+      channel = AMQP::Channel.new(connection, :prefetch => config(:amqp_prefetch))
       exchange = channel.topic(config(:amqp_exchange), :durable => true,
                                :auto_delete => false)
 
