@@ -720,6 +720,12 @@ module GHTorrent
     def ensure_watcher(owner, repo, watcher, date_added = nil)
       watchers = @db[:watchers]
       new_watcher = ensure_user(watcher, false, false)
+
+      if new_watcher.nil?
+        warn "GHTorrent: Watcher #{watcher} does not exist"
+        return
+      end
+
       owner_id = @db[:users].first(:login => owner)[:id]
       project = @db[:projects].first(:owner_id => owner_id, :name => repo)
 
@@ -776,6 +782,11 @@ module GHTorrent
       pull_req_history = @db[:pull_request_history]
       owner_id = @db[:users].first(:login => owner)[:id]
       project = @db[:projects].first(:owner_id => owner_id, :name => repo)
+
+      if project.nil?
+        warn "Repo #{owner}/#{repo} does not exist"
+        return
+      end
 
       # Adds a pull request history event
       add_history = Proc.new do |id, ts, unq, act|
