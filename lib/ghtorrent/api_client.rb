@@ -1,5 +1,6 @@
 require 'open-uri'
 require 'net/http'
+require 'digest/sha1'
 require 'fileutils'
 require 'json'
 

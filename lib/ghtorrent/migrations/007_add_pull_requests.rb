@@ -32,8 +32,7 @@ Sequel.migration do
     create_table :pull_request_commits do
       foreign_key :pull_request_id, :pull_requests, :null => false
       foreign_key :commit_id, :commits, :null => false
-      DateTime :created_at, :null => false, :default=>Sequel::CURRENT_TIMESTAMP
-      String :ext_ref_id, :null => false, :size => 24, :default => "0"
+      primary_key [:pull_request_id, :commit_id]
     end
 
     puts("Adding table pull request comments")

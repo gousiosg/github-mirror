@@ -146,7 +146,7 @@ module GHTorrent
       c = retrieve_commit(repo, sha, user)
 
       if c.nil?
-        warn "Commit #{user}/#{repo} -> #{sha} does not exist"
+        warn "GHTorrent: Commit #{user}/#{repo} -> #{sha} does not exist"
         return
       end
 
@@ -343,7 +343,7 @@ module GHTorrent
         u = retrieve_user_byusername(user)
 
         if u.nil?
-          warn "User #{user} does not exist"
+          warn "GHTorrent: User #{user} does not exist"
           return
         end
 
@@ -771,7 +771,7 @@ module GHTorrent
 
     ##
     # Process a pull request
-    def ensure_pull_request(owner, repo, pullreq_id)
+    def ensure_pull_request(owner, repo, pullreq_id, comments = true, commits = true)
       pulls_reqs = @db[:pull_requests]
       pull_req_history = @db[:pull_request_history]
       owner_id = @db[:users].first(:login => owner)[:id]
@@ -779,12 +779,14 @@ module GHTorrent
 
       # Adds a pull request history event
       add_history = Proc.new do |id, ts, unq, act|
-        pull_req_history.find_or_create(
-            :pull_request_id => id,
-            :created_at => ts,
-            :ext_ref_id => unq,
-            :action => act
-        ){}
+
+        entry = pull_req_history.first(:pull_request_id => id, :created_at => ts,
+                                       :ext_ref_id => unq, :action => act)
+        if entry.nil?
+          pull_req_history.insert(:pull_request_id => id, :created_at => ts,
+                                  :ext_ref_id => unq, :action => act)
+          info "GHTorrent: New pull request (#{id}) history entry (#{act})"
+        end
       end
 
       pull_req_exists = pulls_reqs.first(:base_repo_id => project[:id],
@@ -845,6 +847,12 @@ module GHTorrent
                          retrieved[@ext_uniq], 'merged') if merged
         add_history.call(new_pull_req[:id], date(retrieved['closed_at']),
                          retrieved[@ext_uniq], 'closed') if closed
+
+        info <<-eos.gsub(/\s+/, " ").strip
+          GHTorrent: Added pull request #{pullreq_id}
+          #{retrieved['head']['repo']['full_name']} ->
+          #{retrieved['base']['repo']['full_name']}
+        eos
       else
         # A new pull request event for an existing pull request denotes
         # an update to the pull request status. Retrieve the pull request
@@ -854,18 +862,25 @@ module GHTorrent
         merged = if retrieved['merged_at'].nil? then false else true end
         closed = if retrieved['closed_at'].nil? then false else true end
 
-        add_history.call(new_pull_req[:id], date(retrieved['merged_at']),
+        add_history.call(pull_req_exists[:id], date(retrieved['merged_at']),
                          retrieved[@ext_uniq], 'merged') if merged
 
-        add_history.call(new_pull_req[:id], date(retrieved['closed_at']),
+        add_history.call(pull_req_exists[:id], date(retrieved['closed_at']),
                          retrieved[@ext_uniq], 'closed') if closed
 
         pulls_reqs.filter(:id => pull_req_exists[:id]).\
                    update(:merged => true) if merged
+
+        debug <<-eos.gsub(/\s+/, " ").strip
+          GHTorrent: Pull request #{pullreq_id}
+          #{retrieved['head']['repo']['full_name']} ->
+          #{retrieved['base']['repo']['full_name']}
+          exists
+        eos
       end
 
-      ensure_pull_request_commits(owner, repo, pullreq_id)
-      ensure_pull_request_comments(owner, repo, pullreq_id)
+      ensure_pull_request_commits(owner, repo, pullreq_id) if commits
+      ensure_pull_request_comments(owner, repo, pullreq_id) if comments
 
       pulls_reqs.first(:base_repo_id => project[:id],
                        :pullreq_id => pullreq_id)
@@ -876,17 +891,31 @@ module GHTorrent
     end
 
     def ensure_pull_request_commits(owner, repo, pullreq_id)
+      retrieve_pull_req_commits(owner, repo, pullreq_id).map {|c|
+        ensure_commit(repo, c['sha'], owner, true)
+      }.map { |c|
+        pullreq = ensure_pull_request(owner, repo, pullreq_id, false, false)
+        exists = @db[:pull_request_commits].first(:pull_request_id => pullreq[:id],
+                                                  :commit_id => c[:id])
+        if exists.nil?
+          @db[:pull_request_commits].insert(:pull_request_id => pullreq[:id],
+                                            :commit_id => c[:id])
 
+          info "GHTorrent: Added commit #{c[:sha]} to pullreq #{owner}/#{repo} -> #{pullreq_id}"
+        else
+          debug "GHTorrent: Commit #{c[:sha]} exists in pullreq #{owner}/#{repo} -> #{pullreq_id}"
+          exists
+        end
+      }
     end
 
     ##
-    # Get all followers for a user. Since we do not know when the actual
-    # follow event took place, we set the created_at field to the timestamp
-    # of the method call.
+    # Get all forks for a project.
     #
     # ==Parameters:
-    # [user]  The user login to find followers by
-    def ensure_forks(owner, repo, date_added = nil)
+    # [owner]  The user to which the project belongs
+    # [repo]  The repository/project to find forks for
+    def ensure_forks(owner, repo)
       time = Time.now
       curuser = @db[:users].first(:login => owner)
       currepo = @db[:projects].first(:owner_id => curuser[:id],
@@ -907,7 +936,7 @@ module GHTorrent
     end
 
     ##
-    # Make sure that a user follows another one
+    # Make sure that a fork is retrieved for a project
     def ensure_fork(owner, repo, fork_id, date_added = nil)
 
       forks = @db[:forks]
@@ -922,7 +951,7 @@ module GHTorrent
         retrieved = retrieve_fork(owner, repo, fork_id)
 
         if retrieved.nil?
-          warn "Fork #{fork_id} does not exist for #{owner}/#{repo}"
+          warn "GHTorrent: Fork #{fork_id} does not exist for #{owner}/#{repo}"
           return
         end
 
