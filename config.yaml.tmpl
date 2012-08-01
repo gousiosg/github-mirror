@@ -5,6 +5,10 @@ amqp:
   password: github   # password
   exchange: github
 
+  # Number of messages to retrieve from the queue. On very busy queues,
+  # this should be increased, to decrease the load on the queue.
+  prefetch: 1
+
 sql:
   # Configuration URL for the SQL database subsystem.
   # Examples:
