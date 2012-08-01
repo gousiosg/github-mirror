@@ -86,8 +86,7 @@ class GHTDataRetrieval < GHTorrent::Command
 
 
   def handlers
-    %w(PushEvent WatchEvent FollowEvent MemberEvent CommitCommentEvent \
-       PullRequestEvent ForkEvent)
+    %w(PushEvent WatchEvent FollowEvent MemberEvent CommitCommentEvent PullRequestEvent ForkEvent)
     #%w(ForkEvent)
   end
 
