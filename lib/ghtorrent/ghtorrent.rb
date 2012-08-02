@@ -1025,11 +1025,18 @@ module GHTorrent
     # and are rethrown.
     def transaction(&block)
       start_time = Time.now
-      @db.transaction(:rollback => :reraise, :isolation => :committed) do
-        yield block
+      begin
+        @db.transaction(:rollback => :reraise, :isolation => :committed) do
+          yield block
+        end
+      rescue Exception => e
+        total = Time.now.to_ms - start_time.to_ms
+        warn "GHTorrent: Transaction failed (#{total} ms)"
+        raise e
       end
       total = Time.now.to_ms - start_time.to_ms
       debug "GHTorrent: Transaction committed (#{total} ms)"
+      GC.start
     end
 
     ##
