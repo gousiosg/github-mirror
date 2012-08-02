@@ -1,5 +1,7 @@
 require 'sequel'
 
+require 'ghtorrent/migrations/mysql_defaults'
+
 Sequel.migration do
   up do
 
@@ -13,6 +15,7 @@ Sequel.migration do
       foreign_key :base_commit_id, :commits, :null => false
       foreign_key :user_id, :users, :null => false
       Integer :pullreq_id, :null => false
+      TrueClass :intra_branch, :null => false
       unique([:pullreq_id, :base_repo_id])
     end
 
