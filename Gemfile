@@ -7,7 +7,7 @@ gem "sequel"
 gem "daemons"
 
 platforms :ruby do
-  gem "sqlite3-ruby"
+  gem "sqlite3"
   gem "bson_ext"
 end
 
