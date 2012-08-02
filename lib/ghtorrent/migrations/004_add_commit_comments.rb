@@ -11,7 +11,7 @@ Sequel.migration do
       primary_key :id
       foreign_key :commit_id, :commits, :null => false
       foreign_key :user_id, :users, :null => false
-      String :body
+      String :body, :size => 256
       Integer :line, :null => true
       Integer :position, :null => true
       Integer :comment_id, :null => false, :unique => true
