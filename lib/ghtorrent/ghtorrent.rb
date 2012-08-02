@@ -800,6 +800,23 @@ module GHTorrent
         end
       end
 
+      is_intra_branch = Proc.new do |req|
+        req['head']['repo'].nil?
+      end
+
+      log_msg = Proc.new do |req|
+        head = if is_intra_branch.call(req)
+                 req['base']['repo']['full_name']
+               else
+                 req['head']['repo']['full_name']
+               end
+
+        <<-eos.gsub(/\s+/, " ").strip
+            GHTorrent: Pull request #{pullreq_id}
+            #{head} -> #{req['base']['repo']['full_name']}
+        eos
+      end
+
       pull_req_exists = pulls_reqs.first(:base_repo_id => project[:id],
                                          :pullreq_id => pullreq_id)
 
@@ -846,7 +863,8 @@ module GHTorrent
             :head_commit_id => if not head_commit.nil? then head_commit[:id] end,
             :base_commit_id => base_commit[:id],
             :user_id => pull_req_user[:id],
-            :pullreq_id => pullreq_id
+            :pullreq_id => pullreq_id,
+            :intra_branch => is_intra_branch.call(retrieved)
         )
 
         new_pull_req = pulls_reqs.first(:base_repo_id => project[:id],
@@ -859,11 +877,7 @@ module GHTorrent
         add_history.call(new_pull_req[:id], date(retrieved['closed_at']),
                          retrieved[@ext_uniq], 'closed') if closed
 
-        info <<-eos.gsub(/\s+/, " ").strip
-          GHTorrent: Added pull request #{pullreq_id}
-          #{retrieved['head']['repo']['full_name']} ->
-          #{retrieved['base']['repo']['full_name']}
-        eos
+        info log_msg.call(retrieved)
       else
         # A new pull request event for an existing pull request denotes
         # an update to the pull request status. Retrieve the pull request
@@ -879,15 +893,7 @@ module GHTorrent
         add_history.call(pull_req_exists[:id], date(retrieved['closed_at']),
                          retrieved[@ext_uniq], 'closed') if closed
 
-        pulls_reqs.filter(:id => pull_req_exists[:id]).\
-                   update(:merged => true) if merged
-
-        debug <<-eos.gsub(/\s+/, " ").strip
-          GHTorrent: Pull request #{pullreq_id}
-          #{retrieved['head']['repo']['full_name']} ->
-          #{retrieved['base']['repo']['full_name']}
-          exists
-        eos
+        debug log_msg.call(retrieved) + " exists"
       end
 
       ensure_pull_request_commits(owner, repo, pullreq_id) if commits
