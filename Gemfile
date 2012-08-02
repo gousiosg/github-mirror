@@ -5,6 +5,7 @@ gem "mongo"
 gem "trollop"
 gem "sequel"
 gem "daemons"
+gem "json"
 
 platforms :ruby do
   gem "sqlite3-ruby"
