@@ -129,12 +129,13 @@ class GHTDataRetrieval < GHTorrent::Command
           rescue Exception => e
             # Give a message a chance to be reprocessed
             if headers.redelivered?
+              data = parse(msg)
+              warn "Could not process msg: #{data['type']}-#{data['id']}"
               headers.reject(:requeue => false)
             else
               headers.reject(:requeue => true)
             end
 
-            #pp JSON.parse(msg)
             STDERR.puts e
             STDERR.puts e.backtrace.join("\n")
           end
