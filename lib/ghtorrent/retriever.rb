@@ -301,14 +301,26 @@ module GHTorrent
     end
 
     def retrieve_pull_req_commits(user, repo, pullreq_id)
-      pull_req = retrieve_pull_request(user, repo, pullreq_id)
-      head_user = pull_req['head']['repo']['owner']['login']
-      head_repo = pull_req['head']['repo']['name']
+      is_intra_branch = Proc.new do |req|
+        req['head']['repo'].nil?
+      end
 
-      commits = paged_api_request(ghurl "repos/#{user}/#{repo}/pulls/#{pullreq_id}/commits")
-      commits.map { |x|
-        retrieve_commit(head_repo, x['sha'], head_user)
-      }
+      pull_req = retrieve_pull_request(user, repo, pullreq_id)
+
+      unless is_intra_branch.call(pull_req)
+        head_user = pull_req['head']['repo']['owner']['login']
+        head_repo = pull_req['head']['repo']['name']
+
+        commits = paged_api_request(ghurl "repos/#{user}/#{repo}/pulls/#{pullreq_id}/commits")
+        commits.map { |x|
+          retrieve_commit(head_repo, x['sha'], head_user)
+        }
+      else
+        commits = paged_api_request(ghurl "repos/#{user}/#{repo}/pulls/#{pullreq_id}/commits")
+        commits.map { |x|
+          retrieve_commit(repo, x['sha'], user)
+        }
+      end
     end
 
     # Get current Github events
