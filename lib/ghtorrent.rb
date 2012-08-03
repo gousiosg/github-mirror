@@ -25,6 +25,7 @@ end
 # Shared extensions to library methods
 require 'ghtorrent/hash'
 require 'ghtorrent/time'
+require 'ghtorrent/bson_orderedhash'
 
 # Basic utility modules
 require 'ghtorrent/gh_torrent_exception'

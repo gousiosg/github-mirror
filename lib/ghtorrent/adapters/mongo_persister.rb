@@ -1,5 +1,6 @@
 require 'mongo'
 require 'ghtorrent/adapters/base_adapter'
+require 'ghtorrent/bson_orderedhash'
 
 module GHTorrent
 
@@ -152,21 +153,5 @@ module GHTorrent
       end
     end
 
-  end
-end
-
-class BSON::OrderedHash
-
-  # Convert a BSON result to a +Hash+
-  def to_h
-    inject({}) do |acc, element|
-      k, v = element;
-      acc[k] = if v.class == BSON::OrderedHash then
-                 v.to_h
-               else
-                 v
-               end;
-      acc
-    end
   end
 end
