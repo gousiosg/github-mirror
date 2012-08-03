@@ -20,8 +20,6 @@ module GHTorrent
       @settings = settings
       @ext_uniq = config(:uniq_id)
       @logger = Logger.new(STDOUT)
-      @persister = connect(:mongo, @settings)
-      get_db
     end
 
     # db related functions
@@ -37,6 +35,11 @@ module GHTorrent
       end
 
       @db
+    end
+
+    def persister
+      @persister ||= connect(:mongo, @settings)
+      @persister
     end
 
     ##
@@ -1047,6 +1050,8 @@ module GHTorrent
     # and are rethrown.
     def transaction(&block)
       @db ||= get_db
+      @persister ||= persister
+
       start_time = Time.now
       begin
         @db.transaction(:rollback => :reraise, :isolation => :committed) do
@@ -1060,7 +1065,10 @@ module GHTorrent
         raise e
       ensure
         @db.disconnect
+        @persister.close
+
         @db = nil
+        @persister = nil
         GC.start
       end
     end
