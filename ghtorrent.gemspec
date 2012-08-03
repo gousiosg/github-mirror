@@ -4,8 +4,6 @@ require File.expand_path('../lib/ghtorrent', __FILE__)
 ts = `git log --date=raw lib/ghtorrent.rb |grep Date|head|tr -s ' '|cut -f2 -d' '|head -n 1`
 date = Time.at(ts.to_i).strftime("%Y-%m-%d")
 
-ver = `cat lib/ghtorrent.rb |grep VERSION|cut -f2 -d'='|tr -d "'"`.strip
-
 Gem::Specification.new do |s|
   s.name         = 'ghtorrent'
   s.version      = GHTorrent::VERSION
@@ -17,8 +15,8 @@ Gem::Specification.new do |s|
   s.email        = 'gousiosg@gmail.com'
   s.homepage     = 'https://github.com/gousiosg/github-mirror'
   s.rdoc_options = ["--charset=UTF-8"]
-  s.executables  = ['ght-data-retrieval', 'ght-mirror-events']
-                  # 'ght-load','ght-periodic-dump', 'ght-rm-dupl',
+  s.executables  = ['ght-data-retrieval', 'ght-mirror-events', 'ght-load']
+                  # 'ght-periodic-dump', 'ght-rm-dupl',
                   # 'ght-torrent-index']
   s.files        = FileList['lib/**/*.rb',
                              'bin/*',
