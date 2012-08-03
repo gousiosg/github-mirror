@@ -28,22 +28,6 @@ module GHTorrent
 
       @settings = set
       @uniq = config(:uniq_id)
-      @mongo = Mongo::Connection.new(config(:mongo_host),
-                                     config(:mongo_port))\
-                                .db(config(:mongo_db))
-      @enttodb = {
-          :users => get_collection("users"),
-          :commits => get_collection("commits"),
-          :repos => get_collection("repos"),
-          :followers => get_collection("followers"),
-          :events => get_collection("events"),
-          :org_members => get_collection("org_members"),
-          :commit_comments => get_collection("commit_comments"),
-          :repo_collaborators => get_collection("repo_collaborators"),
-          :watchers => get_collection("watchers"),
-          :pull_requests => get_collection("pull_requests"),
-          :forks => get_collection("forks"),
-      }
 
       # Ensure that the necessary indexes exist
       ensure_index(:events, "id")
@@ -71,16 +55,26 @@ module GHTorrent
 
     def store(entity, data = {})
       super
-      get_entity(entity).insert(data).to_s
+      copy = get_entity(entity).insert(data).to_s
+      close
+      copy
     end
 
     def find(entity, query = {})
       super
       result = get_entity(entity).find(query)
-      result.to_a.map { |r|
+
+      copy = result.to_a.map { |r|
         r[@uniq] = r['_id'].to_s;
         r.to_h
       }
+      close
+      copy.each {|x|
+        if x[@uniq].nil?
+          raise "#{@uniq} is null"
+        end
+      }
+      copy
     end
 
     # Find the record identified by +id+ in +entity+
@@ -92,17 +86,43 @@ module GHTorrent
     # Count the number of items returned by +query+
     def count(entity, query)
       super
-      get_entity(entity).count(:query => query)
+      copy = get_entity(entity).count(:query => query)
+      close
+      copy
     end
 
     private
 
     def get_collection(col)
-      @mongo.collection(col.to_s)
+      mongo.collection(col.to_s)
     end
 
     def get_entity(entity)
-      col = @enttodb[entity]
+
+      col = case entity
+              when :users
+                get_collection("users")
+              when :commits
+                get_collection("commits")
+              when :repos
+                get_collection("repos")
+              when :followers
+                get_collection("followers")
+              when :org_members
+                get_collection("org_members")
+              when :events
+                get_collection("events")
+              when :commit_comments
+                get_collection("commit_comments")
+              when :repo_collaborators
+                get_collection("repo_collaborators")
+              when :watchers
+                get_collection("watchers")
+              when :pull_requests
+                get_collection("pull_requests")
+              when :forks
+                get_collection("forks")
+            end
 
       if col.nil?
         raise GHTorrentException.new("Mongo: Entity #{entity} not supported")
@@ -110,9 +130,23 @@ module GHTorrent
       col
     end
 
+    def mongo
+      @mongo ||= Mongo::Connection.new(config(:mongo_host),
+                                     config(:mongo_port))\
+                                .db(config(:mongo_db))
+      @mongo
+    end
+
+    def close
+      unless @mongo.nil?
+        @mongo.connection.close
+        @mongo = nil
+      end
+    end
+
     # Declare an index on +field+ for +collection+ if it does not exist
     def ensure_index(collection, field)
-      col = @enttodb[collection]
+      col = get_entity(collection)
 
       exists = col.index_information.find {|k,v|
         k == "#{field}_1"
