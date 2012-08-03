@@ -680,7 +680,7 @@ module GHTorrent
         @db[:commit_comments].insert(
             :commit_id => commit[:id],
             :user_id => user[:id],
-            :body => retrieved['body'],
+            :body => retrieved['body'][0..255],
             :line => retrieved['line'],
             :position => retrieved['position'],
             :comment_id => retrieved['id'],
