@@ -3,17 +3,18 @@ require 'mongo'
 require 'amqp'
 require 'set'
 require 'eventmachine'
-require 'optparse'
-require 'ostruct'
-require 'pp'
 require "amqp/extensions/rabbitmq"
 
 require 'ghtorrent/settings'
 require 'ghtorrent/logging'
 require 'ghtorrent/persister'
 require 'ghtorrent/command'
+require 'ghtorrent/bson_orderedhash'
 
 class GHTLoad < GHTorrent::Command
+
+  include GHTorrent::Settings
+  include GHTorrent::Persister
 
   def col_info()
     {
@@ -21,17 +22,22 @@ class GHTLoad < GHTorrent::Command
             :name => "commits",
             :payload => "commit.id",
             :unq => "commit.id",
-            :col => GH.commits_col,
+            :col => persister.get_underlying_connection.collection(:commits.to_s),
             :routekey => "commit.%s"
         },
         :events => {
             :name => "events",
             :payload => "",
             :unq => "type",
-            :col => GH.events_col,
+            :col => persister.get_underlying_connection.collection(:events.to_s),
             :routekey => "evt.%s"
         }
     }
+  end
+
+  def persister
+    @persister ||= connect(:mongo, @settings)
+    @persister
   end
 
   def prepare_options(options)
@@ -45,6 +51,8 @@ Loads object ids from a collection to a queue for further processing.
 
     options.opt :earliest, 'Seconds since epoch of earliest item to load',
       :short => 'e', :default => 0, :type => :int
+    options.opt :number, 'Number of items to load (-1 means all)',
+                :short => 'n', :type => :int, :default => -1
     options.opt :filter,
                 'Filter items by regexp on item attributes: item.attr=regexp',
                 :short => 'f', :type => String, :multi => true
@@ -82,6 +90,7 @@ Loads object ids from a collection to a queue for further processing.
 
     puts "Loading from collection #{collection}"
     puts "Loading items after #{Time.at(options[:earliest])}" if options[:verbose]
+    puts "Loading #{options[:number]} items" if options[:verbose]
 
     what = case
              when options[:filter].is_a?(Array)
@@ -98,13 +107,13 @@ Loads object ids from a collection to a queue for further processing.
 
     (puts "Mongo filter:"; pp what.merge(from)) if options[:verbose]
 
-    AMQP.start(:host => GH.settings['amqp']['host'],
-               :port => GH.settings['amqp']['port'],
-               :username => GH.settings['amqp']['username'],
-               :password => GH.settings['amqp']['password']) do |connection|
+    AMQP.start(:host => config(:amqp_host),
+               :port => config(:amqp_port),
+               :username => config(:amqp_username),
+               :password => config(:amqp_password)) do |connection|
 
       channel = AMQP::Channel.new(connection)
-      exchange = channel.topic(GH.settings['amqp']['exchange'],
+      exchange = channel.topic(config(:amqp_exchange),
                                :durable => true, :auto_delete => false)
 
       # What to do when the user hits Ctrl+c
@@ -115,18 +124,21 @@ Loads object ids from a collection to a queue for further processing.
       # Read next 1000 items and queue them
       read_and_publish = Proc.new {
 
+        to_read = options.number - num_read - 1
+        to_read = if to_read <= 0 then -1 else to_read end
+
         read = 0
         col_info[collection][:col].find(what.merge(from),
                                        :skip => num_read,
-                                       :limit => 1000).each do |e|
+                                       :limit => to_read).each do |e|
 
-          payload = GH.read_value(e, col_info[collection][:payload])
+          payload = read_value(e, col_info[collection][:payload])
           payload = if payload.class == BSON::OrderedHash
                       payload.delete "_id" # Inserted by MongoDB on event insert
                       payload.to_json
                     end
           read += 1
-          unq = GH.read_value(e, col_info[collection][:unq])
+          unq = read_value(e, col_info[collection][:unq])
           if unq.class != String or unq.nil? then
             throw Exception("Unique value can only be a String")
           end
@@ -141,7 +153,7 @@ Loads object ids from a collection to a queue for further processing.
         end
 
         # Nothing new in the DB and no msgs waiting ack
-        if read == 0 and awaiting_ack.size == 0
+        if (read == 0 and awaiting_ack.size == 0) or to_read == -1
           puts("Finished reading, exiting")
           show_stopper.call
         end
