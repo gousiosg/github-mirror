@@ -26,7 +26,7 @@ module GHTorrent
 
     # db related functions
     def get_db
-
+      Sequel.single_threaded = true
       @db = Sequel.connect(config(:sql_url), :encoding => 'utf8')
       #@db.loggers << @logger
       if @db.tables.empty?
@@ -1046,19 +1046,23 @@ module GHTorrent
     # Run a block in a DB transaction. Exceptions trigger transaction rollback
     # and are rethrown.
     def transaction(&block)
+      @db ||= get_db
       start_time = Time.now
       begin
         @db.transaction(:rollback => :reraise, :isolation => :committed) do
           yield block
         end
+        total = Time.now.to_ms - start_time.to_ms
+        debug "GHTorrent: Transaction committed (#{total} ms)"
       rescue Exception => e
         total = Time.now.to_ms - start_time.to_ms
         warn "GHTorrent: Transaction failed (#{total} ms)"
         raise e
+      ensure
+        @db.disconnect
+        @db = nil
+        GC.start
       end
-      total = Time.now.to_ms - start_time.to_ms
-      debug "GHTorrent: Transaction committed (#{total} ms)"
-      GC.start
     end
 
     ##
