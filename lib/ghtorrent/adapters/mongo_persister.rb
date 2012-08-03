@@ -103,40 +103,16 @@ module GHTorrent
     end
 
     def mongo
-      @mongo ||= Mongo::Connection.new(config(:mongo_host),
-                                     config(:mongo_port))\
+      if @mongo.nil?
+        @mongo = Mongo::Connection.new(config(:mongo_host),
+                              config(:mongo_port))\
                                   .db(config(:mongo_db))
 
-      if @mongo.collections.size <= 0
-
-        ENTITIES.each {|x|
-          get_entity(x)
-        }
-
-        # Ensure that the necessary indexes exist
-        ensure_index(:events, "id")
-        ensure_index(:users, "login")
-        ensure_index(:commits, "sha")
-        ensure_index(:repos, "name")
-        ensure_index(:followers, "follows")
-        ensure_index(:org_members, "org")
-        ensure_index(:commit_comments, "repo")
-        ensure_index(:commit_comments, "user")
-        ensure_index(:commit_comments, "commit_id")
-        ensure_index(:repo_collaborators, "repo")
-        ensure_index(:repo_collaborators, "owner")
-        ensure_index(:repo_collaborators, "login")
-        ensure_index(:watchers, "repo")
-        ensure_index(:watchers, "owner")
-        ensure_index(:watchers, "login")
-        ensure_index(:pull_requests, "repo")
-        ensure_index(:pull_requests, "owner")
-        ensure_index(:forks, "repo")
-        ensure_index(:forks, "owner")
-        ensure_index(:forks, "id")
+        init_db(@mongo) if @mongo.collections.size <= 0
+        @mongo
+      else
+        @mongo
       end
-
-      @mongo
     end
 
     # Declare an index on +field+ for +collection+ if it does not exist
@@ -151,6 +127,32 @@ module GHTorrent
         col.create_index(field, :background => true)
         STDERR.puts "Creating index on #{collection}(#{field})"
       end
+    end
+
+    def init_db(mongo)
+      ENTITIES.each {|x| mongo.collection(x.to_s)}
+
+      # Ensure that the necessary indexes exist
+      ensure_index(:events, "id")
+      ensure_index(:users, "login")
+      ensure_index(:commits, "sha")
+      ensure_index(:repos, "name")
+      ensure_index(:followers, "follows")
+      ensure_index(:org_members, "org")
+      ensure_index(:commit_comments, "repo")
+      ensure_index(:commit_comments, "user")
+      ensure_index(:commit_comments, "commit_id")
+      ensure_index(:repo_collaborators, "repo")
+      ensure_index(:repo_collaborators, "owner")
+      ensure_index(:repo_collaborators, "login")
+      ensure_index(:watchers, "repo")
+      ensure_index(:watchers, "owner")
+      ensure_index(:watchers, "login")
+      ensure_index(:pull_requests, "repo")
+      ensure_index(:pull_requests, "owner")
+      ensure_index(:forks, "repo")
+      ensure_index(:forks, "owner")
+      ensure_index(:forks, "id")
     end
 
   end
