@@ -376,8 +376,8 @@ module GHTorrent
     # ==Parameters:
     # [user]  The user login to find followers by
     def ensure_user_followers(followed, date_added = nil)
-      time = Time.now
-      curuser = @db[:users].first(:login => followed)
+      curuser = ensure_user(followed, false, false)
+      time = curuser[:created_at]
       followers = @db.from(:followers, :users).\
           where(:followers__follower_id => :users__id).
           where(:followers__user_id => curuser[:id]).select(:login).all
@@ -526,9 +526,9 @@ module GHTorrent
     ##
     # Make sure that a project has all the registered members defined
     def ensure_project_members(user, repo)
-      time = Time.now
-      curuser = @db[:users].first(:login => user)
-      currepo = @db[:projects].first(:owner_id => curuser[:id], :name => repo)
+      currepo = ensure_repo(user, repo, true, false, true)
+      time = currepo[:created_at]
+
       project_members = @db.from(:project_members, :users).\
           where(:project_members__user_id => :users__id).\
           where(:project_members__repo_id => currepo[:id]).select(:login).all
@@ -705,8 +705,8 @@ module GHTorrent
     ##
     # Make sure that
     def ensure_watchers(owner, repo)
-      time = Time.now
       currepo = ensure_repo(owner, repo, true, true, false)
+      time = currepo[:created_at]
 
       if currepo.nil?
         warn "Could not retrieve watchers for #{owner}/#{repo}"
@@ -948,8 +948,8 @@ module GHTorrent
     # [owner]  The user to which the project belongs
     # [repo]  The repository/project to find forks for
     def ensure_forks(owner, repo)
-      time = Time.now
       currepo = ensure_repo(owner, repo, false, false, false)
+      time = currepo[:created_at]
 
       if currepo.nil?
         warn "Could not retrieve forks for #{owner}/#{repo}"
