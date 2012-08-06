@@ -17,8 +17,7 @@ class GHTDataRetrieval < GHTorrent::Command
     JSON.parse(msg)
   end
 
-  def PushEvent(evt)
-    data = parse evt
+  def PushEvent(data)
     data['payload']['commits'].each do |c|
       url = c['url'].split(/\//)
 
@@ -26,8 +25,7 @@ class GHTDataRetrieval < GHTorrent::Command
     end
   end
 
-  def WatchEvent(evt)
-    data = parse evt
+  def WatchEvent(data)
     owner = data['repo']['name'].split(/\//)[0]
     repo = data['repo']['name'].split(/\//)[1]
     watcher = data['actor']['login']
@@ -36,8 +34,7 @@ class GHTDataRetrieval < GHTorrent::Command
     @gh.get_watcher owner, repo, watcher, created_at
   end
 
-  def FollowEvent(evt)
-    data = parse evt
+  def FollowEvent(data)
     follower = data['actor']['login']
     followed = data['payload']['target']['login']
     created_at = data['created_at']
@@ -45,8 +42,7 @@ class GHTDataRetrieval < GHTorrent::Command
     @gh.get_follower(follower, followed, created_at)
   end
 
-  def MemberEvent(evt)
-    data = parse evt
+  def MemberEvent(data)
     owner = data['actor']['login']
     repo = data['repo']['name'].split(/\//)[1]
     new_member = data['payload']['member']['login']
@@ -55,8 +51,7 @@ class GHTDataRetrieval < GHTorrent::Command
     @gh.get_project_member(owner, repo, new_member, created_at)
   end
 
-  def CommitCommentEvent(evt)
-    data = parse evt
+  def CommitCommentEvent(data)
     user = data['actor']['login']
     repo = data['repo']['name'].split(/\//)[1]
     id = data['payload']['comment']['id']
@@ -65,17 +60,17 @@ class GHTDataRetrieval < GHTorrent::Command
     @gh.get_commit_comment(user, repo, id, created_at)
   end
 
-  def PullRequestEvent(evt)
-    data = parse evt
+  def PullRequestEvent(data)
     owner = data['payload']['pull_request']['base']['repo']['owner']['login']
     repo = data['payload']['pull_request']['base']['repo']['name']
     pullreq_id = data['payload']['number']
+    action = data['payload']['action']
+    created_at = data['created_at']
 
-    @gh.get_pull_request(owner, repo, pullreq_id)
+    @gh.get_pull_request(owner, repo, pullreq_id, action, created_at)
   end
 
-  def ForkEvent(evt)
-    data = parse evt
+  def ForkEvent(data)
     owner = data['repo']['name'].split(/\//)[0]
     repo = data['repo']['name'].split(/\//)[1]
     fork_id = data['payload']['forkee']['id']
@@ -84,10 +79,9 @@ class GHTDataRetrieval < GHTorrent::Command
     @gh.get_fork(owner, repo, fork_id, created_at)
   end
 
-
   def handlers
-    %w(PushEvent WatchEvent FollowEvent MemberEvent CommitCommentEvent PullRequestEvent ForkEvent)
-    #%w(ForkEvent)
+    #%w(PushEvent WatchEvent FollowEvent MemberEvent CommitCommentEvent PullRequestEvent ForkEvent)
+    %w(PullRequestEvent)
   end
 
   def logger
@@ -99,11 +93,11 @@ class GHTDataRetrieval < GHTorrent::Command
 
     # Graceful exit
     Signal.trap('INT') {
-      info "Received SIGINT, exiting"
+      info "GHTDataRetrieval: Received SIGINT, exiting"
       AMQP.stop { EM.stop }
     }
     Signal.trap('TERM') {
-      info "Received SIGTERM, exiting"
+      info "GHTDataRetrieval: Received SIGTERM, exiting"
       AMQP.stop { EM.stop }
     }
 
@@ -120,19 +114,19 @@ class GHTDataRetrieval < GHTorrent::Command
         queue = channel.queue("#{h}s", {:durable => true})\
                        .bind(exchange, :routing_key => "evt.#{h}")
 
-        info "Binding handler #{h} to routing key evt.#{h}"
+        info "GHTDataRetrieval: Binding handler #{h} to routing key evt.#{h}"
 
         queue.subscribe(:ack => true) do |headers, msg|
           begin
             data = parse(msg)
-            warn "Processing event: #{data['type']}-#{data['id']}"
-	    send(h, msg)
+            warn "GHTDataRetrieval: Processing event: #{data['type']}-#{data['id']}"
+	          send(h, data)
             headers.ack
           rescue Exception => e
             # Give a message a chance to be reprocessed
             if headers.redelivered?
               data = parse(msg)
-              warn "Could not process event: #{data['type']}-#{data['id']}"
+              warn "GHTDataRetrieval: Could not process event: #{data['type']}-#{data['id']}"
               headers.reject(:requeue => false)
             else
               headers.reject(:requeue => true)
