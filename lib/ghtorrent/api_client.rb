@@ -42,7 +42,12 @@ module GHTorrent
         if links['next'].nil?
           parse_request_result(data)
         else
-          parse_request_result(data) | paged_api_request(links['next'], pages, cache)
+          parse_request_result(data) |
+              if links['next'] == links['last']
+                paged_api_request(links['next'], pages, false)
+              else
+                paged_api_request(links['next'], pages, cache)
+              end
         end
       else
         parse_request_result(data)
