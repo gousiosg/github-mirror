@@ -23,14 +23,19 @@ module GHTorrent
 
     # A paged request. Used when the result can expand to more than one
     # result pages.
-    def paged_api_request(url, pages = -1, cache = true)
+    def paged_api_request(url, pages = -1, cache = true, last = nil)
 
-      data = api_request_raw(url, use_cache?(cache, method = :paged))
+      data = if URI.parse(url).query.nil? # Top level request, no params
+               api_request_raw(url, false)
+             else
+               api_request_raw(url, use_cache?(cache, method = :paged))
+             end
 
       return [] if data.nil?
 
       unless data.meta['link'].nil?
         links = parse_links(data.meta['link'])
+        last = links['last'] if last.nil?
 
         if pages > 0
           pages = pages - 1
@@ -43,10 +48,13 @@ module GHTorrent
           parse_request_result(data)
         else
           parse_request_result(data) |
-              if links['next'] == links['last']
-                paged_api_request(links['next'], pages, false)
+              if links['next'] == last
+                if last != links['last']
+                  warn "APIClient: Last header mismatch: method=#{last}, cache=#{links['last']}"
+                end
+                paged_api_request(links['next'], pages, false, last)
               else
-                paged_api_request(links['next'], pages, cache)
+                paged_api_request(links['next'], pages, cache, last)
               end
         end
       else
