@@ -124,13 +124,15 @@ class GHTDataRetrieval < GHTorrent::Command
 
         queue.subscribe(:ack => true) do |headers, msg|
           begin
-            send(h, msg)
+            data = parse(msg)
+            warn "Processing event: #{data['type']}-#{data['id']}"
+	    send(h, msg)
             headers.ack
           rescue Exception => e
             # Give a message a chance to be reprocessed
             if headers.redelivered?
               data = parse(msg)
-              warn "Could not process msg: #{data['type']}-#{data['id']}"
+              warn "Could not process event: #{data['type']}-#{data['id']}"
               headers.reject(:requeue => false)
             else
               headers.reject(:requeue => true)
