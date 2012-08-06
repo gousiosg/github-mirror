@@ -54,6 +54,7 @@ module GHTorrent
       end
 
       transaction do
+        ensure_user(user, true, true)
         ensure_commit(repo, sha, user)
       end
     end
@@ -105,6 +106,8 @@ module GHTorrent
     #  [date_added] The timestamp that the add event took place
     def get_follower(follower, followed, date_added)
       transaction do
+        ensure_user(follower, true, true)
+        ensure_user(followed, true, true)
         ensure_user_follower(followed, follower, date_added)
       end
     end
@@ -600,8 +603,8 @@ module GHTorrent
     # [org]  The login name of the organization to check whether the user
     #        belongs in
     #
-    def ensure_participation(user, organization)
-      org = ensure_org(organization)
+    def ensure_participation(user, organization, members = true)
+      org = ensure_org(organization, members)
       usr = ensure_user(user, false, false)
 
       org_members = @db[:organization_members]
@@ -625,14 +628,21 @@ module GHTorrent
     # ==Parameters:
     # [organization]  The login name of the organization
     #
-    def ensure_org(organization)
-      org = @db[:users].find(:login => organization, :type => 'org')
+    def ensure_org(organization, members)
+      org = @db[:users].first(:login => organization, :type => 'org')
 
       if org.nil?
-        ensure_user(org, false, false)
+        org = ensure_user(organization, false, false)
+        if members
+        retrieve_org_members(organization).map { |x|
+          ensure_participation(ensure_user(x['login'], false, false)[:login],
+                               organization, false)
+        }
+        end
+        org
       else
         debug "GHTorrent: Organization #{organization} exists"
-        org.first
+        org
       end
     end
 

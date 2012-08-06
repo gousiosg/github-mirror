@@ -174,14 +174,14 @@ module GHTorrent
         x['org'] = org
 
         exists = !stored_org_members.find { |f|
-          f['org'] == user && f['login'] == x['login']
+          f['org'] == org && f['login'] == x['login']
         }.nil?
 
         if not exists
           persister.store(:org_members, x)
-          info "Retriever: Added member #{org} -> #{x['login']}"
+          info "Retriever: Added org member #{org} -> #{x['login']}"
         else
-          debug "Retriever: Member #{org} -> #{x['login']} exists"
+          debug "Retriever: Org Member #{org} -> #{x['login']} exists"
         end
       end
 
