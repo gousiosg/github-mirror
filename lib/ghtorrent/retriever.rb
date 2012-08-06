@@ -78,15 +78,12 @@ module GHTorrent
     end
 
     def retrieve_user_followers(user)
-      stored_followers = persister.find(:followers, {'follows' => user})
-
       followers = paged_api_request(ghurl "users/#{user}/followers")
       followers.each do |x|
         x['follows'] = user
 
-        exists = !stored_followers.find { |f|
-          f['follows'] == user && f['login'] == x['login']
-        }.nil?
+        exists = !persister.find(:followers, {'follows' => user,
+                                     'login' => x['login']}).empty?
 
         if not exists
           persister.store(:followers, x)
@@ -331,7 +328,6 @@ module GHTorrent
     private
 
     def repo_bound_items(user, repo, entity, urls, selector, descriminator)
-      stored_items = persister.find(entity, selector)
 
       items = if urls.class == Array
                 urls.map { |url| paged_api_request(ghurl url) }.flatten
@@ -343,9 +339,8 @@ module GHTorrent
         x['repo'] = repo
         x['owner'] = user
 
-        exists = !stored_items.find { |f|
-          f[descriminator] == x[descriminator]
-        }.nil?
+        exists = !repo_bound_instance(entity, selector,
+                                      descriminator, x[descriminator]).empty?
 
         if not exists
           persister.store(entity, x)
@@ -358,8 +353,7 @@ module GHTorrent
     end
 
     def repo_bound_item(user, repo, item_id, entity, url, selector, descriminator)
-      instance_selector = selector.merge({descriminator => item_id})
-      stored_item = persister.find(entity, instance_selector)
+      stored_item = repo_bound_instance(entity, selector, descriminator, item_id)
 
       if stored_item.empty?
         repo_bound_items(user, repo, entity, url, selector, descriminator).\
@@ -367,6 +361,11 @@ module GHTorrent
       else
         stored_item.first
       end
+    end
+
+    def repo_bound_instance(entity, selector, descriminator, item_id)
+      instance_selector = selector.merge({descriminator => item_id})
+      persister.find(entity, instance_selector)
     end
 
     def ghurl(path)
