@@ -327,7 +327,8 @@ module GHTorrent
 
     private
 
-    def repo_bound_items(user, repo, entity, urls, selector, descriminator)
+    def repo_bound_items(user, repo, entity, urls, selector, descriminator,
+                         item_id = nil)
 
       items = if urls.class == Array
                 urls.map { |url| paged_api_request(ghurl url) }.flatten
@@ -349,15 +350,20 @@ module GHTorrent
           debug "Retriever: #{entity} #{user}/#{repo} -> #{x[descriminator]} exists"
         end
       end
-      persister.find(entity, selector)
+
+      if item_id.nil?
+        persister.find(entity, selector)
+      else
+        repo_bound_instance(entity, selector, descriminator, item_id)
+      end
     end
 
     def repo_bound_item(user, repo, item_id, entity, url, selector, descriminator)
       stored_item = repo_bound_instance(entity, selector, descriminator, item_id)
 
       if stored_item.empty?
-        repo_bound_items(user, repo, entity, url, selector, descriminator).\
-                        find{|x| x[descriminator] == item_id}
+        repo_bound_items(user, repo, entity, url, selector, descriminator,
+                         item_id).first
       else
         stored_item.first
       end
