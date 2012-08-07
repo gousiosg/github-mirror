@@ -1,6 +1,4 @@
 module GHTorrent
-  VERSION = '0.5'
-
   # Route keys used for setting up queues for events, using GHTorrent
   ROUTEKEY_CREATE = "evt.CreateEvent"
   ROUTEKEY_DELETE = "evt.DeleteEvent"
@@ -28,6 +26,7 @@ require 'ghtorrent/time'
 require 'ghtorrent/bson_orderedhash'
 
 # Basic utility modules
+require 'version'
 require 'ghtorrent/gh_torrent_exception'
 require 'ghtorrent/utils'
 require 'ghtorrent/logging'

@@ -10,18 +10,18 @@ GHTorrent relies on the following software to work:
 * MongoDB > 2.0
 * RabbitMQ >= 2.7
 * An SQL database compatible with [Sequel](http://sequel.rubyforge.org/rdoc/files/doc/opening_databases_rdoc.html). 
-GHTorrent is tested with SQLite and MySQL, so your mileage may vary if you are using other databases.
+GHTorrent is tested mainly with MySQL, so your mileage may vary if you are using other databases.
 
-GHTorrent is written in Ruby (tested with 1.8 and JRuby). To install 
+GHTorrent is written in Ruby (tested with 1.9 and JRuby). To install 
 it as a Gem do:
 
 <code>
 sudo gem install ghtorrent 
 </code>
 
-Depending on which SQL database you want to use, install the appropriate dependency gem.
-GHTorrent already installs the `sqlite3` gem (if it fails, install the development
-package for `sqlite3` for your system).
+Depending on which SQL database you want to use, install the appropriate
+dependency gem. GHTorrent already installs the `sqlite3` gem (if it fails,
+install the development package for `sqlite3` for your system).
 
 <code>
 sudo gem install mysql2 #or postgres
@@ -35,10 +35,10 @@ file to a file in your home directory. All provided scripts accept the `-c`
 option, which you can use to pass the location of the configuration file as
 a parameter.
 
-Edit the MongoDB and AMQP 
-configuration options accordingly. The scripts require accounts with permissions
-to create queues and exchanges in the AMQP queue, collections
-in MongoDB and tables in the selected SQL database, respectively.
+Edit the MongoDB and AMQP configuration options accordingly. The scripts
+require accounts with permissions to create queues and exchanges in the AMQP
+queue, collections in MongoDB and tables in the selected SQL database,
+respectively.
 
 To prepare MongoDB:
 
@@ -76,25 +76,26 @@ to retrieve data in parallel on the [Wiki](https://github.com/gousiosg/github-mi
 
 ### Running
 
-To retrieve data with GHTorrent 
+To retrieve data with GHTorrent: 
 
 * `ght-mirror-events.rb` periodically polls Github's event
-queue (`https://api.github.com/events`), stores all new events in the `events`
-collection in MongoDB and posts them to the `github` exchange in RabbitMQ.
+queue (`https://api.github.com/events`), stores all new events in the
+`events` collection in MongoDB and posts them to the `github` exchange in
+RabbitMQ.
 
 * `ght-data_retrieval.rb` creates queues that route posted events to processor
 functions, which in turn use the appropriate Github API call to retrieve the
 linked contents, extract metadata to store in the SQL database and store the
-retrieved data in the appropriate collection in Mongo, to avoid further
-API calls. Data in the SQL database contain pointers (the MongoDB key) 
-to the "raw" data in MongoDB.
+retrieved data in the appropriate collection in Mongo, to avoid further API
+calls. Data in the SQL database contain pointers (the MongoDB key) to the
+"raw" data in MongoDB.
 
-Both scripts can be run concurrently on more than one hosts, for resilience and
-performance reasons. To catch up with Github's event stream, it is enough to
-run `mirror_events.rb` on one host. To collect all data pointed by each event,
-one instance of `data_retrieval.rb` is not enough. Both scripts employ
-throttling mechanisms to keep API usage whithin the limits imposed by Github
-(currently 5000 reqs/hr).
+Both scripts can be run concurrently on more than one hosts, for resilience
+and performance reasons. To catch up with Github's event stream, it is
+usually enough to run `ght-mirror-events` on one host. To collect all data
+pointed by each event, one instance of `ght-data-retrieval` is not enough.
+Both scripts employ throttling mechanisms to keep API usage whithin the
+limits imposed by Github (currently 5000 reqs/hr).
 
 #### Data
 
