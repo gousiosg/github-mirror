@@ -16,7 +16,8 @@ module GHTorrent
         :mongo_port => "mongo.port",
         :mongo_db => "mongo.db",
         :mongo_username => "mongo.username",
-        :mongo_passwd => "mongo.password"
+        :mongo_passwd => "mongo.password",
+        :mongo_replicas => "mongo.replicas"
     }
 
     attr_reader :settings
@@ -33,12 +34,16 @@ module GHTorrent
 
     def store(entity, data = {})
       super
-      get_entity(entity).insert(data).to_s
+      rescue_connection_failure do
+        get_entity(entity).insert(data).to_s
+      end
     end
 
     def find(entity, query = {})
       super
-      result = get_entity(entity).find(query)
+      result = rescue_connection_failure do
+        get_entity(entity).find(query)
+      end
 
       result.to_a.map { |r|
         r[@uniq] = r['_id'].to_s;
@@ -55,7 +60,9 @@ module GHTorrent
     # Count the number of items returned by +query+
     def count(entity, query)
       super
-      get_entity(entity).count(:query => query)
+      rescue_connection_failure do
+        get_entity(entity).count(:query => query)
+      end
     end
 
     def get_underlying_connection
@@ -64,7 +71,9 @@ module GHTorrent
 
     def close
       unless @mongo.nil?
-        @mongo.connection.close
+        @mongo.close if @mongo.class == Mongo::ReplSetConnection
+        @mongo.connection.close if @mongo.class == Mongo::Connection
+
         @mongo = nil
       end
     end
@@ -104,10 +113,19 @@ module GHTorrent
 
     def mongo
       if @mongo.nil?
-        @mongo = Mongo::Connection.new(config(:mongo_host),
-                              config(:mongo_port))\
-                                  .db(config(:mongo_db))
 
+        replicas = config(:mongo_replicas)
+
+        @mongo = if replicas.nil?
+                   Mongo::Connection.new(config(:mongo_host),
+                                         config(:mongo_port))\
+                                    .db(config(:mongo_db))
+                 else
+                   repl_arr = replicas.strip.split(/ /).map{|x| "#{x}:#{config(:mongo_port)}"}
+                   repl_arr << "#{config(:mongo_host)}:#{config(:mongo_port)}"
+                   Mongo::ReplSetConnection.new(repl_arr, :read => :secondary)\
+                                           .db(config(:mongo_db))
+                 end
         init_db(@mongo) if @mongo.collections.size <= 0
         @mongo
       else
@@ -155,5 +173,17 @@ module GHTorrent
       ensure_index(:forks, "id")
     end
 
+    def rescue_connection_failure(max_retries=60)
+      retries = 0
+      begin
+        yield
+      rescue Mongo::ConnectionFailure => ex
+        retries += 1
+        raise ex if retries > max_retries
+        sleep(0.5)
+        @mongo.refresh if @mongo.class == Mongo::ReplSetConnection
+        retry
+      end
+    end
   end
 end
