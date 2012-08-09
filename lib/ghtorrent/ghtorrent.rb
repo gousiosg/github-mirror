@@ -138,6 +138,34 @@ module GHTorrent
     end
 
     ##
+    # Retrieve a pull request review comment
+    # ==Parameters:
+    #  [owner] The login of the repository owner
+    #  [repo] The name of the repository
+    #  [fork_id] The fork item id
+    #  [date_added] The timestamp that the add event took place
+    def get_pullreq_comment(owner, repo, pullreq_id, comment_id, created_at)
+      transaction do
+        ensure_pullreq_comment(owner, repo, pullreq_id, comment_id, created_at)
+      end
+    end
+
+    ##
+    # Retrieve a pull request review comment
+    # ==Parameters:
+    #  [owner] The login of the repository owner
+    #  [repo] The name of the repository
+    #  [fork_id] The fork item id
+    #  [date_added] The timestamp that the add event took place
+    def get_issue_comment(owner, repo, issue_id, comment_id, created_at)
+      transaction do
+        raise "Not implemented"
+        #ensure_pullreq_comment(owner, repo, pullreq_id, comment_id, created_at)
+      end
+    end
+
+
+    ##
     # Make sure a commit exists
     #
     def ensure_commit(repo, sha, user, comments = true)
@@ -916,14 +944,83 @@ module GHTorrent
                        state) unless state.nil?
 
       ensure_pull_request_commits(owner, repo, pullreq_id) if commits
-      ensure_pull_request_comments(owner, repo, pullreq_id) if comments
+      ensure_pullreq_comments(owner, repo, pullreq_id, created_at) if comments
 
       pulls_reqs.first(:base_repo_id => project[:id],
                        :pullreq_id => pullreq_id)
     end
 
-    def ensure_pull_request_comments(owner, repo, pullreq_id, date_added = nil)
+    def ensure_pullreq_comments(owner, repo, pullreq_id, created_at)
+      currepo = ensure_repo(owner, repo, true, true, false)
+      time = if created_at.nil? then currepo[:created_at] else Time.now() end
 
+      if currepo.nil?
+        warn "Could not repository #{owner}/#{repo}"
+        return
+      end
+
+      pull_req = ensure_pull_request(owner, repo, pullreq_id, false, true)
+
+      if pull_req.nil?
+        warn "Could not retrieve pull req #{owner}/#{repo} -> #{pullreq_id}"
+        return
+      end
+
+      retrieve_pull_req_comments(owner, repo, pullreq_id).reduce([]) do |acc, x|
+
+        if @db[:pull_request_comments].first(:pullreq_id => pull_req[:id],
+                                             :comment_id => x['id']).nil?
+          acc << x
+        else
+          acc
+        end
+      end.map { |x|
+        ensure_pullreq_comment(owner, repo, pullreq_id, x['id'], time)
+      }
+    end
+
+    def ensure_pullreq_comment(owner, repo, pullreq_id, comment_id, created_at)
+      pull_req = ensure_pull_request(owner, repo, pullreq_id, false, true)
+
+      if pull_req.nil?
+        warn "Could not retrieve pull req #{owner}/#{repo} -> #{pullreq_id}"
+        return
+      end
+
+      exists = @db[:pull_request_comments].first(:pull_request_id => pull_req[:id],
+                                                 :comment_id => comment_id)
+
+      if exists.nil?
+        retrieved = retrieve_pull_req_comment(owner, repo, pullreq_id, comment_id)
+
+        if retrieved.nil?
+          warn "Could not retrieve comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id}"
+          return
+        end
+
+        commenter = ensure_user(retrieved['user']['login'], false, false)
+
+        if commenter.nil?
+          warn "Could not retrieve commenter #{retrieved['user']['login']}" +
+               "for pullreq comment #{owner}/#{repo} -> #{pullreq_id}(#{comment_id}) "
+        end
+
+        commit = ensure_commit(repo, retrieved['original_commit_id'],owner)
+
+        @db[:pull_request_comments].insert(
+            :pull_request_id => pull_req[:id],
+            :user_id => commenter[:id],
+            :comment_id => comment_id,
+            :position => retrieved['original_position'],
+            :body => retrieved['body'][0..254],
+            :commit_id => (commit[:id] unless commit.nil?),
+            :created_at => retrieved['created_at'],
+            :ext_ref_id => retrieved[@ext_uniq]
+        )
+        debug "GHTorrent: Adding comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id}"
+      else
+        debug "GHTorrent: Updating comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id}"
+      end
     end
 
     def ensure_pull_request_commits(owner, repo, pullreq_id)
