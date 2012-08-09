@@ -1,9 +1,8 @@
 = Version 0.5
 
-  * Generic methods for retrieving items that are bound to repositories
-computers
+    * Generic methods for retrieving items that are bound to repositories
 	* Processing of pull requests with commits, comments and history
-	* Processing project forks
+	* Processing of project forks
 	* New tool (ght-load) to filter and load events to the queue
 	* New tool (ght-rm-dupl) to delete duplicate entries from collections (events & commits supported)
 	* Project wide requesting result caching for multi-page requests
