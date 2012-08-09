@@ -482,7 +482,14 @@ module GHTorrent
     end
 
     def repo_bound_instance(entity, selector, descriminator, item_id)
-      instance_selector = selector.merge({descriminator => item_id})
+
+      id = if item_id.to_i.to_s != item_id
+             item_id # item_id is string
+           else
+             item_id.to_i # convert to int
+           end
+
+      instance_selector = selector.merge({descriminator => id})
       persister.find(entity, instance_selector)
     end
 
