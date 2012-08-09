@@ -5,6 +5,7 @@ require 'mongo'
 require 'amqp'
 require 'set'
 require 'eventmachine'
+require 'pp'
 require "amqp/extensions/rabbitmq"
 
 require 'ghtorrent/settings'
@@ -92,7 +93,7 @@ Loads object ids from a collection to a queue for further processing.
 
     puts "Loading from collection #{collection}"
     puts "Loading items after #{Time.at(options[:earliest])}" if options[:verbose]
-    puts "Loading #{options[:number]} items" if options[:verbose]
+    puts "Loading #{options[:number]} items" if options[:verbose] && options[:number] != -1
 
     what = case
              when options[:filter].is_a?(Array)
@@ -126,8 +127,15 @@ Loads object ids from a collection to a queue for further processing.
       # Read next 1000 items and queue them
       read_and_publish = Proc.new {
 
-        to_read = options.number - num_read - 1
-        to_read = if to_read <= 0 then -1 else to_read end
+        to_read = if options.number == -1
+                    1000
+                  else
+                    if options.number - num_read - 1 <= 0
+                      -1
+                    else
+                      options.number - num_read - 1
+                    end
+                  end
 
         read = 0
         col_info[collection][:col].find(what.merge(from),
@@ -150,7 +158,7 @@ Loads object ids from a collection to a queue for further processing.
           exchange.publish payload, :persistent => true, :routing_key => key
 
           num_read += 1
-          puts("Publish id = #{unq} (#{num_read} total)") if options.verbose
+          puts("Publish id = #{payload[unq]} (#{num_read} total)") if options.verbose
           awaiting_ack << num_read
         end
 
