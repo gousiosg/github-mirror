@@ -108,6 +108,10 @@ module GHTorrent
           get_collection("pull_requests")
         when :forks
           get_collection("forks")
+        when :pull_request_comments
+          get_collection("pull_request_comments")
+        when :issue_comments
+          get_collection("issue_comments")
       end
     end
 
@@ -171,6 +175,14 @@ module GHTorrent
       ensure_index(:forks, "repo")
       ensure_index(:forks, "owner")
       ensure_index(:forks, "id")
+      ensure_index(:issue_comments, "repo")
+      ensure_index(:issue_comments, "owner")
+      ensure_index(:issue_comments, "issue_id")
+      ensure_index(:issue_comments, "id")
+      ensure_index(:pull_request_comments, "repo")
+      ensure_index(:pull_request_comments, "owner")
+      ensure_index(:pull_request_comments, "pullreq_id")
+      ensure_index(:pull_request_comments, "id")
     end
 
     def rescue_connection_failure(max_retries=60)
