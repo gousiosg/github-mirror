@@ -203,7 +203,7 @@ module GHTorrent
           persister.store(:commit_comments, x)
         end
       }
-      persister.find(:commit_comments, {'commit_id' => sha}) #.map{|x| x[ext_uniq] = x['_id']; x}
+      persister.find(:commit_comments, {'commit_id' => sha})
     end
 
     # Retrieve a single comment
@@ -224,8 +224,8 @@ module GHTorrent
         r['user'] = user
         persister.store(:commit_comments, r)
         info "Retriever: Added commit comment #{r['commit_id']} -> #{r['id']}"
-        r[ext_uniq] = r['_id']
-        r
+        persister.find(:commit_comments, {'repo' => repo, 'user' => user,
+                                          'id' => id}).first
       else
         debug "Retriever: Commit comment #{comment['commit_id']} -> #{comment['id']} exists"
         comment
