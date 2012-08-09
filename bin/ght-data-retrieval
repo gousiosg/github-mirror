@@ -81,9 +81,28 @@ class GHTDataRetrieval < GHTorrent::Command
     @gh.get_fork(owner, repo, fork_id, created_at)
   end
 
+  def PullRequestReviewCommentEvent(data)
+    owner = data['repo']['name'].split(/\//)[0]
+    repo = data['repo']['name'].split(/\//)[1]
+    comment_id = data['payload']['comment']['id']
+    pullreq_id = data['payload']['comment']['_links']['pull_request']['href'].split(/\//)[-1]
+    created_at = data['created_at']
+
+    @gh.get_pullreq_comment(owner, repo, pullreq_id, comment_id, created_at)
+  end
+
+  def IssueCommentEvent(data)
+    owner = data['repo']['name'].split(/\//)[0]
+    repo = data['repo']['name'].split(/\//)[1]
+    pullreq_id = data['payload']['forkee']['id']
+    created_at = data['created_at']
+
+    @gh.get_issue_comment(owner, repo, issue_id, comment_id, created_at)
+  end
+
   def handlers
-    %w(PushEvent WatchEvent FollowEvent MemberEvent CommitCommentEvent PullRequestEvent ForkEvent)
-    #%w(PushEvent)
+    %w(PushEvent WatchEvent FollowEvent MemberEvent CommitCommentEvent PullRequestEvent ForkEvent PullRequestReviewCommentEvent)
+    #%w(PullRequestReviewCommentEvent)
   end
 
   def logger
@@ -121,9 +140,10 @@ class GHTDataRetrieval < GHTorrent::Command
         queue.subscribe(:ack => true) do |headers, msg|
           begin
             data = parse(msg)
-            warn "GHTDataRetrieval: Processing event: #{data['type']}-#{data['id']}"
+            info "GHTDataRetrieval: Processing event: #{data['type']}-#{data['id']}"
 	          send(h, data)
             headers.ack
+            info "GHTDataRetrieval: Processed event: #{data['type']}-#{data['id']}"
           rescue Exception => e
             # Give a message a chance to be reprocessed
             if headers.redelivered?
