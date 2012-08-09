@@ -320,6 +320,118 @@ module GHTorrent
       end
     end
 
+    def retrieve_pull_req_comments(owner, repo, pullreq_id)
+      review_comments_url = ghurl "repos/#{owner}/#{repo}/pulls/#{pullreq_id}/comments"
+
+      url = review_comments_url
+      retrieved_comments = paged_api_request url
+
+      retrieved_comments.each { |x|
+        x['owner'] = owner
+        x['repo'] = repo
+        x['issue_id'] = pullreq_id
+
+        if persister.find(:pull_request_comments, {'owner' => owner,
+                                                   'repo' => repo,
+                                                   'pullreq_id' => pullreq_id,
+                                                   'id' => x['id']}).empty?
+          persister.store(:pull_request_comments, x)
+        end
+      }
+
+      persister.find(:pull_request_comments, {'owner' => owner, 'repo' => repo,
+                                              'pullreq_id' => pullreq_id})
+    end
+
+    def retrieve_pull_req_comment(owner, repo, pullreq_id, comment_id)
+      comment = persister.find(:pull_request_comments, {'repo' => repo,
+                                                 'owner' => owner,
+                                                 'pullreq_id' => pullreq_id,
+                                                 'id' => comment_id}).first
+      if comment.nil?
+        r = api_request(ghurl "repos/#{owner}/#{repo}/pulls/comments/#{comment_id}")
+
+        if r.empty?
+          debug "Retriever: Pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id} deleted"
+          return
+        end
+
+        r['repo'] = repo
+        r['owner'] = owner
+        r['pullreq_id'] = pullreq_id
+        persister.store(:pull_request_comments, r)
+        info "Retriever: Added pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id}"
+        persister.find(:pull_request_comments, {'repo' => repo, 'owner' => owner,
+                                         'pullreq_id' => pullreq_id,
+                                         'id' => comment_id}).first
+      else
+        debug "Retriever: Pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id} exists"
+        comment
+      end
+    end
+
+    def retrieve_issues(user, repo)
+      repo_bound_items(user, repo, :issues,
+                       "repos/#{user}/#{repo}/issues",
+                       {'repo' => repo, 'owner' => user},
+                       'id')
+    end
+
+    def retrieve_issue(user, repo, issue_id)
+      repo_bound_item(user, repo, issue_id, :issues,
+                      "repos/#{user}/#{repo}/issues/#{issue_id}",
+                      {'repo' => repo, 'owner' => user},
+                      'id')
+    end
+
+    def retrieve_issue_comments(owner, repo, issue_id)
+      url = ghurl "repos/#{owner}/#{repo}/issues/#{issue_id}/comments"
+      retrieved_comments = paged_api_request url
+
+      retrieved_comments.each { |x|
+        x['owner'] = owner
+        x['repo'] = repo
+        x['issue_id'] = issue_id
+
+        if persister.find(:issue_comments, {'owner' => owner,
+                                            'repo' => repo,
+                                            'issue_id' => issue_id,
+                                            'id' => x['id']}).empty?
+          persister.store(:issue_comments, x)
+        end
+      }
+      persister.find(:issue_comments, {'owner' => owner, 'repo' => repo,
+                                       'issue_id' => issue_id})
+    end
+
+    def retrieve_issue_comment(owner, repo, issue_id, comment_id)
+      comment = persister.find(:issue_comments, {'repo' => repo,
+                                                 'owner' => owner,
+                                                 'issue_id' => issue_id,
+                                                 'id' => comment_id}).first
+      if comment.nil?
+        r = api_request(ghurl "repos/#{owner}/#{repo}/issues/#{issue_id}/comments/#{comment_id}")
+
+        if r.empty?
+          debug "Retriever: Issue comment #{owner}/#{repo} #{issue_id}->#{comment_id} deleted"
+          return
+        end
+
+        r['repo'] = repo
+        r['owner'] = owner
+        x['issue_id'] = issue_id
+        persister.store(:issue_comments, r)
+        info "Retriever: Added issue comment #{owner}/#{repo} #{issue_id}->#{comment_id}"
+        persister.find(:issue_comments, {'repo' => repo, 'owner' => owner,
+                                         'issue_id' => issue_id,
+                                         'id' => comment_id}).first
+        r
+      else
+        debug "Retriever: Commit comment #{owner}/#{repo} #{issue_id}->#{comment_id} exists"
+        comment
+      end
+    end
+
     # Get current Github events
     def get_events
       api_request "https://api.github.com/events"
