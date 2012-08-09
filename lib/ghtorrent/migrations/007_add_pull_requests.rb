@@ -42,6 +42,11 @@ Sequel.migration do
 
     create_table :pull_request_comments do
       foreign_key :pull_request_id, :pull_requests, :null => false
+      foreign_key :user_id, :users, :null => false
+      Long :comment_id, :null =>  false
+      Integer :position, :null => true
+      String :body, :size => 256
+      foreign_key :commit_id, :commits, :null => false
       DateTime :created_at, :null => false, :default=>Sequel::CURRENT_TIMESTAMP
       String :ext_ref_id, :null => false, :size => 24, :default => "0"
     end
