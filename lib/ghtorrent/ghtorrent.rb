@@ -1027,8 +1027,10 @@ module GHTorrent
     end
 
     def ensure_pull_request_commits(owner, repo, pullreq_id)
-      retrieve_pull_req_commits(owner, repo, pullreq_id).map {|c|
-        ensure_commit(repo, c['sha'], owner, true)
+      retrieve_pull_req_commits(owner, repo, pullreq_id).reduce([]){|acc, c|
+        x = ensure_commit(repo, c['sha'], owner, true)
+        acc << x if not x.nil?
+        acc
       }.map { |c|
         pullreq = ensure_pull_request(owner, repo, pullreq_id, false, false)
         exists = @db[:pull_request_commits].first(:pull_request_id => pullreq[:id],
