@@ -904,9 +904,11 @@ module GHTorrent
                                 retrieved['head']['repo']['name'],
                                 false, false, false)
 
-        head_commit = ensure_commit(retrieved['head']['repo']['name'],
-                                    retrieved['head']['sha'],
-                                    retrieved['head']['repo']['owner']['login'])
+        head_commit = if not head_repo.nil?
+                        ensure_commit(retrieved['head']['repo']['name'],
+                                      retrieved['head']['sha'],
+                                      retrieved['head']['repo']['owner']['login'])
+                      end
       end
 
       pull_req_user = ensure_user(retrieved['user']['login'], false, false)
