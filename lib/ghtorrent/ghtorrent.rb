@@ -895,10 +895,11 @@ module GHTorrent
 
       if is_intra_branch.call(retrieved)
         head_repo = base_repo
-        head_commit =
+        head_commit = ensure_commit(retrieved['base']['repo']['name'],
+                                    retrieved['head']['sha'],
+                                    retrieved['base']['repo']['owner']['login'])
         warn "GHTorrent: Pull request is intra branch"
       else
-
         head_repo = ensure_repo(retrieved['head']['repo']['owner']['login'],
                                 retrieved['head']['repo']['name'],
                                 false, false, false)
