@@ -22,7 +22,7 @@ module GHTorrent
       @logger = Logger.new(STDOUT)
     end
 
-    # db related functions
+    # Get a connection to the database
     def get_db
       Sequel.single_threaded = true
       @db = Sequel.connect(config(:sql_url), :encoding => 'utf8')
@@ -188,21 +188,30 @@ module GHTorrent
     end
 
     ##
-    # Get as many commits for a repository as allowed by Github
-    #
+    # Retrieve commits for a repository, starting from +sha+
+    # and going back to 30 * +num_pages+ commit log entries.
     # ==Parameters:
     # [user]  The user to whom the repo belongs.
     # [repo]  The repo to look for commits into.
-    def ensure_commits(user, repo)
+    # [sha]   The first commit to start retrieving from. If nil, then the
+    #         earliest stored commit will be used instead.
+    # [num_pages] The number of commit pages to retrieve
+    def ensure_commits(user, repo, sha = nil,
+                       num_pages = config(:mirror_commit_pages_new_repo))
       userid = @db[:users].filter(:login => user).first[:id]
       repoid = @db[:projects].filter(:owner_id => userid,
                                      :name => repo).first[:id]
 
-      latest = @db[:commits].filter(:project_id => repoid).order(:created_at).last
+      latest = if sha.nil?
+                 @db[:commits].filter(:project_id => repoid).order(:created_at).last
+               else
+                 sha
+               end
+
       commits = if latest.nil?
-                  retrieve_commits(repo, nil, user)
+                  retrieve_commits(repo, "head", user, num_pages)
                 else
-                  retrieve_commits(repo, latest[:sha], user)
+                  retrieve_commits(repo, latest[:sha], user, num_pages)
                 end
 
       commits.map do |c|
