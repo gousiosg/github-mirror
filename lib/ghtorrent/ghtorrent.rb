@@ -353,7 +353,12 @@ module GHTorrent
         rescue Exception
           raise new GHTorrentException("Not a valid email address: #{user}")
         end
-        u = ensure_user_byemail(email.strip, name.strip)
+
+        unless is_valid_email(email)
+          warn("GHTorrent: Extracted email not valid for user #{user}")
+        else
+          u = ensure_user_byemail(email.strip, name.strip)
+        end
       else
         u = ensure_user_byuname(user)
         ensure_user_followers(user) if followers
@@ -1128,6 +1133,35 @@ module GHTorrent
       end
     end
 
+    # Run a block in a DB transaction. Exceptions trigger transaction rollback
+    # and are rethrown.
+    def transaction(&block)
+      @db ||= get_db
+      @persister ||= persister
+
+      result = nil
+      start_time = Time.now
+      begin
+        @db.transaction(:rollback => :reraise, :isolation => :committed) do
+          result = yield block
+        end
+        total = Time.now.to_ms - start_time.to_ms
+        debug "GHTorrent: Transaction committed (#{total} ms)"
+        result
+      rescue Exception => e
+        total = Time.now.to_ms - start_time.to_ms
+        warn "GHTorrent: Transaction failed (#{total} ms)"
+        raise e
+      ensure
+        @db.disconnect
+        @persister.close
+
+        @db = nil
+        @persister = nil
+        GC.start
+      end
+    end
+
     private
 
     # Store a commit contained in a hash. First check whether the commit exists.
@@ -1158,33 +1192,6 @@ module GHTorrent
       else
         debug "GHTorrent: Commit #{user}/#{repo} -> #{c['sha']} exists"
         commit
-      end
-    end
-
-    # Run a block in a DB transaction. Exceptions trigger transaction rollback
-    # and are rethrown.
-    def transaction(&block)
-      @db ||= get_db
-      @persister ||= persister
-
-      start_time = Time.now
-      begin
-        @db.transaction(:rollback => :reraise, :isolation => :committed) do
-          yield block
-        end
-        total = Time.now.to_ms - start_time.to_ms
-        debug "GHTorrent: Transaction committed (#{total} ms)"
-      rescue Exception => e
-        total = Time.now.to_ms - start_time.to_ms
-        warn "GHTorrent: Transaction failed (#{total} ms)"
-        raise e
-      ensure
-        @db.disconnect
-        @persister.close
-
-        @db = nil
-        @persister = nil
-        GC.start
       end
     end
 
