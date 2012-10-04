@@ -131,7 +131,7 @@ please consider citing the following paper:
 
 #### Authors
 
-Georgios Gousios <gousiosg@gmail.com>
+[Georgios Gousios](http://istlab.dmst.aueb.gr/~george) <gousiosg@gmail.com>
 
 [Diomidis Spinellis](http://www.dmst.aueb.gr/dds) <dds@aueb.gr>
 
