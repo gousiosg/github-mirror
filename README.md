@@ -129,9 +129,14 @@ please consider citing the following paper:
 
 > Georgios Gousios and Diomidis Spinellis, "GHTorrent: GitHub’s data from a firehose," in _MSR '12: Proceedings of the 9th Working Conference on Mining Software Repositories_, June 2-–3, 2012. Zurich, Switzerland.
 
+See also the following presentation:
+
+<iframe src="http://www.slideshare.net/slideshow/embed_code/13184524?rel=0" width="342" height="291" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:1px solid #CCC;border-width:1px 1px 0;margin-bottom:5px" allowfullscreen/> 
+<div style="margin-bottom:5px"> <strong> <a href="http://www.slideshare.net/gousiosg/ghtorrent-githubs-data-from-a-firehose-13184524" title="GHTorrent: Github&#39;s Data from a Firehose" target="_blank">GHTorrent: Github&#39;s Data from a Firehose</a> </strong> </div>
+
 #### Authors
 
-Georgios Gousios <gousiosg@gmail.com>
+[Georgios Gousios](http://istlab.dmst.aueb.gr/~george) <gousiosg@gmail.com>
 
 [Diomidis Spinellis](http://www.dmst.aueb.gr/dds) <dds@aueb.gr>
 
