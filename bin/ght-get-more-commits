@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
+require 'time'
 
 require 'ghtorrent/ghtorrent'
 require 'ghtorrent/settings'
@@ -12,6 +13,7 @@ class GHTMoreCommitsRetriever < GHTorrent::Command
 
   include GHTorrent::Settings
   include GHTorrent::Retriever
+  include GHTorrent::Persister
 
   def prepare_options(options)
     options.banner <<-BANNER
@@ -40,9 +42,19 @@ Retrieves more commits for the provided repository
     @ght.logger
   end
 
+  def persister
+    @persister ||= connect(:mongo, settings)
+    @persister
+  end
+
+  def ext_uniq
+    @ext_uniq ||= config(:uniq_id)
+    @ext_uniq
+  end
+
   def go
 
-    @ght ||= GHTorrent::Mirror.new(@settings)
+    @ght ||= GHTorrent::Mirror.new(settings)
     user_entry = @ght.transaction{@ght.ensure_user(ARGV[0], false, false)}
 
     if user_entry.nil?
@@ -58,23 +70,51 @@ Retrieves more commits for the provided repository
     end
 
     repo = repo_entry[:name]
-
-    head = unless options[:full] == -1
-             @ght.get_db.from(:commits).\
-                    where(:commits__project_id => repo_entry[:id]).\
-                    order(:created_at).\
-                    first.\
-                    select(:sha)
-           else
-             nil
-           end
-
     num_pages = if options[:num] == -1 then 1024 * 1024 else options[:n]/30 end
     num_pages = if options[:full] == -1 then num_pages else 1024 * 1024 end
+    page = 0
 
-    logger.debug("Retrieving more commits for #{user}/#{repo}")
 
-    @ght.transaction{@ght.ensure_commits(user, repo, head, num_pages)}
+      head = unless options[:full] == -1
+               @ght.get_db.from(:commits).\
+                      where(:commits__project_id => repo_entry[:id]).\
+                      order(:created_at).\
+                      first.\
+                      select(:sha)
+            else
+               "master"
+            end
+
+    total_commits = 0
+    while (page < num_pages)
+      begin
+        logger.debug("Retrieving more commits for #{user}/#{repo} from head: #{head}")
+
+        commits = retrieve_commits(repo, head, user, 1)
+        page += 1
+        if commits.nil? or commits.empty?
+          page = num_pages # To break the loop
+          break
+        end
+
+        total_commits += commits.size
+        head = commits.sort { |a, b|
+          commit_time_a = Time.parse(a['commit']['author']['date']).to_i
+          commit_time_b = Time.parse(b['commit']['author']['date']).to_i
+          commit_time_b <=> commit_time_a
+        }.reverse.first['sha']
+
+        commits.map do |c|
+          @ght.transaction do
+            @ght.ensure_commit(repo, c['sha'], user)
+          end
+        end
+      rescue Exception => e
+        logger.warn("Error processing: #{e}")
+        logger.warn(e.backtrace.join("\n"))
+      end
+    end
+    logger.debug("Processed #{total_commits} commits for #{user}/#{repo}")
   end
 end
 
