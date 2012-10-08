@@ -48,7 +48,7 @@ module GHTorrent
     end
 
     def settings
-      raise Exception("Unimplemented")
+      raise Exception.new("Unimplemented")
     end
 
   end

@@ -13,11 +13,11 @@ module GHTorrent
     include GHTorrent::APIClient
 
     def ext_uniq
-      raise Exception("Unimplemented")
+      raise Exception.new("Unimplemented")
     end
 
     def persister
-      raise Exception("Unimplemented")
+      raise Exception.new("Unimplemented")
     end
 
     def retrieve_user_byusername(user)

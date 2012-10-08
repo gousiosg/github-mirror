@@ -79,7 +79,7 @@ module GHTorrent
                         when "prod"
                           :prod
                         else
-                          raise GHTorrentException("")
+                          raise GHTorrentException.new("Don't know cache configuration #{@cache_mode}")
                       end
       case @cache_mode
         when :dev

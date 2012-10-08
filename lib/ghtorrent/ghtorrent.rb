@@ -351,7 +351,7 @@ module GHTorrent
           name, email = user.split("<")
           email = email.split(">")[0]
         rescue Exception
-          raise new GHTorrentException("Not a valid email address: #{user}")
+          raise new GHTorrentException.new("Not a valid email address: #{user}")
         end
 
         unless is_valid_email(email)

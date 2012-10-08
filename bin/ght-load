@@ -150,7 +150,7 @@ Loads object ids from a collection to a queue for further processing.
           read += 1
           unq = read_value(e, col_info[collection][:unq])
           if unq.class != String or unq.nil? then
-            throw Exception("Unique value can only be a String")
+            throw Exception.new("Unique value can only be a String")
           end
 
           key = col_info[collection][:routekey] % unq
