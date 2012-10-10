@@ -622,7 +622,7 @@ module GHTorrent
           pr_members.filter(:user_id => new_user[:id],
                             :repo_id => project[:id])\
                     .update(:created_at => date(date_added))
-          info "GHTorrent: Updating  #{repo} -> #{new_member}"
+          info "GHTorrent: Updating project member #{repo} -> #{new_member}"
         end
       end
     end
@@ -1153,11 +1153,6 @@ module GHTorrent
         warn "GHTorrent: Transaction failed (#{total} ms)"
         raise e
       ensure
-        @db.disconnect
-        @persister.close
-
-        @db = nil
-        @persister = nil
         GC.start
       end
     end
