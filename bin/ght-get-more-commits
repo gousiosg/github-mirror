@@ -98,11 +98,7 @@ Retrieves more commits for the provided repository
         end
 
         total_commits += commits.size
-        head = commits.sort { |a, b|
-          commit_time_a = Time.parse(a['commit']['author']['date']).to_i
-          commit_time_b = Time.parse(b['commit']['author']['date']).to_i
-          commit_time_b <=> commit_time_a
-        }.reverse.first['sha']
+        head = commits.last['sha']
 
         commits.map do |c|
           @ght.transaction do
