@@ -92,7 +92,7 @@ Retrieves more commits for the provided repository
 
         commits = retrieve_commits(repo, head, user, 1)
         page += 1
-        if commits.nil? or commits.empty?
+        if commits.nil? or commits.empty? or commits.size == 1
           page = num_pages # To break the loop
           break
         end
