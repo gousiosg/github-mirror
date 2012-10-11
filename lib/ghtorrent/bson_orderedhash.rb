@@ -1,4 +1,5 @@
 require 'json'
+require 'bson'
 
 class BSON::OrderedHash
 
