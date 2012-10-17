@@ -33,6 +33,8 @@ module GHTorrent
         :github_username => "mirror.username",
         :github_passwd => "mirror.passwd",
 
+        :respect_api_ratelimit => "mirror.respect_api_ratelimit",
+
         :attach_ip => "mirror.attach_ip"
     }
 

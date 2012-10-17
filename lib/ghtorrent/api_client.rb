@@ -139,21 +139,22 @@ module GHTorrent
     # Do the actual request and return the result object
     def api_request_raw(url, use_cache = false)
       @num_api_calls ||= 0
-      @ts ||= Time.now().tv_sec()
+      @ts ||= Time.now.to_i
+      @started_min ||= Time.now.min
 
       #Rate limiting to avoid error requests
       if Time.now().tv_sec() - @ts < 60 then
         if @num_api_calls >= @settings['mirror']['reqrate'].to_i
-          sleep = 60 - (Time.now().tv_sec() - @ts)
+          sleep = 60 - (Time.now.to_i - @ts)
           debug "APIClient: Sleeping for #{sleep}"
           sleep (sleep)
           @num_api_calls = 0
-          @ts = Time.now().tv_sec()
+          @ts = Time.now.to_i
         end
       else
         debug "APIClient: Tick, num_calls = #{@num_api_calls}, zeroing"
         @num_api_calls = 0
-        @ts = Time.now().tv_sec()
+        @ts = Time.now.to_i
       end
 
       begin
@@ -179,6 +180,14 @@ module GHTorrent
         total = Time.now.to_ms - start_time.to_ms
         debug "APIClient: Request: #{url} (#{@num_api_calls} calls (#{contents.meta['x-ratelimit-remaining']} remaining), #{if from_cache then " from cache," end} Total: #{total} ms)"
 
+        if config(:respect_api_ratelimit) && contents.meta['x-ratelimit-remaining'].to_i < 400
+          sleep = 60 - @started_min
+          debug "APIClient: Request limit reached 0, sleeping for #{sleep} min"
+          sleep(sleep * 60)
+          @started_min = Time.now.min
+          @num_api_calls = 0
+        end
+
         contents
       rescue OpenURI::HTTPError => e
         case e.io.status[0].to_i
@@ -188,10 +197,10 @@ module GHTorrent
               403, # Forbidden
               404, # Not found
               422 then # Unprocessable entity
-            STDERR.puts "#{url}: #{e.io.status[1]}"
+            warn "#{url}: #{e.io.status[1]}"
             return nil
           else # Server error or HTTP conditions that Github does not report
-            STDERR.puts "#{url}"
+            error "#{url}"
             raise e
         end
       end
