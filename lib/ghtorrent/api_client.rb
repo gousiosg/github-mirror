@@ -8,6 +8,7 @@ require 'ghtorrent/logging'
 require 'ghtorrent/settings'
 require 'ghtorrent/time'
 require 'ghtorrent/cache'
+require 'version'
 
 module GHTorrent
   module APIClient
@@ -166,7 +167,8 @@ module GHTorrent
             end
 
         total = Time.now.to_ms - start_time.to_ms
-        debug "APIClient: Request: #{url} (#{@num_api_calls} calls,#{if from_cache then " from cache," end} Total: #{total} ms)"
+        debug "APIClient: Request: #{url} (#{@num_api_calls} calls (#{contents.meta['x-ratelimit-remaining']} remaining), #{if from_cache then " from cache," end} Total: #{total} ms)"
+
         contents
       rescue OpenURI::HTTPError => e
         case e.io.status[0].to_i
@@ -189,18 +191,21 @@ module GHTorrent
       @attach_ip ||= config(:attach_ip)
       @username ||= config(:github_username)
       @passwd ||= config(:github_passwd)
+      @user_agent ||= "ghtorrent-v#{GHTorrent::VERSION}"
 
-      open_func = if @username.nil?
-        lambda {|url| open(url)}
+      @open_func ||= if @username.nil?
+        lambda {|url| open(url, 'User-Agent' => @user_agent)}
       else
-        lambda {|url| open(url, :http_basic_authentication => [@username, @passwd])}
+        lambda {|url| open(url,
+                           'User-Agent' => @user_agent,
+                           :http_basic_authentication => [@username, @passwd])}
       end
 
       if @attach_ip.nil? or @attach_ip.eql? "0.0.0.0"
-        open_func.call(url)
+        @open_func.call(url)
       else
         attach_to(@attach_ip) do
-          open_func.call(url)
+          @open_func.call(url)
         end
       end
     end
