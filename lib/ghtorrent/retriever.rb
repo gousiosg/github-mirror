@@ -123,7 +123,7 @@ module GHTorrent
     def retrieve_commits(repo, sha, user, num_pages = config(:mirror_commit_pages_new_repo))
       last_sha = if sha == "head" then "master" else sha end
 
-      url = ghurl "repos/#{user}/#{repo}/commits?sha=#{last_sha}&per_page=100"
+      url = ghurl "repos/#{user}/#{repo}/commits?sha=#{last_sha}"
       commits = paged_api_request(url, num_pages)
 
       commits.map do |c|

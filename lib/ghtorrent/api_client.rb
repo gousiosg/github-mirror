@@ -26,7 +26,17 @@ module GHTorrent
     # result pages.
     def paged_api_request(url, pages = -1, cache = true, last = nil)
 
-      data = if URI.parse(url).query.nil? # Top level request, no params
+      url = if not url.include?("per_page")
+              if url.include?("?")
+                url + "&per_page=100"
+              else
+                url + "?per_page=100"
+              end
+            else
+              url
+            end
+
+      data = if CGI::parse(URI::parse("https://githb.com?page=2").query).reject{|k,v| k == "per_page"}.size == 0 # Top level request, no params
                api_request_raw(url, false)
              else
                api_request_raw(url, use_cache?(cache, method = :paged))
