@@ -102,7 +102,25 @@ class GHTDataRetrieval < GHTorrent::Command
 
   def handlers
     %w(PushEvent WatchEvent FollowEvent MemberEvent CommitCommentEvent PullRequestEvent ForkEvent PullRequestReviewCommentEvent)
-    #%w(PullRequestReviewCommentEvent)
+    #%w(MemberEvent)
+  end
+
+  def prepare_options(options)
+    options.banner <<-BANNER
+Retrieves events from queues and
+#{command_name} [options]
+
+#{command_name} options:
+    BANNER
+
+    options.opt :filter,
+                'Only process messages for repos in the provided file',
+                :short => 'f', :type => String
+  end
+
+  def validate
+    super
+    Trollop::die "Filter file does not exist" if options[:filter] and not File.exist?(options[:filter])
   end
 
   def logger
@@ -111,6 +129,17 @@ class GHTDataRetrieval < GHTorrent::Command
 
   def go
     @gh = GHTorrent::Mirror.new(@settings)
+    filter = Array.new
+
+    if options[:filter]
+      File.open(options[:filter]).each { |l|
+        next if l.match(/^ *#/)
+        parts = l.split(/ /)
+        next if parts.size < 2
+        debug "GHTDataRetrieval: Filtering events by #{parts[0] + "/" + parts[1]}"
+        filter << parts[0] + "/" + parts[1]
+      }
+    end
 
     # Graceful exit
     Signal.trap('INT') {
@@ -141,7 +170,16 @@ class GHTDataRetrieval < GHTorrent::Command
           begin
             data = parse(msg)
             info "GHTDataRetrieval: Processing event: #{data['type']}-#{data['id']}"
-	          send(h, data)
+
+            unless options[:filter].nil?
+              if filter.include?(data['repo']['name'])
+                send(h, data)
+              else
+                info "GHTDataRetrieval: Repo #{data['repo']['name']} not in process list. Ignoring event #{data['type']}-#{data['id']}"
+              end
+            else
+              send(h, data)
+            end
             headers.ack
             info "GHTDataRetrieval: Processed event: #{data['type']}-#{data['id']}"
           rescue Exception => e

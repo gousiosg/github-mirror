@@ -183,7 +183,7 @@ module GHTorrent
         if not from_cache and config(:respect_api_ratelimit) and
             contents.meta['x-ratelimit-remaining'].to_i < 400
           sleep = 60 - @started_min
-          debug "APIClient: Request limit reached 0, sleeping for #{sleep} min"
+          debug "APIClient: Request limit reached, sleeping for #{sleep} min"
           sleep(sleep * 60)
           @started_min = Time.now.min
           @num_api_calls = 0
