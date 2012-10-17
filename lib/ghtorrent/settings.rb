@@ -30,6 +30,9 @@ module GHTorrent
         :cache_dir       => "mirror.cache_dir",
         :cache_stale_age => "mirror.cache_stale_age",
 
+        :github_username => "mirror.username",
+        :github_passwd => "mirror.passwd",
+
         :attach_ip => "mirror.attach_ip"
     }
 

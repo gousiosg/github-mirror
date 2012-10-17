@@ -187,12 +187,20 @@ module GHTorrent
 
     def do_request(url)
       @attach_ip ||= config(:attach_ip)
+      @username ||= config(:github_username)
+      @passwd ||= config(:github_passwd)
+
+      open_func = if @username.nil?
+        lambda {|url| open(url)}
+      else
+        lambda {|url| open(url, :http_basic_authentication => [@username, @passwd])}
+      end
 
       if @attach_ip.nil? or @attach_ip.eql? "0.0.0.0"
-        open(url)
+        open_func.call(url)
       else
         attach_to(@attach_ip) do
-          open(url)
+          open_func.call(url)
         end
       end
     end
