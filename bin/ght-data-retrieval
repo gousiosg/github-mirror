@@ -23,7 +23,7 @@ class GHTDataRetrieval < GHTorrent::Command
     data['payload']['commits'].each do |c|
       url = c['url'].split(/\//)
 
-      @gh.get_commit url[4], url[5], url[7]
+      ghtorrent.get_commit url[4], url[5], url[7]
     end
   end
 
@@ -33,7 +33,7 @@ class GHTDataRetrieval < GHTorrent::Command
     watcher = data['actor']['login']
     created_at = data['created_at']
 
-    @gh.get_watcher owner, repo, watcher, created_at
+    ghtorrent.get_watcher owner, repo, watcher, created_at
   end
 
   def FollowEvent(data)
@@ -41,7 +41,7 @@ class GHTDataRetrieval < GHTorrent::Command
     followed = data['payload']['target']['login']
     created_at = data['created_at']
 
-    @gh.get_follower(follower, followed, created_at)
+    ghtorrent.get_follower(follower, followed, created_at)
   end
 
   def MemberEvent(data)
@@ -50,7 +50,7 @@ class GHTDataRetrieval < GHTorrent::Command
     new_member = data['payload']['member']['login']
     created_at = data['created_at']
 
-    @gh.get_project_member(owner, repo, new_member, created_at)
+    ghtorrent.get_project_member(owner, repo, new_member, created_at)
   end
 
   def CommitCommentEvent(data)
@@ -59,7 +59,7 @@ class GHTDataRetrieval < GHTorrent::Command
     id = data['payload']['comment']['id']
     created_at = data['created_at']
 
-    @gh.get_commit_comment(user, repo, id, created_at)
+    ghtorrent.get_commit_comment(user, repo, id, created_at)
   end
 
   def PullRequestEvent(data)
@@ -69,7 +69,7 @@ class GHTDataRetrieval < GHTorrent::Command
     action = data['payload']['action']
     created_at = data['created_at']
 
-    @gh.get_pull_request(owner, repo, pullreq_id, action, created_at)
+    ghtorrent.get_pull_request(owner, repo, pullreq_id, action, created_at)
   end
 
   def ForkEvent(data)
@@ -78,7 +78,7 @@ class GHTDataRetrieval < GHTorrent::Command
     fork_id = data['payload']['forkee']['id']
     created_at = data['created_at']
 
-    @gh.get_fork(owner, repo, fork_id, created_at)
+    ghtorrent.get_fork(owner, repo, fork_id, created_at)
   end
 
   def PullRequestReviewCommentEvent(data)
@@ -88,7 +88,7 @@ class GHTDataRetrieval < GHTorrent::Command
     pullreq_id = data['payload']['comment']['_links']['pull_request']['href'].split(/\//)[-1]
     created_at = data['created_at']
 
-    @gh.get_pullreq_comment(owner, repo, pullreq_id, comment_id, created_at)
+    ghtorrent.get_pullreq_comment(owner, repo, pullreq_id, comment_id, created_at)
   end
 
   def IssueCommentEvent(data)
@@ -97,7 +97,7 @@ class GHTDataRetrieval < GHTorrent::Command
     pullreq_id = data['payload']['forkee']['id']
     created_at = data['created_at']
 
-    @gh.get_issue_comment(owner, repo, issue_id, comment_id, created_at)
+    ghtorrent.get_issue_comment(owner, repo, issue_id, comment_id, created_at)
   end
 
   def handlers
@@ -107,7 +107,7 @@ class GHTDataRetrieval < GHTorrent::Command
 
   def prepare_options(options)
     options.banner <<-BANNER
-Retrieves events from queues and
+Retrieves events from queues and processes them through GHTorrent
 #{command_name} [options]
 
 #{command_name} options:
@@ -124,11 +124,15 @@ Retrieves events from queues and
   end
 
   def logger
-    @gh.logger
+    ghtorrent.logger
+  end
+
+  def ghtorrent
+    @gh ||= GHTorrent::Mirror.new(@settings)
+    @gh
   end
 
   def go
-    @gh = GHTorrent::Mirror.new(@settings)
     filter = Array.new
 
     if options[:filter]
