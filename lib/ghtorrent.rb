@@ -48,3 +48,6 @@ require 'ghtorrent/retriever'
 
 # SQL database fillup methods
 require 'ghtorrent/ghtorrent'
+
+# Commands
+require 'ghtorrent/commands/ght_mirror_events'
