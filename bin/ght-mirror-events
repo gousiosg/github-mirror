@@ -51,7 +51,7 @@ class GHTMirrorEvents < GHTorrent::Command
       # This means that first page cannot contain all new events. Go
       # up to 10 pages back to find all new events not contained in first page.
       if dupl == 0
-        events = paged_api_request "https://api.github.com/events", 10
+        events = paged_api_request "https://api.github.com/events"
         (new1, dupl1, stored1) = store_count events
         stored = stored | stored1
         new = new + new1
