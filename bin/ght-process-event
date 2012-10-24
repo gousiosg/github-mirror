@@ -1,0 +1,34 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+
+require 'ghtorrent/ghtorrent'
+require 'ghtorrent/settings'
+require 'ghtorrent/logging'
+require 'ghtorrent/command'
+
+require 'ght-data-retrieval'
+
+class GHTProcessEvent < GHTorrent::GHTDataRetrieval
+
+  def prepare_options(options)
+    options.banner <<-BANNER
+Process one or more event ids
+#{command_name} [options] eventid [...]
+    BANNER
+
+  end
+
+  def go
+    ARGV.each do|a|
+      unless ghtorrent.get_event(a).empty?
+        data = parse(a)
+        send(data['type'], data)
+      else
+        warn "GHTProcessEvent: No event with id #{a}"
+      end
+    end
+  end
+end
+
+GHTProcessEvent.run
