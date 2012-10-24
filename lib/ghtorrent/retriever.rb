@@ -437,6 +437,26 @@ module GHTorrent
       api_request "https://api.github.com/events"
     end
 
+    # Get all events for the specified repo
+    def get_repo_events(owner, repo)
+      url = ghurl("repos/#{owner}/#{repo}/events")
+      r = paged_api_request(url)
+
+      r.each do |e|
+        if get_event(e['id']).empty?
+          info "Retriever: Already got event #{owner}/#{repo} -> #{e['id']}"
+        else
+          @persister.store(:events, e)
+          info "Retriever: Added event #{owner}/#{repo} -> #{e['id']}"
+        end
+      end
+    end
+
+    # Get a specific event by +id+.
+    def get_event(id)
+      persister.find(:events, {'id' => id})
+    end
+
     private
 
     def repo_bound_items(user, repo, entity, urls, selector, descriminator,
