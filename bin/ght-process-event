@@ -1,13 +1,8 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
+require 'ghtorrent'
 
-require 'ghtorrent/ghtorrent'
-require 'ghtorrent/settings'
-require 'ghtorrent/logging'
-require 'ghtorrent/command'
-
-require 'ght-data-retrieval'
 
 class GHTProcessEvent < GHTorrent::GHTDataRetrieval
 
