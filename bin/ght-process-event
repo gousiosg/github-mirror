@@ -4,7 +4,7 @@ require 'rubygems'
 require 'ghtorrent'
 
 
-class GHTProcessEvent < GHTorrent::GHTDataRetrieval
+class GHTProcessEvent < GHTDataRetrieval
 
   def prepare_options(options)
     options.banner <<-BANNER
@@ -15,10 +15,11 @@ Process one or more event ids
   end
 
   def go
-    ARGV.each do|a|
-      unless ghtorrent.get_event(a).empty?
-        data = parse(a)
-        send(data['type'], data)
+    ARGV.each do |a|
+      data = ghtorrent.get_event(a)
+      unless data.empty?
+        event = data[0]
+        send(event['type'], event)
       else
         warn "GHTProcessEvent: No event with id #{a}"
       end
