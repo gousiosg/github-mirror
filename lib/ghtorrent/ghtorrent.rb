@@ -151,19 +151,32 @@ module GHTorrent
     end
 
     ##
-    # Retrieve a pull request review comment
+    # Retrieve an issue
     # ==Parameters:
     #  [owner] The login of the repository owner
     #  [repo] The name of the repository
-    #  [fork_id] The fork item id
+    #  [issue_id] The fork item id
+    #  [action] The action that took place for the issue
     #  [date_added] The timestamp that the add event took place
-    def get_issue_comment(owner, repo, issue_id, comment_id, created_at)
+    def get_issue(owner, repo, issue_id, action, created_at)
       transaction do
-        raise "Not implemented"
-        #ensure_pullreq_comment(owner, repo, pullreq_id, comment_id, created_at)
+        ensure_issue(owner, repo, issue_id, action, created_at)
       end
     end
 
+    ##
+    # Retrieve a issue comment
+    # ==Parameters:
+    #  [owner] The login of the repository owner
+    #  [repo] The name of the repository
+    #  [issue_id] The fork item id
+    #  [comment_id] The issue comment unique identifier
+    #  [created_at] The timestamp that the issue comment was created
+    def get_issue_comment(owner, repo, issue_id, comment_id, created_at)
+      transaction do
+        ensure_issue_comment(owner, repo, issue_id, comment_id, created_at)
+      end
+    end
 
     ##
     # Make sure a commit exists
@@ -1149,6 +1162,36 @@ module GHTorrent
           debug "GHTorrent: Updating fork #{owner}/#{repo} (#{fork_id})"
         end
       end
+    end
+
+    ##
+    # Make sure that the issue exists
+    def ensure_issue(owner, repo, issue_id, action, created_at)
+
+    end
+
+    ##
+    # Retrieve and process all events for an issue
+    def ensure_issue_events(owner, repo, issue_id)
+
+    end
+
+    ##
+    # Retrieve and process +event_id+ for an +issue_id+
+    def ensure_issue_event(owner, repo, issue_id, event_id)
+
+    end
+
+    ##
+    # Retrieve and process all comments for an issue
+    def ensure_issue_comments(owner, repo, issue_id)
+
+    end
+
+    ##
+    # Retrieve and process +comment_id+ for an +issue_id+
+    def ensure_issue_comment(owner, repo, issue_id, comment_id, created_at)
+
     end
 
     # Run a block in a DB transaction. Exceptions trigger transaction rollback

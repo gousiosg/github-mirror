@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
   s.rdoc_options  = ["--charset=UTF-8"]
   s.executables   = ['ght-data-retrieval', 'ght-mirror-events', 'ght-load',
-                     'ght-rm-dupl']
+                     'ght-rm-dupl', 'ght-process-event']
                   # 'ght-periodic-dump', 'ght-torrent-index']
   s.files         = FileList['lib/**/*.rb',
                              'bin/*',
