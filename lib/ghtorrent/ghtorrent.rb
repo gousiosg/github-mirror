@@ -847,7 +847,6 @@ module GHTorrent
                             comments = true, commits = true,
                             state = nil, created_at = nil)
       pulls_reqs = @db[:pull_requests]
-      pull_req_history = @db[:pull_request_history]
 
       project = ensure_repo(owner, repo, false, false, false)
 
@@ -856,8 +855,8 @@ module GHTorrent
       end
 
       # Adds a pull request history event
-      add_history = Proc.new do |id, ts, unq, act|
-
+      def add_history(id, ts, unq, act)
+        pull_req_history = @db[:pull_request_history]
         entry = pull_req_history.first(:pull_request_id => id,
                                        :ext_ref_id => unq, :action => act)
         if entry.nil?
@@ -873,20 +872,33 @@ module GHTorrent
 
       # Checks whether a pull request concerns two branches of the same
       # repository
-      is_intra_branch = Proc.new do |req|
-        req['head']['repo'].nil?
+      def is_intra_branch(req)
+        return false unless has_head_repo(req)
+
+        if req['head']['repo']['owner']['login'] ==
+            req['base']['repo']['owner']['login'] and
+            req['head']['repo']['full_name'] == req['base']['repo']['full_name']
+          true
+        else
+          false
+        end
+      end
+
+      # Checks if the pull request has a head repo specified
+      def has_head_repo(req)
+        not req['head']['repo'].nil?
       end
 
       # Produces a log message
-      log_msg = Proc.new do |req|
-        head = if is_intra_branch.call(req)
-                 req['base']['repo']['full_name']
-               else
+      def log_msg(req)
+        head = if has_head_repo(req)
                  req['head']['repo']['full_name']
+               else
+                 "(head deleted)"
                end
 
         <<-eos.gsub(/\s+/, " ").strip
-            GHTorrent: Pull request #{pullreq_id}
+            GHTorrent: Pull request #{req['number']}
             #{head} -> #{req['base']['repo']['full_name']}
         eos
       end
@@ -904,19 +916,20 @@ module GHTorrent
 
       base_commit = ensure_commit(retrieved['base']['repo']['name'],
                                   retrieved['base']['sha'],
-                                  retrieved['base']['repo']['owner']['login']
-      )
+                                  retrieved['base']['repo']['owner']['login'])
 
-      if is_intra_branch.call(retrieved)
+      if is_intra_branch(retrieved)
         head_repo = base_repo
         head_commit = ensure_commit(retrieved['base']['repo']['name'],
                                     retrieved['head']['sha'],
                                     retrieved['base']['repo']['owner']['login'])
-        warn "GHTorrent: Pull request is intra branch"
+        info log_msg(retrieved) + " is intra branch"
       else
-        head_repo = ensure_repo(retrieved['head']['repo']['owner']['login'],
-                                retrieved['head']['repo']['name'],
-                                false, false, false)
+        head_repo = if has_head_repo(retrieved)
+                      ensure_repo(retrieved['head']['repo']['owner']['login'],
+                                  retrieved['head']['repo']['name'],
+                                  false, false, false)
+                    end
 
         head_commit = if not head_repo.nil?
                         ensure_commit(retrieved['head']['repo']['name'],
@@ -940,24 +953,24 @@ module GHTorrent
             :base_commit_id => base_commit[:id],
             :user_id => pull_req_user[:id],
             :pullreq_id => pullreq_id,
-            :intra_branch => is_intra_branch.call(retrieved)
+            :intra_branch => is_intra_branch(retrieved)
         )
 
-        info log_msg.call(retrieved)
+        info log_msg(retrieved)
       else
-        debug log_msg.call(retrieved) + " exists"
+        debug log_msg(retrieved) + " exists"
       end
 
       pull_req = pulls_reqs.first(:base_repo_id => project[:id],
                                   :pullreq_id => pullreq_id)
 
-      add_history.call(pull_req[:id], date(retrieved['created_at']),
+      add_history(pull_req[:id], date(retrieved['created_at']),
                        retrieved[@ext_uniq], 'opened')
-      add_history.call(pull_req[:id], date(retrieved['merged_at']),
+      add_history(pull_req[:id], date(retrieved['merged_at']),
                        retrieved[@ext_uniq], 'merged') if merged
-      add_history.call(pull_req[:id], date(retrieved['closed_at']),
+      add_history(pull_req[:id], date(retrieved['closed_at']),
                        retrieved[@ext_uniq], 'closed') if closed
-      add_history.call(pull_req[:id], date(created_at), retrieved[@ext_uniq],
+      add_history(pull_req[:id], date(created_at), retrieved[@ext_uniq],
                        state) unless state.nil?
 
       ensure_pull_request_commits(owner, repo, pullreq_id) if commits
