@@ -50,4 +50,8 @@ require 'ghtorrent/retriever'
 require 'ghtorrent/ghtorrent'
 
 # Commands
+require 'ghtorrent/commands/ght_data_retrieval'
 require 'ghtorrent/commands/ght_mirror_events'
+require 'ghtorrent/commands/ght_get_more_commits'
+
+# vim: set sta sts=2 shiftwidth=2 sw=2 et ai :

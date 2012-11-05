@@ -144,6 +144,4 @@ class GHTMirrorEvents < GHTorrent::Command
   end
 end
 
-GHTMirrorEvents.run
-
 # vim: set sta sts=2 shiftwidth=2 sw=2 et ai :
