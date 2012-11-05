@@ -235,6 +235,11 @@ module GHTorrent
             parent = commits.first(:sha => url[7])
           end
 
+          if parent.nil?
+            warn "GHTorrent: Could not retrieve #{url[4]}/#{url[5]} -> #{url[7]}, parent to commit #{this[:sha]}"
+            return
+          end
+
           if parents.first(:commit_id => this[:id],
                            :parent_id => parent[:id]).nil?
 
