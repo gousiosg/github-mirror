@@ -110,8 +110,12 @@ module GHTorrent
           get_collection("forks")
         when :pull_request_comments
           get_collection("pull_request_comments")
+        when :issues
+          get_collection("issues")
         when :issue_comments
           get_collection("issue_comments")
+        when :issue_events
+          get_collection("issue_events")
       end
     end
 
@@ -130,7 +134,7 @@ module GHTorrent
                    Mongo::ReplSetConnection.new(repl_arr, :read => :secondary)\
                                            .db(config(:mongo_db))
                  end
-        init_db(@mongo) if @mongo.collections.size <= 0
+        init_db(@mongo) if @mongo.collections.size < ENTITIES.size
         @mongo
       else
         @mongo
@@ -183,6 +187,13 @@ module GHTorrent
       ensure_index(:pull_request_comments, "owner")
       ensure_index(:pull_request_comments, "pullreq_id")
       ensure_index(:pull_request_comments, "id")
+      ensure_index(:issues, "repo")
+      ensure_index(:issues, "owner")
+      ensure_index(:issues, "issue_id")
+      ensure_index(:issue_events, "repo")
+      ensure_index(:issue_events, "owner")
+      ensure_index(:issue_events, "issue_id")
+      ensure_index(:issue_events, "id")
     end
 
     def rescue_connection_failure(max_retries=60)

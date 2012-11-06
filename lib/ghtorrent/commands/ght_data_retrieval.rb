@@ -92,11 +92,10 @@ class GHTDataRetrieval < GHTorrent::Command
   def IssuesEvent(data)
     owner = data['repo']['name'].split(/\//)[0]
     repo = data['repo']['name'].split(/\//)[1]
-    issue_id = data['payload']['forkee']['id']
-    action = data['payload']['action']
+    issue_id = data['payload']['issue']['number']
     created_at = data['created_at']
 
-    ghtorrent.get_issue(owner, repo, issue_id, action, created_at)
+    ghtorrent.get_issue(owner, repo, issue_id, created_at)
   end
 
   def IssueCommentEvent(data)
@@ -110,10 +109,10 @@ class GHTDataRetrieval < GHTorrent::Command
   end
 
   def handlers
-    "PushEvent WatchEvent FollowEvent MemberEvent" +
-        " CommitCommentEvent PullRequestEvent ForkEvent" +
-        " PullRequestReviewCommentEvent IssuesEvent IssueCommentEvent"
-    #%w(MemberEvent)
+    %w(PushEvent WatchEvent FollowEvent MemberEvent
+        CommitCommentEvent PullRequestEvent ForkEvent
+        PullRequestReviewCommentEvent IssuesEvent IssueCommentEvent)
+    #%w(IssuesEvent IssueCommentEvent)
   end
 
   def prepare_options(options)

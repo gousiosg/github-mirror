@@ -371,17 +371,21 @@ module GHTorrent
     end
 
     def retrieve_issues(user, repo)
+      open = "repos/#{user}/#{repo}/issues"
+      closed = "repos/#{user}/#{repo}/issues?state=closed"
       repo_bound_items(user, repo, :issues,
-                       "repos/#{user}/#{repo}/issues",
+                       [open, closed],
                        {'repo' => repo, 'owner' => user},
-                       'id')
+                       'number')
     end
 
     def retrieve_issue(user, repo, issue_id)
+      open = "repos/#{user}/#{repo}/issues"
+      closed = "repos/#{user}/#{repo}/issues?state=closed"
       repo_bound_item(user, repo, issue_id, :issues,
-                      "repos/#{user}/#{repo}/issues/#{issue_id}",
+                      [open, closed],
                       {'repo' => repo, 'owner' => user},
-                      'id')
+                      'number')
     end
 
     def retrieve_issue_comments(owner, repo, issue_id)

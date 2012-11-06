@@ -158,9 +158,9 @@ module GHTorrent
     #  [issue_id] The fork item id
     #  [action] The action that took place for the issue
     #  [date_added] The timestamp that the add event took place
-    def get_issue(owner, repo, issue_id, action, created_at)
+    def get_issue(owner, repo, issue_id, created_at)
       transaction do
-        ensure_issue(owner, repo, issue_id, action, created_at)
+        ensure_issue(owner, repo, issue_id, created_at)
       end
     end
 
@@ -1003,7 +1003,7 @@ module GHTorrent
       time = if created_at.nil? then currepo[:created_at] else Time.now() end
 
       if currepo.nil?
-        warn "Could not repository #{owner}/#{repo}"
+        warn "GHTorrent: Could not find repository #{owner}/#{repo}"
         return
       end
 
@@ -1031,7 +1031,7 @@ module GHTorrent
       pull_req = ensure_pull_request(owner, repo, pullreq_id, false, true)
 
       if pull_req.nil?
-        warn "Could not retrieve pull req #{owner}/#{repo} -> #{pullreq_id}"
+        warn "GHTorrent: Could not retrieve pull req #{owner}/#{repo} -> #{pullreq_id}"
         return
       end
 
@@ -1042,7 +1042,7 @@ module GHTorrent
         retrieved = retrieve_pull_req_comment(owner, repo, pullreq_id, comment_id)
 
         if retrieved.nil?
-          warn "Could not retrieve comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id}"
+          warn "GHTorrent: Could not retrieve comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id}"
           return
         end
 
@@ -1066,8 +1066,11 @@ module GHTorrent
             :ext_ref_id => retrieved[@ext_uniq]
         )
         debug "GHTorrent: Adding comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id}"
+        @db[:pull_request_comments].first(:pull_request_id => pull_req[:id],
+                                          :comment_id => comment_id)
       else
-        debug "GHTorrent: Updating comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id}"
+        debug "GHTorrent: Comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id} exists"
+        exists
       end
     end
 
@@ -1165,9 +1168,78 @@ module GHTorrent
     end
 
     ##
-    # Make sure that the issue exists
-    def ensure_issue(owner, repo, issue_id, action, created_at)
+    # Make sure all issues exist for a project
+    def ensure_issues(owner, repo)
+      currepo = ensure_repo(owner, repo, false, false, false)
+      if currepo.nil?
+        warn "GHTorrent: Could not retrieve issues for #{owner}/#{repo}"
+        return
+      end
 
+      issues = @db[:issues].filter(:repo_id => currepo[:id])
+
+      retrieve_issues(owner, repo).reduce([]) do |acc, x|
+        if issues.find { |y| y[:issue_id] == x['number'] }.nil?
+          acc << x
+        else
+          acc
+        end
+      end.map { |x| ensure_issue(owner, repo, x['number']) }
+    end
+
+    ##
+    # Make sure that the issue exists
+    def ensure_issue(owner, repo, issue_id, action = nil, comments = true)
+
+      issues = @db[:issues]
+      repository = ensure_repo(owner, repo, false, false, false)
+
+      if repo.nil?
+        warn "Cannot find repo #{owner}/#{repo}"
+        return
+      end
+
+      cur_issue = issues.first(:issue_id => issue_id,
+                               :repo_id => repository[:id])
+
+      if cur_issue.nil?
+        retrieved = retrieve_issue(owner, repo, issue_id)
+
+        if retrieved.nil?
+          warn "GHTorrent: Issue #{issue_id} does not exist for #{owner}/#{repo}"
+          return
+        end
+
+        reporter = ensure_user(retrieved['user']['login'], false, false)
+        assignee = unless retrieved['assignee'].nil?
+                     ensure_user(retrieved['assignee']['login'], false, false)
+                   end
+
+        # Pull requests and issues share the same issue_id
+        pull_req = unless retrieved['pull_request'].nil? or retrieved['pull_request']['patch_url'].nil?
+                     ensure_pull_request(owner, repo, issue_id)
+                   end
+
+        issues.insert(:repo_id => repository[:id],
+                     :assignee_id => unless assignee.nil? then assignee[:id] end,
+                     :reporter_id => reporter[:id],
+                     :issue_id => issue_id,
+                     :pull_request => if pull_req.nil? then false else true end,
+                     :pull_request_id => unless pull_req.nil? then pull_req[:id] end,
+                     :created_at => date(retrieved['created_at']),
+                     :ext_ref_id => retrieved[@ext_uniq])
+
+        #ensure_issue_events(owner, repo, issue_id)
+        #ensure_issue_comments(owner, repo, issue_id) if
+        #    comments == true and retrieved['comments'] > 0
+
+        info "GHTorrent: Added issue #{owner}/#{repo} -> #{issue_id}"
+        issues.first(:issue_id => issue_id,
+                     :repo_id => repository[:id])
+      else
+        info "GHTorrent: Issue #{owner}/#{repo}->#{issue_id} exists"
+        cur_issue
+      end
     end
 
     ##
