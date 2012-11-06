@@ -15,6 +15,7 @@ module GHTorrent
     include GHTorrent::Logging
     include GHTorrent::Settings
     include GHTorrent::Cache
+    include GHTorrent::Logging
 
     # This is to fix an annoying bug in JRuby's SSL not being able to
     # verify a valid certificate.
@@ -36,10 +37,10 @@ module GHTorrent
               url
             end
 
-      data = if CGI::parse(URI::parse("https://githb.com?page=2").query).reject{|k,v| k == "per_page"}.size == 0 # Top level request, no params
-               api_request_raw(url, false)
-             else
+      data = if CGI::parse(URI::parse(url).query).has_key?("page")
                api_request_raw(url, use_cache?(cache, method = :paged))
+             else
+               api_request_raw(url, false)
              end
 
       return [] if data.nil?
@@ -201,7 +202,7 @@ module GHTorrent
             warn "#{url}: #{e.io.status[1]}"
             return nil
           else # Server error or HTTP conditions that Github does not report
-            error "#{url}"
+            warn "#{url}"
             raise e
         end
       end
