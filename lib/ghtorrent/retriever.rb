@@ -462,7 +462,7 @@ module GHTorrent
                                                  'issue_id' => issue_id,
                                                  'id' => comment_id}).first
       if comment.nil?
-        r = api_request(ghurl "repos/#{owner}/#{repo}/issues/#{issue_id}/comments/#{comment_id}")
+        r = api_request(ghurl "repos/#{owner}/#{repo}/issues/comments/#{comment_id}")
 
         if r.empty?
           warn "Retriever: Issue comment #{owner}/#{repo} #{issue_id}->#{comment_id} deleted"
@@ -471,7 +471,7 @@ module GHTorrent
 
         r['repo'] = repo
         r['owner'] = owner
-        x['issue_id'] = issue_id
+        r['issue_id'] = issue_id
         persister.store(:issue_comments, r)
         info "Retriever: Added issue comment #{owner}/#{repo} #{issue_id}->#{comment_id}"
         persister.find(:issue_comments, {'repo' => repo, 'owner' => owner,
@@ -479,7 +479,7 @@ module GHTorrent
                                          'id' => comment_id}).first
         r
       else
-        debug "Retriever: Commit comment #{owner}/#{repo} #{issue_id}->#{comment_id} exists"
+        debug "Retriever: Issue comment #{owner}/#{repo} #{issue_id}->#{comment_id} exists"
         comment
       end
     end

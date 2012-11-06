@@ -171,10 +171,9 @@ module GHTorrent
     #  [repo] The name of the repository
     #  [issue_id] The fork item id
     #  [comment_id] The issue comment unique identifier
-    #  [created_at] The timestamp that the issue comment was created
-    def get_issue_comment(owner, repo, issue_id, comment_id, created_at)
+    def get_issue_comment(owner, repo, issue_id, comment_id)
       transaction do
-        ensure_issue_comment(owner, repo, issue_id, comment_id, created_at)
+        ensure_issue_comment(owner, repo, issue_id, comment_id)
       end
     end
 
@@ -1230,8 +1229,7 @@ module GHTorrent
                      :ext_ref_id => retrieved[@ext_uniq])
 
         ensure_issue_events(owner, repo, issue_id) if events
-        #ensure_issue_comments(owner, repo, issue_id) if
-        #    comments == true and retrieved['comments'] > 0
+        ensure_issue_comments(owner, repo, issue_id) if comments and retrieved['comments'] > 0
 
         info "GHTorrent: Added issue #{owner}/#{repo} -> #{issue_id}"
         issues.first(:issue_id => issue_id,
@@ -1275,7 +1273,7 @@ module GHTorrent
     ##
     # Retrieve and process +event_id+ for an +issue_id+
     def ensure_issue_event(owner, repo, issue_id, event_id)
-      issue = ensure_issue(owner, repo, issue_id)
+      issue = ensure_issue(owner, repo, issue_id, false, false)
 
       if issue.nil?
         warn "GHTorrent: Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
@@ -1347,13 +1345,72 @@ module GHTorrent
     ##
     # Retrieve and process all comments for an issue
     def ensure_issue_comments(owner, repo, issue_id)
+      currepo = ensure_repo(owner, repo, true, true, false)
 
+      if currepo.nil?
+        warn "GHTorrent: Could not find repository #{owner}/#{repo}"
+        return
+      end
+
+      issue = ensure_issue(owner, repo, issue_id, false, false)
+      if issue.nil?
+        warn "Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
+        return
+      end
+
+      retrieve_issue_comments(owner, repo, issue_id).reduce([]) do |acc, x|
+
+        if @db[:issue_comments].first(:issue_id => issue[:id],
+                                    :comment_id => x['id']).nil?
+          acc << x
+        else
+          acc
+        end
+      end.map { |x|
+        ensure_issue_comment(owner, repo, issue_id, x['id'])
+      }
     end
 
     ##
     # Retrieve and process +comment_id+ for an +issue_id+
-    def ensure_issue_comment(owner, repo, issue_id, comment_id, created_at)
+    def ensure_issue_comment(owner, repo, issue_id, comment_id)
+      issue = ensure_issue(owner, repo, issue_id)
 
+      if issue.nil?
+        warn "GHTorrent: Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
+        return
+      end
+
+      issue_comment_str = "#{owner}/#{repo} -> #{issue_id}/#{comment_id}"
+
+      curcomment = @db[:issue_comments].first(:issue_id => issue[:id],
+                                          :comment_id => comment_id)
+      if curcomment.nil?
+
+        retrieved = retrieve_issue_comment(owner, repo, issue_id, comment_id)
+
+        if retrieved.nil?
+          warn "GHTorrent: Could not retrieve issue comment #{issue_comment_str}"
+          return
+        end
+
+        user = ensure_user(retrieved['user']['login'], false, false)
+
+        @db[:issue_comments].insert(
+            :comment_id => comment_id,
+            :issue_id => issue[:id],
+            :user_id => unless user.nil? then user[:id] end,
+            :created_at => date(retrieved['created_at']),
+            :ext_ref_id => retrieved[@ext_uniq]
+        )
+
+        info "GHTorrent: Added issue comment #{issue_comment_str}"
+        @db[:issue_comments].first(:issue_id => issue[:id],
+                                   :comment_id => comment_id)
+      else
+        debug "GHTorrent: Issue comment #{issue_comment_str} exists"
+        curcomment
+      end
     end
 
     # Run a block in a DB transaction. Exceptions trigger transaction rollback

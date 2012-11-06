@@ -105,7 +105,7 @@ class GHTDataRetrieval < GHTorrent::Command
     comment_id = data['payload']['comment']['id']
     created_at = data['created_at']
 
-    ghtorrent.get_issue_comment(owner, repo, issue_id, comment_id, created_at)
+    ghtorrent.get_issue_comment(owner, repo, issue_id, comment_id)
   end
 
   def handlers
