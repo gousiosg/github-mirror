@@ -1189,7 +1189,7 @@ module GHTorrent
 
     ##
     # Make sure that the issue exists
-    def ensure_issue(owner, repo, issue_id, action = nil, comments = true)
+    def ensure_issue(owner, repo, issue_id, events = true, comments = true)
 
       issues = @db[:issues]
       repository = ensure_repo(owner, repo, false, false, false)
@@ -1229,7 +1229,7 @@ module GHTorrent
                      :created_at => date(retrieved['created_at']),
                      :ext_ref_id => retrieved[@ext_uniq])
 
-        #ensure_issue_events(owner, repo, issue_id)
+        ensure_issue_events(owner, repo, issue_id) if events
         #ensure_issue_comments(owner, repo, issue_id) if
         #    comments == true and retrieved['comments'] > 0
 
@@ -1245,13 +1245,103 @@ module GHTorrent
     ##
     # Retrieve and process all events for an issue
     def ensure_issue_events(owner, repo, issue_id)
+      currepo = ensure_repo(owner, repo, true, true, false)
+      #time = if created_at.nil? then currepo[:created_at] else Time.now() end
 
+      if currepo.nil?
+        warn "GHTorrent: Could not find repository #{owner}/#{repo}"
+        return
+      end
+
+      issue = ensure_issue(owner, repo, issue_id, false, false)
+      if issue.nil?
+        warn "Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
+        return
+      end
+
+      retrieve_issue_events(owner, repo, issue_id).reduce([]) do |acc, x|
+
+        if @db[:issue_events].first(:issue_id => issue[:id],
+                                    :event_id => x['id']).nil?
+          acc << x
+        else
+          acc
+        end
+      end.map { |x|
+        ensure_issue_event(owner, repo, issue_id, x['id'])
+      }
     end
 
     ##
     # Retrieve and process +event_id+ for an +issue_id+
     def ensure_issue_event(owner, repo, issue_id, event_id)
+      issue = ensure_issue(owner, repo, issue_id)
 
+      if issue.nil?
+        warn "GHTorrent: Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
+        return
+      end
+
+      issue_event_str = "#{owner}/#{repo} -> #{issue_id}/#{event_id}"
+
+      curevent = @db[:issue_events].first(:issue_id => issue[:id],
+                                          :event_id => event_id)
+      if curevent.nil?
+
+        retrieved = retrieve_issue_event(owner, repo, issue_id, event_id)
+
+        if retrieved.nil?
+          warn "GHTorrent: Could not retrieve issue event #{issue_event_str}"
+          return
+        end
+
+        actor = ensure_user(retrieved['actor']['login'], false, false)
+
+        action_specific = case retrieved['event']
+                            when "referenced" then retrieved['commit_id']
+                            when "merged" then retrieved['commit_id']
+                            when "closed" then retrieved['commit_id']
+                            else nil
+                          end
+
+        if retrieved['event'] == "assigned"
+
+          def update_assignee(owner, repo, issue, actor)
+            @db[:issues][:id => issue[:id]] = {:assignee_id => actor[:id]}
+            info "Updating #{owner}/#{repo} -> #{issue[:id]} assignee to #{actor[:id]}"
+          end
+
+          if issue[:assignee_id].nil? then
+            update_assignee(owner, repo, issue, actor)
+          else
+            existing = @db[:issue_events].\
+                        filter(:issue_id => issue[:id],:action => "assigned").\
+                        order(Sequel.desc(:created_at)).first
+            if existing.nil?
+              update_assignee(owner, repo, issue, actor)
+            elsif date(existing[:created_at]) < date(retrieved['created_at'])
+              update_assignee(owner, repo, issue, actor)
+            end
+          end
+        end
+
+        @db[:issue_events].insert(
+            :event_id => event_id,
+            :issue_id => issue[:id],
+            :actor_id => unless actor.nil? then actor[:id] end,
+            :action => retrieved['event'],
+            :action_specific => action_specific,
+            :created_at => date(retrieved['created_at']),
+            :ext_ref_id => retrieved[@ext_uniq]
+        )
+
+        info "GHTorrent: Added issue event #{issue_event_str}"
+        @db[:issue_events].first(:issue_id => issue[:id],
+                                 :event_id => event_id)
+      else
+        debug "GHTorrent: Issue event #{issue_event_str} exists"
+        curevent
+      end
     end
 
     ##

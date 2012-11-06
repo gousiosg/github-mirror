@@ -388,6 +388,54 @@ module GHTorrent
                       'number')
     end
 
+    def retrieve_issue_events(owner, repo, issue_id)
+      url = ghurl "repos/#{owner}/#{repo}/issues/#{issue_id}/events"
+      retrieved_events = paged_api_request url
+
+      retrieved_events.each { |x|
+        x['owner'] = owner
+        x['repo'] = repo
+        x['issue_id'] = issue_id
+
+        if persister.find(:issue_events, {'owner' => owner,
+                                          'repo' => repo,
+                                          'issue_id' => issue_id,
+                                          'id' => x['id']}).empty?
+          info "Retriever: Added issue event #{owner}/#{repo} #{issue_id}->#{x['id']}"
+          persister.store(:issue_events, x)
+        end
+      }
+      persister.find(:issue_events, {'owner' => owner, 'repo' => repo,
+                                     'issue_id' => issue_id})
+    end
+
+    def retrieve_issue_event(owner, repo, issue_id, event_id)
+      event = persister.find(:issue_events, {'repo' => repo,
+                                             'owner' => owner,
+                                             'issue_id' => issue_id,
+                                             'id' => event_id}).first
+      if event.nil?
+        r = api_request(ghurl "repos/#{owner}/#{repo}/issues/events/#{event_id}")
+
+        if r.empty?
+          warn "Retriever: Issue event #{owner}/#{repo} #{issue_id}->#{event_id} deleted"
+          return
+        end
+
+        r['repo'] = repo
+        r['owner'] = owner
+        r['issue_id'] = issue_id
+        persister.store(:issue_events, r)
+        info "Retriever: Added issue event #{owner}/#{repo} #{issue_id}->#{event_id}"
+        persister.find(:issue_events, {'repo' => repo, 'owner' => owner,
+                                       'issue_id' => issue_id,
+                                       'id' => event_id}).first
+      else
+        debug "Retriever: Issue event #{owner}/#{repo} #{issue_id}->#{event_id} exists"
+        event
+      end
+    end
+
     def retrieve_issue_comments(owner, repo, issue_id)
       url = ghurl "repos/#{owner}/#{repo}/issues/#{issue_id}/comments"
       retrieved_comments = paged_api_request url
@@ -417,7 +465,7 @@ module GHTorrent
         r = api_request(ghurl "repos/#{owner}/#{repo}/issues/#{issue_id}/comments/#{comment_id}")
 
         if r.empty?
-          debug "Retriever: Issue comment #{owner}/#{repo} #{issue_id}->#{comment_id} deleted"
+          warn "Retriever: Issue comment #{owner}/#{repo} #{issue_id}->#{comment_id} deleted"
           return
         end
 

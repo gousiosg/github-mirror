@@ -101,7 +101,7 @@ class GHTDataRetrieval < GHTorrent::Command
   def IssueCommentEvent(data)
     owner = data['repo']['name'].split(/\//)[0]
     repo = data['repo']['name'].split(/\//)[1]
-    issue_id = data['payload']['forkee']['id']
+    issue_id = data['payload']['issue']['number']
     comment_id = data['payload']['comment']['id']
     created_at = data['created_at']
 
