@@ -382,10 +382,9 @@ module GHTorrent
         end
 
         unless is_valid_email(email)
-          warn("GHTorrent: Extracted email not valid for user #{user}")
-        else
-          u = ensure_user_byemail(email.strip, name.strip)
+          warn("GHTorrent: Extracted email(#{email}) not valid for user #{user}")
         end
+        u = ensure_user_byemail(email.strip, name.strip)
       else
         u = ensure_user_byuname(user)
         ensure_user_followers(user) if followers
