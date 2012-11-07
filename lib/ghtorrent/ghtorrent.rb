@@ -1117,9 +1117,10 @@ module GHTorrent
         return
       end
 
-      existing_forks = @db.from(:forks, :projects).\
+      existing_forks = @db.from(:forks, :projects, :users).\
           where(:forks__forked_project_id => :projects__id). \
-          where(:forks__forked_from_id => currepo[:id]).select(:name, :login).all
+          where(:users__id => :projects__owner_id). \
+          where(:forks__forked_from_id => currepo[:id]).select(:projects__name, :login).all
 
       retrieve_forks(owner, repo).reduce([]) do |acc, x|
         if existing_forks.find {|y|
