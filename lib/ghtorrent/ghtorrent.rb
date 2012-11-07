@@ -323,6 +323,16 @@ module GHTorrent
         if dbuser.nil?
           # We do not have the user in the database yet. Add him
           added = ensure_user(login, false, false)
+
+          # A commit user can be found by email but not
+          # by the user name he used to commit. This probably means that the
+          # user has probably changed his user name. Treat the user's by-email
+          # description as valid.
+          if added.nil? and not byemail.nil?
+            warn "GHTorrent: Found user #{byemail[:login]} with same email #{email} as non existing user #{login}. Assigning user #{login} to #{byemail[:login]}"
+            return users.first(:login => byemail[:login])
+          end
+
           if byemail.nil?
             users.filter(:login => login).update(:name => name) if added[:name].nil?
             users.filter(:login => login).update(:email => email) if added[:email].nil?
