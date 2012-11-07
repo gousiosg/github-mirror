@@ -562,9 +562,8 @@ module GHTorrent
     #  the result is nil
     def ensure_repo(user, repo, commits = true, project_members = true, watchers = true)
 
-      ensure_user(user, false, false)
       repos = @db[:projects]
-      curuser = @db[:users].first(:login => user)
+      curuser = ensure_user(user, false, false)
       currepo = repos.first(:owner_id => curuser[:id], :name => repo)
 
       if currepo.nil?
@@ -1299,6 +1298,9 @@ module GHTorrent
 
         if retrieved.nil?
           warn "GHTorrent: Could not retrieve issue event #{issue_event_str}"
+          return
+        elsif retrieved['actor'].nil?
+          warn "GHTorrent: Issue event #{issue_event_str} does not contain an actor"
           return
         end
 
