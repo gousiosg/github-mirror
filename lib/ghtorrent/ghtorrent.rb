@@ -1123,7 +1123,9 @@ module GHTorrent
 
       retrieve_forks(owner, repo).reduce([]) do |acc, x|
         if existing_forks.find {|y|
-          y[:login] == x['owner']['login'] && y[:name] == x['name']
+          forked_repo_owner = x['full_name'].split(/\//)[0]
+          forked_repo_name = x['full_name'].split(/\//)[1]
+          y[:login] == forked_repo_owner && y[:name] == forked_repo_name
         }.nil?
           acc << x
         else
@@ -1166,6 +1168,7 @@ module GHTorrent
                      :ext_ref_id => retrieved[@ext_uniq])
         info "GHTorrent: Added #{forked_repo_owner}/#{forked_repo_name} as fork of  #{owner}/#{repo}"
       else
+        debug "GHTorrent: Fork #{fork_id} exists as fork of #{owner}/#{repo}"
         unless date_added.nil?
           forks.filter(:fork_id => fork_id)\
                .update(:created_at => date(date_added))
