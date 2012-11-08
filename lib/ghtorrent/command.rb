@@ -4,6 +4,7 @@ require 'daemons'
 require 'etc'
 
 require 'ghtorrent/settings'
+require 'version'
 
 module GHTorrent
 
@@ -15,6 +16,7 @@ module GHTorrent
   # go
   class Command
 
+    include GHTorrent::Settings
     include GHTorrent::Settings
 
     # Specify the run method for subclasses.
@@ -32,6 +34,8 @@ module GHTorrent
 
         command.process_options
         command.validate
+
+        puts "GHTorrent version: #{GHTorrent::VERSION}"
 
         command.settings = YAML::load_file command.options[:config]
 
