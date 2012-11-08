@@ -643,6 +643,7 @@ module GHTorrent
         )
         info "GHTorrent: Added project member #{repo} -> #{new_member}"
       else
+        debug "GHTorrent: Project member #{repo} -> #{new_member} exists"
         unless date_added.nil?
           pr_members.filter(:user_id => new_user[:id],
                             :repo_id => project[:id])\
@@ -835,13 +836,14 @@ module GHTorrent
             :created_at => date(added),
             :ext_ref_id => retrieved[@ext_uniq]
         )
-        info "GHTorrent: Added watcher #{repo} -> #{watcher}"
+        info "GHTorrent: Added watcher #{owner}/#{repo} -> #{watcher}"
       else
+        debug "GHTorrent: Watcher #{owner}/#{repo} -> #{watcher} exists"
         unless date_added.nil?
           watchers.filter(:user_id => new_watcher[:id],
                           :repo_id => project[:id])\
                   .update(:created_at => date(date_added))
-          info "GHTorrent: Updating  #{repo} -> #{watcher}"
+          info "GHTorrent: Updating watcher #{owner}/#{repo} -> #{watcher}"
         end
       end
     end
@@ -855,7 +857,7 @@ module GHTorrent
         return
       end
 
-      pull_reqs = @db[:pull_requests].filter(:base_repo_id => currepo[:id])
+      pull_reqs = @db[:pull_requests].filter(:base_repo_id => currepo[:id]).all
 
       retrieve_pull_requests(owner, repo).reduce([]) do |acc, x|
         if pull_reqs.find { |y| y[:pullreq_id] == x['number'] }.nil?
@@ -1186,7 +1188,7 @@ module GHTorrent
         return
       end
 
-      issues = @db[:issues].filter(:repo_id => currepo[:id])
+      issues = @db[:issues].filter(:repo_id => currepo[:id]).all
 
       retrieve_issues(owner, repo).reduce([]) do |acc, x|
         if issues.find { |y| y[:issue_id] == x['number'] }.nil?
