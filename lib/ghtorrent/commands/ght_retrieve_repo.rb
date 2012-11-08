@@ -67,8 +67,8 @@ An efficient way to get all data for a single repo
       begin
         ght.send(x, user, repo)
       rescue Exception => e
-        puts STDERR e.message
-        puts STDERR e.backtrace
+        puts STDERR, e.message
+        puts STDERR, e.backtrace
       end
     }
   end
