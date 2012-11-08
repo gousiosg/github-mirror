@@ -4,7 +4,7 @@ class Hash
       if x.respond_to?(:merge_recursive) && y.is_a?(Hash)
         x.merge_recursive(y)
       else
-        if overwrite then y else [*x,*y] end
+        if overwrite then y else [x, y].flatten.uniq end
       end
     end
   end
