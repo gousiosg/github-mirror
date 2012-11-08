@@ -41,6 +41,18 @@ module GHTorrent
                                                      command.options[:addr])
         end
 
+        unless command.options[:username].nil?
+          command.settings = command.override_config(command.settings,
+                                                     :github_username,
+                                                     command.options[:username])
+        end
+
+        unless command.options[:password].nil?
+          command.settings = command.override_config(command.settings,
+                                                     :github_passwd,
+                                                     command.options[:password])
+        end
+
         if command.options[:daemon]
           if Process.uid == 0
             # Daemonize as a proper system daemon
@@ -97,6 +109,8 @@ Standard options:
         opt :daemon, 'run as daemon', :short => 'd'
         opt :user, 'run as the specified user (only when started as root)',
             :short => 'u', :type => String
+        opt :username, 'Username at Github', :type => String
+        opt :password, 'Password at Github', :type => String
       end
     end
 
