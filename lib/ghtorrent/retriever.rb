@@ -251,7 +251,7 @@ module GHTorrent
     # Retrieve all watchers for a repository
     def retrieve_watchers(user, repo)
       repo_bound_items(user, repo, :watchers,
-                       "repos/#{user}/#{repo}/watchers",
+                       "repos/#{user}/#{repo}/stargazers",
                        {'repo' => repo, 'owner' => user},
                        'login')
     end
@@ -259,7 +259,7 @@ module GHTorrent
     # Retrieve a single watcher for a repositry
     def retrieve_watcher(user, repo, watcher)
       repo_bound_item(user, repo, watcher, :watchers,
-                      "repos/#{user}/#{repo}/watchers",
+                      "repos/#{user}/#{repo}/stargazers",
                       {'repo' => repo, 'owner' => user},
                       'login')
     end
