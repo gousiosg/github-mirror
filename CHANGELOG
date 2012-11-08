@@ -1,6 +1,21 @@
+= Version 0.6
+
+	* Support retrieval of issues, issue events and issue history
+	* Support for setting username/password for performing requests
+	* Respect by default Github's x-ratelimit-remaining header
+	* Selective processing of events for user-specified repos
+	* New tool (ght-get-more-commits) to retrieve all commits for a repository
+	* New tool (ght-process-events) to process just one event by id
+	* Retrieve 100 items at once by default on multipage requests
+	* Rename watchers -> stargazers, as per Github API change
+	* Fixes to bugs that permitted efficient processing of multipage requests
+	* Several fixes on how pull requests are being processed
+	* Users with invalid git setups are now allowed
+	* Compatibility with Ruby 1.8 restored
+
 = Version 0.5
 
-    * Generic methods for retrieving items that are bound to repositories
+  * Generic methods for retrieving items that are bound to repositories
 	* Processing of pull requests with commits, comments and history
 	* Processing of project forks
 	* New tool (ght-load) to filter and load events to the queue
