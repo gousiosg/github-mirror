@@ -588,7 +588,7 @@ module GHTorrent
         ensure_watchers(user, repo) if watchers
         repos.first(:owner_id => curuser[:id], :name => repo)
       else
-        debug "GHTorrent: Repo #{repo} exists"
+        debug "GHTorrent: Repo #{user}/#{repo} exists"
         currepo
       end
     end
@@ -1110,7 +1110,6 @@ module GHTorrent
     # [repo]  The repository/project to find forks for
     def ensure_forks(owner, repo)
       currepo = ensure_repo(owner, repo, false, false, false)
-      time = currepo[:created_at]
 
       if currepo.nil?
         warn "Could not retrieve forks for #{owner}/#{repo}"
@@ -1130,7 +1129,7 @@ module GHTorrent
         else
           acc
         end
-      end.map { |x| ensure_fork(owner, repo, x['id'], time) }
+      end.map { |x| ensure_fork(owner, repo, x['id']) }
     end
 
     ##
@@ -1142,8 +1141,8 @@ module GHTorrent
       fork_exists = forks.first(:fork_id => fork_id)
 
       if fork_exists.nil?
-        added = if date_added.nil? then Time.now else date_added end
         retrieved = retrieve_fork(owner, repo, fork_id)
+        added = if date_added.nil? then retrieved['created_at'] else date_added end
 
         if retrieved.nil?
           warn "GHTorrent: Fork #{fork_id} does not exist for #{owner}/#{repo}"
