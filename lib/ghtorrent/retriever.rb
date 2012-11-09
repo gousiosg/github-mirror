@@ -556,13 +556,22 @@ module GHTorrent
     def repo_bound_instance(entity, selector, descriminator, item_id)
 
       id = if item_id.to_i.to_s != item_id
-             item_id # item_id is string
+             item_id # item_id is int
            else
              item_id.to_i # convert to int
            end
 
       instance_selector = selector.merge({descriminator => id})
-      persister.find(entity, instance_selector)
+      result = persister.find(entity, instance_selector)
+      if result.empty?
+        # Try without type conversions. Useful when the descriminator type
+        # is string and an item_id that can be converted to int is passed.
+        # Having no types sucks occasionaly...
+        instance_selector = selector.merge({descriminator => item_id})
+        persister.find(entity, instance_selector)
+      else
+        result
+      end
     end
 
     def ghurl(path)
