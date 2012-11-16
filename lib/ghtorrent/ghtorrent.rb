@@ -534,14 +534,25 @@ module GHTorrent
           info "GHTorrent: Added fake user #{login} -> #{email}"
           users.first(:login => login)
         else
-          users.insert(:login => u['login'],
-                       :name => u['name'],
-                       :company => u['company'],
-                       :email => u['email'],
-                       :location => u['location'],
-                       :created_at => date(u['created_at']),
-                       :ext_ref_id => u[@ext_uniq])
-          info "GHTorrent: Found #{email} through search API query"
+          in_db = users.first(:login => u['login'])
+          if in_db.nil?
+            users.insert(:login => u['login'],
+                         :name => u['name'],
+                         :company => u['company'],
+                         :email => u['email'],
+                         :location => u['location'],
+                         :created_at => date(u['created_at']),
+                         :ext_ref_id => u[@ext_uniq])
+            info "GHTorrent: Found #{email} through search API query"
+          else
+            in_db.update(:name => u['name'],
+                         :company => u['company'],
+                         :email => u['email'],
+                         :location => u['location'],
+                         :created_at => date(u['created_at']),
+                         :ext_ref_id => u[@ext_uniq])
+            info "GHTorrent: User with email #{email} exists with username #{u['login']}"
+          end
           users.first(:login => u['login'])
         end
       else
@@ -564,6 +575,12 @@ module GHTorrent
 
       repos = @db[:projects]
       curuser = ensure_user(user, false, false)
+
+      if curuser.nil?
+        warn "Cannot find user #{user}"
+        return
+      end
+
       currepo = repos.first(:owner_id => curuser[:id], :name => repo)
 
       if currepo.nil?
