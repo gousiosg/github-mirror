@@ -333,6 +333,17 @@ module GHTorrent
             return users.first(:login => byemail[:login])
           end
 
+          # This means that the user's login has been associated with a
+          # Github user by the time the commit was done (and hence Github was
+          # able to associate the commit to an account), but afterwards the
+          # user has deleted his account (before GHTorrent processed it).
+          # On absense of something better to do, try to find the user by email
+          # and return a "fake" user entry.
+          if added.nil?
+            warn "GHTorrent: User account for user #{login} deleted from Github"
+            return ensure_user("#{name}<#{email}>", false, false)
+          end
+
           if byemail.nil?
             users.filter(:login => login).update(:name => name) if added[:name].nil?
             users.filter(:login => login).update(:email => email) if added[:email].nil?
