@@ -1197,6 +1197,10 @@ module GHTorrent
           return
         end
 
+        # This can happen due to borked fork_id params
+        return unless forks.first(:forked_project_id => fork[:id],
+                                  :forked_from_id => forked[:id]).nil?
+
         forks.insert(:forked_project_id => fork[:id],
                      :forked_from_id => forked[:id],
                      :fork_id => fork_id,
