@@ -62,15 +62,26 @@ An efficient way to get all data for a single repo
 
     repo = repo_entry[:name]
 
-    %w(ensure_commits ensure_forks ensure_pull_requests
-       ensure_issues ensure_project_members ensure_watchers).each {|x|
+    def send_message(function, user, repo)
       begin
-        ght.send(x, user, repo)
+        ght.send(function, user, repo)
       rescue Exception => e
         puts STDERR, e.message
         puts STDERR, e.backtrace
       end
-    }
+    end
+
+    functions = %w(ensure_commits ensure_forks ensure_pull_requests
+       ensure_issues ensure_project_members ensure_watchers)
+
+    if ARGV[2].nil?
+      functions.each do |x|
+        send_message(x, user, repo)
+      end
+    else
+      Trollop::die("Not a valid function: #{ARGV[2]}") unless functions.include? ARGV[2]
+      send_message(ARGV[2], user, repo)
+    end
   end
 end
 
