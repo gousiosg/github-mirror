@@ -236,32 +236,37 @@ module GHTorrent
     # in the database.
     def ensure_parents(commit)
       commits = @db[:commits]
-      commit['parents'].each do |p|
-          parents =  @db[:commit_parents]
-          url = p['url'].split(/\//)
-          this = commits.first(:sha => commit['sha'])
-          parent = commits.first(:sha => url[7])
+      parents = @db[:commit_parents]
+      commit['parents'].map do |p|
+        url = p['url'].split(/\//)
+        this = commits.first(:sha => commit['sha'])
+        parent = commits.first(:sha => url[7])
 
-          if parent.nil?
-            store_commit(retrieve_commit(url[5], url[7], url[4]), url[5], url[4])
-            parent = commits.first(:sha => url[7])
-          end
-
-          if parent.nil?
+        if parent.nil?
+          c = retrieve_commit(url[5], url[7], url[4])
+          if c.nil?
             warn "GHTorrent: Could not retrieve #{url[4]}/#{url[5]} -> #{url[7]}, parent to commit #{this[:sha]}"
-            return
+            next
           end
-
-          if parents.first(:commit_id => this[:id],
-                           :parent_id => parent[:id]).nil?
-
-            parents.insert(:commit_id => this[:id],
-                           :parent_id => parent[:id])
-            info "GHTorrent: Added parent #{parent[:sha]} to commit #{this[:sha]}"
-          else
-            debug "GHTorrent: Parent #{parent[:sha]} for commit #{this[:sha]} exists"
-          end
+          parent = store_commit(c, url[5], url[4])
         end
+
+        if parent.nil?
+          warn "GHTorrent: Could not retrieve #{url[4]}/#{url[5]} -> #{url[7]}, parent to commit #{this[:sha]}"
+          next
+        end
+
+        if parents.first(:commit_id => this[:id],
+                         :parent_id => parent[:id]).nil?
+
+          parents.insert(:commit_id => this[:id],
+                         :parent_id => parent[:id])
+          info "GHTorrent: Added parent #{parent[:sha]} to commit #{this[:sha]}"
+        else
+          debug "GHTorrent: Parent #{parent[:sha]} for commit #{this[:sha]} exists"
+        end
+        parents.first(:commit_id => this[:id], :parent_id => parent[:id])
+      end
     end
 
     ##
