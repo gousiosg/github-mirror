@@ -373,10 +373,12 @@ module GHTorrent
     def ensure_user(user, followers, orgs)
       # Github only supports alpa-nums and dashes in its usernames.
       # All other sympbols are treated as emails.
-      if not user.match(/^[A-Za-z0-9\-]*$/)
+      if not user.match(/^[\w\-]*$/)
         begin
           name, email = user.split("<")
           email = email.split(">")[0]
+          name = name.strip unless name.nil?
+          email = email.strip unless email.nil?
         rescue Exception
           raise new GHTorrentException.new("Not a valid email address: #{user}")
         end
@@ -384,7 +386,7 @@ module GHTorrent
         unless is_valid_email(email)
           warn("GHTorrent: Extracted email(#{email}) not valid for user #{user}")
         end
-        u = ensure_user_byemail(email.strip, name.strip)
+        u = ensure_user_byemail(email, name)
       else
         u = ensure_user_byuname(user)
         ensure_user_followers(user) if followers
@@ -529,8 +531,7 @@ module GHTorrent
                        :name => name,
                        :login => login,
                        :created_at => Time.now,
-                       :ext_ref_id => ""
-          )
+                       :ext_ref_id => "")
           info "GHTorrent: Added fake user #{login} -> #{email}"
           users.first(:login => login)
         else
