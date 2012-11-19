@@ -299,7 +299,9 @@ module GHTorrent
 
     def retrieve_pull_req_commits(user, repo, pullreq_id)
       is_intra_branch = Proc.new do |req|
-        req['head']['repo'].nil?
+        req['head']['repo']['owner']['login'] ==
+            req['base']['repo']['owner']['login'] and
+            req['head']['repo']['full_name'] == req['base']['repo']['full_name']
       end
 
       pull_req = retrieve_pull_request(user, repo, pullreq_id)
