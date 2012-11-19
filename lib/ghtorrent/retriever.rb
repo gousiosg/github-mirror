@@ -1,4 +1,5 @@
 require 'uri'
+require 'cgi'
 
 require 'ghtorrent/api_client'
 require 'ghtorrent/settings'
@@ -43,20 +44,46 @@ module GHTorrent
     end
 
     # Try Github user search by email. This is optional info, so
-    # it may not return any data.
+    # it may not return any data. If this fails, try searching by name
     # http://developer.github.com/v3/search/#email-search
     def retrieve_user_byemail(email, name)
-      url = ghurl("legacy/user/email/#{URI.escape(email)}")
-      r = api_request(url)
+      url = ghurl("legacy/user/email/#{CGI.escape(email)}")
+      byemail = api_request(url)
 
-      unless r.empty? or r['user']['login'].nil?
-        info "Retriever: User #{r['user']['login']} retrieved by email #{email}"
-        retrieve_user_byusername(r['user']['login'])
-      else
-        if r.empty?
+      if byemail.empty?
+        # Only search by name if name param looks like a proper name
+        byname = if not name.nil? and name.split(/ /).size > 1
+                  url = ghurl("legacy/user/search/#{CGI.escape(name)}")
+                  api_request(url)
+                 end
+
+        if byname.nil? or byname['users'].nil? or byname['users'].empty?
           nil
         else
-          u = r['user']
+          user = byname['users'].find do |u|
+                u['name'] == name and
+                not u['login'].nil? and
+                not retrieve_user_byusername(u['login']).nil?
+          end
+
+          unless user.nil?
+            # Make extra sure that if we got an email it matches that
+            # of the retrieved user
+            if not email.nil? and user['email'] == email
+              user
+            else
+              nil
+            end
+          else
+            nil
+          end
+        end
+      else
+        unless byemail['user']['login'].nil?
+          info "Retriever: User #{byemail['user']['login']} retrieved by email #{email}"
+          retrieve_user_byusername(byemail['user']['login'])
+        else
+          u = byemail['user']
           unq = persister.store(:users, u)
           u[ext_uniq] = unq
           what = user_type(u['type'])
