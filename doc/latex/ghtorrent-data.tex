@@ -111,6 +111,14 @@ characteristics of the dataset to
 
 \section{Data Collection}
 
+\begin{itemize}
+
+  \item \tt{retrieve-data}
+
+  \item \tt{retrieve-events}
+
+\end{itemize}
+
 \section{Dataset statistics}
 
 \section{Limitations}
@@ -126,11 +134,16 @@ The
     database cannot be updated when a user or a repository has been marked
     as deleted. This can have several consequences 
 
-  \item \emph{Important entities are not timestamped:} Github does not
-    report timestamps (usually as the \texttt{created\_at} field) for watchers/stars
-    and followers. This means that it is not 
+  \item \emph{Important entities are not timestamped:} Github does not report
+    timestamps for the watchers/stars and followers entities. This means that it
+    is not possible to query the followers for a user or the watchers for a
+    repository at a specific timestamp. As a workaround, GHTorrent uses the
+    timestamp of the event that is generated when a follow/watch action is
+    performed, but this is only limited to the events that took place since
+    the GHTorrent project started its data collection.
 
-  \item Issues and pull requests
+  \item \emph{Issues and pull requests} Issues and pull requests are dual on
+    Github; for each 
 
   \item Comments for \sf{pull\_requests} 
 
