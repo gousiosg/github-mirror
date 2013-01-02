@@ -55,9 +55,8 @@ class GHTDataRetrieval < GHTorrent::Command
     user = data['actor']['login']
     repo = data['repo']['name'].split(/\//)[1]
     id = data['payload']['comment']['id']
-    created_at = data['created_at']
 
-    ghtorrent.get_commit_comment(user, repo, id, created_at)
+    ghtorrent.get_commit_comment(user, repo, id)
   end
 
   def PullRequestEvent(data)
@@ -74,9 +73,8 @@ class GHTDataRetrieval < GHTorrent::Command
     owner = data['repo']['name'].split(/\//)[0]
     repo = data['repo']['name'].split(/\//)[1]
     fork_id = data['payload']['forkee']['id']
-    created_at = data['created_at']
 
-    ghtorrent.get_fork(owner, repo, fork_id, created_at)
+    ghtorrent.get_fork(owner, repo, fork_id)
   end
 
   def PullRequestReviewCommentEvent(data)
@@ -84,18 +82,16 @@ class GHTDataRetrieval < GHTorrent::Command
     repo = data['repo']['name'].split(/\//)[1]
     comment_id = data['payload']['comment']['id']
     pullreq_id = data['payload']['comment']['_links']['pull_request']['href'].split(/\//)[-1]
-    created_at = data['created_at']
 
-    ghtorrent.get_pullreq_comment(owner, repo, pullreq_id, comment_id, created_at)
+    ghtorrent.get_pullreq_comment(owner, repo, pullreq_id, comment_id)
   end
 
   def IssuesEvent(data)
     owner = data['repo']['name'].split(/\//)[0]
     repo = data['repo']['name'].split(/\//)[1]
     issue_id = data['payload']['issue']['number']
-    created_at = data['created_at']
 
-    ghtorrent.get_issue(owner, repo, issue_id, created_at)
+    ghtorrent.get_issue(owner, repo, issue_id)
   end
 
   def IssueCommentEvent(data)
@@ -103,16 +99,15 @@ class GHTDataRetrieval < GHTorrent::Command
     repo = data['repo']['name'].split(/\//)[1]
     issue_id = data['payload']['issue']['number']
     comment_id = data['payload']['comment']['id']
-    created_at = data['created_at']
 
     ghtorrent.get_issue_comment(owner, repo, issue_id, comment_id)
   end
 
   def handlers
-    %w(PushEvent WatchEvent FollowEvent MemberEvent
-        CommitCommentEvent PullRequestEvent ForkEvent
-        PullRequestReviewCommentEvent IssuesEvent IssueCommentEvent)
-    #%w(IssuesEvent IssueCommentEvent)
+    #%w(PushEvent WatchEvent FollowEvent MemberEvent
+    #    CommitCommentEvent PullRequestEvent ForkEvent
+    #    PullRequestReviewCommentEvent IssuesEvent IssueCommentEvent)
+    %w(PullRequestEvent)
   end
 
   def prepare_options(options)

@@ -78,10 +78,9 @@ module GHTorrent
     #  [user] The login of the repository owner
     #  [repo] The name of the repository
     #  [comment_id] The login of the member to add
-    #  [date_added] The timestamp that the add event took place
-    def get_commit_comment(user, repo, comment_id, date_added)
+    def get_commit_comment(user, repo, comment_id)
       transaction do
-        ensure_commit_comment(user, repo, comment_id, date_added)
+        ensure_commit_comment(user, repo, comment_id)
       end
     end
 
@@ -130,10 +129,9 @@ module GHTorrent
     #  [owner] The login of the repository owner
     #  [repo] The name of the repository
     #  [fork_id] The fork item id
-    #  [date_added] The timestamp that the add event took place
-    def get_fork(owner, repo, fork_id, date_added)
+    def get_fork(owner, repo, fork_id)
       transaction do
-        ensure_fork(owner, repo, fork_id, date_added)
+        ensure_fork(owner, repo, fork_id)
       end
     end
 
@@ -144,9 +142,9 @@ module GHTorrent
     #  [repo] The name of the repository
     #  [fork_id] The fork item id
     #  [date_added] The timestamp that the add event took place
-    def get_pullreq_comment(owner, repo, pullreq_id, comment_id, created_at)
+    def get_pullreq_comment(owner, repo, pullreq_id, comment_id)
       transaction do
-        ensure_pullreq_comment(owner, repo, pullreq_id, comment_id, created_at)
+        ensure_pullreq_comment(owner, repo, pullreq_id, comment_id)
       end
     end
 
@@ -158,9 +156,9 @@ module GHTorrent
     #  [issue_id] The fork item id
     #  [action] The action that took place for the issue
     #  [date_added] The timestamp that the add event took place
-    def get_issue(owner, repo, issue_id, created_at)
+    def get_issue(owner, repo, issue_id)
       transaction do
-        ensure_issue(owner, repo, issue_id, created_at)
+        ensure_issue(owner, repo, issue_id)
       end
     end
 
@@ -464,9 +462,8 @@ module GHTorrent
     #
     # ==Parameters:
     # [user]  The user login to find followers by
-    def ensure_user_followers(followed, date_added = nil)
+    def ensure_user_followers(followed)
       curuser = ensure_user(followed, false, false)
-      time = curuser[:created_at]
       followers = @db.from(:followers, :users).\
           where(:followers__follower_id => :users__id).
           where(:followers__user_id => curuser[:id]).select(:login).all
@@ -477,12 +474,12 @@ module GHTorrent
         else
           acc
         end
-      end.map { |x| ensure_user_follower(followed, x['login'], time) }
+      end.map { |x| ensure_user_follower(followed, x['login']) }
     end
 
     ##
     # Make sure that a user follows another one
-    def ensure_user_follower(followed, follower, date_added)
+    def ensure_user_follower(followed, follower, date_added = nil)
       follower_user = ensure_user(follower, false, false)
       followed_user = ensure_user(followed, false, false)
 
@@ -497,9 +494,12 @@ module GHTorrent
 
       follower_exists = followers.first(:user_id => followed_id,
                                         :follower_id => follower_id)
-
       if follower_exists.nil?
-        added = if date_added.nil? then Time.now else date_added end
+        added = if date_added.nil?
+                  max(follower_user[:created_at], followed_user[:created_at])
+                else
+                  date_added
+                end
         retrieved = retrieve_user_follower(followed, follower)
 
         if retrieved.nil?
@@ -513,13 +513,17 @@ module GHTorrent
                          :ext_ref_id => retrieved[@ext_uniq])
         info "GHTorrent: User #{follower} follows #{followed}"
       else
-        unless date_added.nil?
-          followers.filter(:user_id => followed_id,
-                           :follower_id => follower_id)\
-                    .update(:created_at => date(date_added))
-          debug "GHTorrent: Updating follower #{followed} -> #{follower}"
-        end
+        debug "GHTorrent: Follower #{follower} exists for user #{followed}"
       end
+
+      unless date_added.nil?
+        followers.filter(:user_id => followed_id,
+                         :follower_id => follower_id)\
+                    .update(:created_at => date(date_added))
+        debug "GHTorrent: Updating follower #{followed} -> #{follower}, created_at -> #{date(date_added)}"
+      end
+
+      followers.first(:user_id => followed_id, :follower_id => follower_id)
     end
 
     ##
@@ -661,7 +665,11 @@ module GHTorrent
                                     :repo_id => project[:id])
 
       if memb_exist.nil?
-        added = if date_added.nil? then Time.now else date_added end
+        added = if date_added.nil?
+                  max(project[:created_at], new_user[:created_at])
+                else
+                  date_added
+                end
         retrieved = retrieve_repo_collaborator(owner, repo, new_member)
 
         if retrieved.nil?
@@ -678,12 +686,13 @@ module GHTorrent
         info "GHTorrent: Added project member #{repo} -> #{new_member}"
       else
         debug "GHTorrent: Project member #{repo} -> #{new_member} exists"
-        unless date_added.nil?
-          pr_members.filter(:user_id => new_user[:id],
-                            :repo_id => project[:id])\
+      end
+
+      unless date_added.nil?
+        pr_members.filter(:user_id => new_user[:id],
+                          :repo_id => project[:id])\
                     .update(:created_at => date(date_added))
-          info "GHTorrent: Updating project member #{repo} -> #{new_member}"
-        end
+        info "GHTorrent: Updating project member #{repo} -> #{new_member}, created_at -> #{date(date_added)}"
       end
     end
 
@@ -768,7 +777,7 @@ module GHTorrent
         end
       end
 
-      not_saved.map{|x| ensure_commit_comment(user, repo, x['id'], nil)}
+      not_saved.map{|x| ensure_commit_comment(user, repo, x['id'])}
     end
 
     ##
@@ -779,7 +788,7 @@ module GHTorrent
     # [repo]  The repository containing the commit whose comment will be retrieved
     # [id]  The comment id to retrieve
     # [created_at]  The timestamp that the comment was made.
-    def ensure_commit_comment(user, repo, id, created_at)
+    def ensure_commit_comment(user, repo, id)
       stored_comment = @db[:commit_comments].first(:comment_id => id)
 
       if stored_comment.nil?
@@ -804,21 +813,15 @@ module GHTorrent
         )
         info "GHTorrent: Added commit comment #{commit[:sha]} -> #{user[:login]}"
       else
-        unless created_at.nil?
-          @db[:commit_comments].filter(:comment_id => id)\
-                               .update(:created_at => date(created_at))
-          info "GHTorrent: Updating comment #{user}/#{repo} -> #{id}"
-        end
         info "GHTorrent: Commit comment #{id} exists"
       end
       @db[:commit_comments].first(:comment_id => id)
     end
 
     ##
-    # Make sure that
+    # Make sure that all watchers exist for a repository
     def ensure_watchers(owner, repo)
       currepo = ensure_repo(owner, repo, true, true, false)
-      time = currepo[:created_at]
 
       if currepo.nil?
         warn "Could not retrieve watchers for #{owner}/#{repo}"
@@ -837,11 +840,11 @@ module GHTorrent
         else
           acc
         end
-      end.map { |x| ensure_watcher(owner, repo, x['login'], time) }
+      end.map { |x| ensure_watcher(owner, repo, x['login'], nil) }
     end
 
     ##
-    # Make sure that a project member exists in a project
+    # Make sure that a watcher/stargazer exists for a repository
     def ensure_watcher(owner, repo, watcher, date_added = nil)
       project = ensure_repo(owner, repo, false, false, false)
       new_watcher = ensure_user(watcher, false, false)
@@ -852,11 +855,15 @@ module GHTorrent
       end
 
       watchers = @db[:watchers]
-      memb_exist = watchers.first(:user_id => new_watcher[:id],
-                                  :repo_id => project[:id])
+      watcher_exist = watchers.first(:user_id => new_watcher[:id],
+                                     :repo_id => project[:id])
 
-      if memb_exist.nil?
-        added = if date_added.nil? then Time.now else date_added end
+      if watcher_exist.nil?
+        added = if date_added.nil?
+                  max(project[:created_at], new_watcher[:created_at])
+                else
+                  date_added
+                end
         retrieved = retrieve_watcher(owner, repo, watcher)
 
         if retrieved.nil?
@@ -873,13 +880,17 @@ module GHTorrent
         info "GHTorrent: Added watcher #{owner}/#{repo} -> #{watcher}"
       else
         debug "GHTorrent: Watcher #{owner}/#{repo} -> #{watcher} exists"
-        unless date_added.nil?
-          watchers.filter(:user_id => new_watcher[:id],
-                          :repo_id => project[:id])\
-                  .update(:created_at => date(date_added))
-          info "GHTorrent: Updating watcher #{owner}/#{repo} -> #{watcher}"
-        end
       end
+
+      unless date_added.nil?
+        watchers.filter(:user_id => new_watcher[:id],
+                        :repo_id => project[:id])\
+                  .update(:created_at => date(date_added))
+        info "GHTorrent: Updating watcher #{owner}/#{repo} -> #{watcher}, created_at -> #{date_added}"
+      end
+
+      watchers.first(:user_id => new_watcher[:id],
+                     :repo_id => project[:id])
     end
 
     ##
@@ -1035,15 +1046,14 @@ module GHTorrent
                        state) unless state.nil?
 
       ensure_pull_request_commits(owner, repo, pullreq_id) if commits
-      ensure_pullreq_comments(owner, repo, pullreq_id, created_at) if comments
+      ensure_pullreq_comments(owner, repo, pullreq_id) if comments
 
       pulls_reqs.first(:base_repo_id => project[:id],
                        :pullreq_id => pullreq_id)
     end
 
-    def ensure_pullreq_comments(owner, repo, pullreq_id, created_at)
+    def ensure_pullreq_comments(owner, repo, pullreq_id)
       currepo = ensure_repo(owner, repo, true, true, false)
-      time = if created_at.nil? then currepo[:created_at] else Time.now() end
 
       if currepo.nil?
         warn "GHTorrent: Could not find repository #{owner}/#{repo}"
@@ -1066,11 +1076,11 @@ module GHTorrent
           acc
         end
       end.map { |x|
-        ensure_pullreq_comment(owner, repo, pullreq_id, x['id'], time)
+        ensure_pullreq_comment(owner, repo, pullreq_id, x['id'])
       }
     end
 
-    def ensure_pullreq_comment(owner, repo, pullreq_id, comment_id, created_at)
+    def ensure_pullreq_comment(owner, repo, pullreq_id, comment_id)
       pull_req = ensure_pull_request(owner, repo, pullreq_id, false, true)
 
       if pull_req.nil?
@@ -1172,7 +1182,7 @@ module GHTorrent
 
     ##
     # Make sure that a fork is retrieved for a project
-    def ensure_fork(owner, repo, fork_id, date_added = nil)
+    def ensure_fork(owner, repo, fork_id)
 
       forks = @db[:forks]
       forked = ensure_repo(owner, repo, false, false, false)
@@ -1180,7 +1190,6 @@ module GHTorrent
 
       if fork_exists.nil?
         retrieved = retrieve_fork(owner, repo, fork_id)
-        added = if date_added.nil? then retrieved['created_at'] else date_added end
 
         if retrieved.nil?
           warn "GHTorrent: Fork #{fork_id} does not exist for #{owner}/#{repo}"
@@ -1204,17 +1213,13 @@ module GHTorrent
         forks.insert(:forked_project_id => fork[:id],
                      :forked_from_id => forked[:id],
                      :fork_id => fork_id,
-                     :created_at => added,
+                     :created_at => retrieved['created_at'],
                      :ext_ref_id => retrieved[@ext_uniq])
         info "GHTorrent: Added #{forked_repo_owner}/#{forked_repo_name} as fork of  #{owner}/#{repo}"
       else
         debug "GHTorrent: Fork #{fork_id} exists as fork of #{owner}/#{repo}"
-        unless date_added.nil?
-          forks.filter(:fork_id => fork_id)\
-               .update(:created_at => date(date_added))
-          debug "GHTorrent: Updating fork #{owner}/#{repo} (#{fork_id})"
-        end
       end
+      forks.first(:fork_id => fork_id)
     end
 
     ##
@@ -1295,7 +1300,6 @@ module GHTorrent
     # Retrieve and process all events for an issue
     def ensure_issue_events(owner, repo, issue_id)
       currepo = ensure_repo(owner, repo, true, true, false)
-      #time = if created_at.nil? then currepo[:created_at] else Time.now() end
 
       if currepo.nil?
         warn "GHTorrent: Could not find repository #{owner}/#{repo}"
@@ -1552,6 +1556,15 @@ module GHTorrent
       email =~ /^[a-zA-Z][\w\.-]*[a-zA-Z0-9]@[a-zA-Z0-9][\w\.-]*[a-zA-Z0-9]\.[a-zA-Z][a-zA-Z\.]*[a-zA-Z]$/
     end
   end
+
+  def max(a, b)
+    if a >= b
+      a
+    else
+      b
+    end
+  end
+
 end
 
 # vim: set sta sts=2 shiftwidth=2 sw=2 et ai :
