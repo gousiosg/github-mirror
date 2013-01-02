@@ -104,10 +104,10 @@ class GHTDataRetrieval < GHTorrent::Command
   end
 
   def handlers
-    #%w(PushEvent WatchEvent FollowEvent MemberEvent
-    #    CommitCommentEvent PullRequestEvent ForkEvent
-    #    PullRequestReviewCommentEvent IssuesEvent IssueCommentEvent)
-    %w(PullRequestEvent)
+    %w(PushEvent WatchEvent FollowEvent MemberEvent
+        CommitCommentEvent PullRequestEvent ForkEvent
+        PullRequestReviewCommentEvent IssuesEvent IssueCommentEvent)
+    #%w(PullRequestEvent)
   end
 
   def prepare_options(options)

@@ -25,7 +25,8 @@ module GHTorrent
 
     # A paged request. Used when the result can expand to more than one
     # result pages.
-    def paged_api_request(url, pages = -1, cache = true, last = nil)
+    def paged_api_request(url, pages = config(:mirror_history_pages_back),
+        cache = true, last = nil)
 
       url = if not url.include?("per_page")
               if url.include?("?")

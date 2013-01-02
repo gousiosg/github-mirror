@@ -46,6 +46,7 @@ An efficient way to get all data for a single repo
   end
 
   def go
+    self.settings = override_config(settings, :mirror_history_pages_back, -1)
     user_entry = ght.transaction{ght.ensure_user(ARGV[0], false, false)}
 
     if user_entry.nil?

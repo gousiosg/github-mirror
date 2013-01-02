@@ -23,7 +23,7 @@ module GHTorrent
         :mirror_pollevery => "mirror.pollevery",
         :mirror_persister => "mirror.persister",
         :mirror_commit_pages_new_repo => "mirror.commit_pages_new_repo",
-
+        :mirror_history_pages_back => "mirror.history_pages_back",
         :uniq_id => "mirror.uniq_id",
 
         :cache_mode      => "mirror.cache_mode",
