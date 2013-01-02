@@ -1555,16 +1555,15 @@ module GHTorrent
     def is_valid_email(email)
       email =~ /^[a-zA-Z][\w\.-]*[a-zA-Z0-9]@[a-zA-Z0-9][\w\.-]*[a-zA-Z0-9]\.[a-zA-Z][a-zA-Z\.]*[a-zA-Z]$/
     end
-  end
 
-  def max(a, b)
-    if a >= b
-      a
-    else
-      b
+    def max(a, b)
+      if a >= b
+        a
+      else
+        b
+      end
     end
   end
-
 end
 
 # vim: set sta sts=2 shiftwidth=2 sw=2 et ai :
