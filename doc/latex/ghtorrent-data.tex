@@ -3,6 +3,8 @@
 \usepackage{graphicx}
 \usepackage{subfigure}
 
+\newcommand{\todo}[1]{\textbf{TODO}\footnote{\textbf{TODO:} #1}}
+
 \begin{document}
 
 \title{The GHTorrent dataset and tool suite}
@@ -48,7 +50,7 @@ characteristics of the dataset to
 \begin{table*}
   
   \begin{center}
-    \includegraphics[scale=0.6]{ghtorrent-schema.pdf}
+    \includegraphics[scale=0.74]{ghtorrent-schema.pdf}
   \end{center}
   \centering
   \begin{tabular}{lp{25em}p{8em}l}
@@ -105,25 +107,49 @@ characteristics of the dataset to
     
   \end{tabular}
   \caption{Schema entities, their description, the corresponding raw data
-  entities and the number of raw data items.}
+  entities and the number of raw data items (Jan 2013).}
   \label{tab:entities}
 \end{table*}
 
 \section{Data Collection}
 
+The 
+
+To cope with the volume of data and the fact that Github imposed a request limit
+of 5.000 requests per hour,
+
+The data collection was designed from the beginning
+as a decentralized process. Decentralization is mediated using the worker queue
+model; a message producer sends messages to the appropriate queue and several
+workers process messages, perform the requests and store the results in a common
+database. There are two types of messages whose processing can be distributed:
+
 \begin{itemize}
 
-  \item \tt{retrieve-data}
+  \item Events: Those correspond to entries in the Github event stream. The
+    \texttt{retrieve-data} client uses them to update
 
-  \item \tt{retrieve-events}
+  \item Repository names (format \texttt{owner/repo}): The \texttt{retrieve-repo} tool
+    uses the information to retrieve all available information for a single
+    project repository. As getting the commits for a repository requires an
+    excessive amount of {\sc api} calls to be performed, an extra tool, 
+    \texttt{get-more-commits}, has been written to retrieve the full list of commits
+    on request. 
 
 \end{itemize}
 
-\section{Dataset statistics}
+Decentralization enables collaborating researchers to contribute to the data
+collection effort, by simply installing the GHTorrent command line client and
+configuring it to connect to the central repository databases. 
 
-\section{Limitations}
+\section{Research Opportunities}
 
-The 
+
+
+\section{Challenges and Limitations}
+
+From a repository mining prespecive, the GHTorrent dataset has the following
+limitations. 
 
 \begin{itemize}
 
@@ -143,30 +169,65 @@ The
     the GHTorrent project started its data collection.
 
   \item \emph{Issues and pull requests} Issues and pull requests are dual on
-    Github; for each 
+    Github; for each opened pull request, an issue is opened automatically, if
+    the project has enabled the issue tracker. Commits can also be attached to
+    issues to convert them to pull requests (albeit with external tools). This
+    duality has the following implications: 
 
-  \item Comments for \sf{pull\_requests} 
+    \begin{itemize}
 
-  \item \emph{Commit users:}
+      \item Discussion comments for a pull request need to be retrieved from
+        multiple sources, namely from {\sf commit\_comments} for code reviews,
+        from {\sf issue\_comments} if the pull request is also an issue and 
+        from {\sf pull\_request\_comments} if the issue tracker is not enabled
+        for a project.
+
+      \item There are two different status entities that need to be queried to
+        get the succession of events on a pull request.
+
+    \end{itemize}
+
+  \item \emph{Commit users:} Git allows users to setup  
 
   \item \emph{Pull requests merged outside Github:} Despite the fact that Github
     automates the generation and submission of patches among repositories
-    through pull requests, 
+    through pull requests, those need not be merged through the Github
+    interface. Indeed, several projects choose to track the discussion on pull
+    requests using Github's facilities while doing the actual merge using
+    {\sf git}. A researcher can observe this behaviour because an usually big
+    number of pull requests are closed without being reported as merged.
+    Unfortunatelly, there is no precise way to tell whether those pull requests
+    have been indeed merged, except by resolving to commit log mining
+    heuristics.
+
+  \item \emph{Trivial projects:} The majority of projects in Github are forks of
+    another project (\todo{Run query}). Of the remaining projects, several are
+    trivial, containing only a few commits, while many do not contain source
+    code (for example, Github pages repositories). To obtain a list of projects
+    worth investigating, the researcher should filter the remaining projects
+    for specific properties (for example, popularity, programming language etc).
 
   \item \emph{Some data may be missing:} 
     Mulfunctions in the mirroring system (software or network) can result in 
-    some parts of the data that can are missing. In principle, apart from
+    some parts of the data that are missing. In principle, apart from
     events, all missing data in GHTorrent can be restored (by replaying the
     event log or using the \texttt{ght-retrieve-repo} script) provided that the
     original data have not been deleted from Github. In the case of missing
     events, the current Github {\sc api} does not permit retrieving more than
     the 300 newest per repository. On busy projects, this is less than
-    a day's worth of event log.
+    a day's worth of event log. Known periods of missing events 
+
+  \item \emph{Issue tracking is open ended:} Repository mining for bug tracking
+    repositories is greatly enhanced, if records are concistent accross
+    projects. This is why most studies have been carried on Bugzilla data, which
+    offers a good default set of properties per bug and little opportunities to
+    customize the bug report further. On the other hand, Github's bug tracker
+    only requires a textual description to open a bug. Bug property annotations
+    (e.g. affected versions, severity levels) are delegated to project specific
+    labels. This means that in principle characteristics of bugs cannot be
+    examined uniformly across projects.
 
 \end{itemize}
-
-\section{Suitability}
-
 
 
 \section{Conclusions}
