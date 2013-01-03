@@ -68,7 +68,7 @@ PICTURES_SRC := $(EPSFILES_PDF) $(PLOT_PDFS)
 PICTURES_DEST := $(addprefix $(BUILD)/, $(notdir $(PICTURES_SRC) $(PDFFILES) $(PNGFILES))) 
 
 # Implicit rules for various file conversions
-.SUFFIXES: .eps .pdf .dat .dot
+.SUFFIXES: .eps .pdf .dat .dot .pic
 
 .dot.eps:
 	$(DOT) -Teps -o$@ $<
