@@ -24,7 +24,7 @@ Email: \{g.gousios,a.vandeursen\}@tudelft.nl}
   During the last few years, GitHub has emerged as a popular project hosting,
   mirroring and collaboration platform. GitHub provides an extensive {\sc rest
   api}, which enables researchers to retrieve high-quality, interconnected data.
-  The GHTorrent project has been collecting data from all public projects
+  The GHTorrent project has been collecting data for all public projects
   available on Github for more than a year. In this paper, we present the dataset
   details and construction process and outline the challenges and research
   opportunities emerging from it.
@@ -38,13 +38,13 @@ dataset, repository, GitHub
 \section{Introduction} During the recent years, Github has become the repository
 hosting site of choice for many Open Source Software ({\sc oss}) projects.
 Interestingly, Github provides a {\sc rest api} to its full data set, making it
-an attractive research target. To do research with the proposed dataset, we
-developed the GHTorrent dataset. The GHTorrent data collection scheme was first
-presented in~\cite{GS12}. Since this work, we fully implemented the data
-collection process, stabilized the data and metadata schema and developed a new
-service to collaboratively collect and query the data. In this paper, we present
-the finalized schema, we analyze the collection process and go through the
-challenges and limitations of working the dataset.
+an attractive research target. The GHTorrent project uses the Github {\sc api}
+to collect data and extract, archive and share queriable metadata. The
+GHTorrent project was first presented in~\cite{GS12}. Since this work, we fully
+implemented the data collection process, stabilized the data and metadata schema
+and developed a service to collaboratively collect and query the data. In
+this paper, we present the finalized schema, we analyze the collection process
+and go through the challenges and limitations of working with the dataset.
 
 \begin{table*}
   
@@ -110,6 +110,10 @@ challenges and limitations of working the dataset.
   \label{tab:entities}
 \end{table*}
 
+\section{The GHTorrent project}
+
+
+
 \section{Data Collection}
 
 The primary challenge that the data collection process has to overcome is the
@@ -122,7 +126,7 @@ dataset. GHTorrent was designed from the ground up to use caching excessively
 in various parts of the request cycle and also to be distributed. We briefly
 describe how GHTorrent employs those two mechanisms in the following paragraphs.
 
-Using the Github {\sc api}, it is possible to perform two types of queries:
+The Github {\sc api} supports two types of queries:
 
 \begin{itemize}
 
@@ -130,7 +134,7 @@ Using the Github {\sc api}, it is possible to perform two types of queries:
     {\sc rest} architecture mandates, the {\sc url} identifying a static
     resource remains constant after the resource has been initialized. 
 
-  \item Range queries retrieve a collection of resources, usually in relation
+  \item Range queries retrieve a list of resources, usually related
     to a given resource. For example, the query \texttt{/user/followers} 
     retrieves the followers for a user, while the query
     \texttt{/user/repo/commits} retrieves the commits for a repository. Paging
@@ -151,42 +155,6 @@ results per entity, we use a Mongo{\sc db} database, which offers the added
 benefit of enabling querying on the raw data. Caching is also used at the {\sc
 http} request layer; GHTorrent automatically serializes {\sc http} responses to
 disk. This helps avoiding retrieving again older pages in range queries.
-
-The data collection was designed from the beginning as a decentralized process.
-Decentralization is mediated using the worker queue model; a message producer
-sends messages to the appropriate queue and several workers process messages,
-perform the requests and store the results in a common database. There are two
-types of messages whose processing can be distributed:
-
-\begin{itemize}
-
-  \item Events: Those correspond to entries in the Github event stream. The
-    \texttt{retrieve-data} client uses them to update
-
-  \item Repository names (format \texttt{owner/repo}): The
-    \texttt{retrieve-repo} tool uses the information to retrieve all available
-    information for a single project repository. As getting the commits for a
-    repository requires an excessive amount of {\sc api} calls to be performed,
-    an extra tool, \texttt{get-more-commits}, has been written to retrieve the
-    full list of commits on request. 
-
-\end{itemize}
-
-Decentralization enables collaborating researchers to contribute to the data
-collection effort, by simply installing the GHTorrent command line client and
-configuring it to connect to the central repository databases. In exchange
-for data collection resources, the project offers direct access to the project
-databases.
-
-Apart from direct access to the data, the project also distributes dumps of the
-collected data, in both raw and relational formats. The raw data dumps are
-incremental, while the relational dumps are full database dumps. Depending on
-the use case, the relational dump might be enough for further processing.  The
-dumps are distributed using the BitTorrent protocol. Furthermore, a query
-interface allows third party users to directly query an archived version of the
-relational database.
-
-\subsection{The mirroring algorithm}
 
 \begin{figure}
   \begin{center}
@@ -210,6 +178,38 @@ therefore cachable. Figure~\ref{fig:mirror} presents an example of the retrieval
 of a pull request $id$ for a project $p$.  The steps of retrieving the
 dependencies are presented in short for brevity.
 
+The data collection was designed from the beginning as a decentralized process.
+Decentralization is mediated using the worker queue model; a message producer
+sends messages to the appropriate queue and several workers process messages,
+perform the requests and store the results in a common database. There are two
+types of messages whose processing can be distributed:
+
+\begin{itemize}
+
+  \item Events: Those correspond to entries in the Github event stream. The
+    \texttt{retrieve-data} client uses them to update
+
+  \item Repository names (format \texttt{owner/repo}): The
+    \texttt{retrieve-repo} tool uses the information to retrieve all available
+    information for a single project repository. As getting the commits for a
+    repository requires an excessive amount of {\sc api} calls to be performed,
+    an extra tool, \texttt{get-more-commits}, has been written to retrieve the
+    full list of commits on request. 
+
+\end{itemize}
+
+Decentralization enables collaborating researchers to contribute to the data
+collection effort, by simply installing the GHTorrent command line client and
+configuring it to connect to the central repository databases. In exchange for
+data collection resources, the project offers direct access to the project
+databases. Apart from direct access to the data, the project also distributes
+dumps of the collected data, in both raw and relational formats. The raw data
+dumps are incremental, while the relational dumps are full database dumps.
+Depending on the use case, the relational dump might be enough for further
+processing.  The dumps are distributed using the BitTorrent protocol.
+Furthermore, a query interface allows third party users to directly query an
+archived version of the relational database.
+
 \section{Challenges and Limitations}
 
 From a repository mining perspective, the GHTorrent dataset has the following
@@ -220,7 +220,7 @@ limitations.
     that the Github event stream reports additions of entities, it does
     not report deletions. This means that the information in the GHTorrent 
     database cannot be updated when a user or a repository has been marked
-    as deleted. This can have several consequences 
+    as deleted.
 
 \subsection{Important entities are not timestamped}
 \label{chal:timestamp}
@@ -230,31 +230,22 @@ Github does not report
     repository at a specific timestamp. As a workaround, GHTorrent uses the
     timestamp of the event that is generated when a follow/watch action is
     performed, but this is only limited to the events that took place since
-    the GHTorrent project started its data collection.
+    the GHTorrent project started collecting data.
 
 
 \subsection{Issues and pull requests} Issues and pull requests are dual on
-    Github; for each opened pull request, an issue is opened automatically, if
-    the project has enabled the issue tracker. Commits can also be attached to
-    issues to convert them to pull requests (albeit with external tools). This
-    duality has the following implications: 
+Github; for each opened pull request, an issue is opened automatically.  Commits
+can also be attached to issues to convert them to pull requests (albeit with
+external tools). As a result, discussion comments for a pull request need to be
+retrieved from multiple sources, namely from {\sf commit\_comments} for code
+reviews, from {\sf issue\_comments} if the pull request is also an issue and
+from {\sf pull\_request\_comments} if the issue tracker is not enabled for a
+project. Moreover, there are two different status entities that need to be
+queried to get the succession of events on a pull request.
 
-    \begin{itemize}
-
-      \item Discussion comments for a pull request need to be retrieved from
-        multiple sources, namely from {\sf commit\_comments} for code reviews,
-        from {\sf issue\_comments} if the pull request is also an issue and 
-        from {\sf pull\_request\_comments} if the issue tracker is not enabled
-        for a project.
-
-      \item There are two different status entities that need to be queried to
-        get the succession of events on a pull request.
-
-    \end{itemize}
-
-\subsection{Commit users:} Git allows users to setup custom user names as
+\subsection{Commit users} Git allows users to setup custom user names as
     their commit names. The prevailing convention is that users use their email
-    as their commit names; this is not a strict requirement thought. By matching
+    as their commit names; this is not a strict requirement though. By matching
     the commit email to the email the user has registered with at Github, it is
     possible for Github to report the same username across all entities
     (commits, issues, wiki entries, pull requests, comments etc) affected by a
@@ -267,7 +258,7 @@ Github does not report
     the fake entry with the normal entry. Despite this, there are several
     thousand fake users in the current dataset~\todo{run query}.
     
-\subsection{Pull requests merged outside Github} Despite the fact that Github
+\subsection{Pull requests merged outside Github} Although Github
     automates the generation and submission of patches among repositories
     through pull requests, those need not be merged through the Github
     interface. Indeed, several projects choose to track the discussion on pull
@@ -278,13 +269,13 @@ Github does not report
     have been indeed merged, except by resolving to commit log mining
     heuristics.
 
-\subsection{Trivial projects} The majority of projects in Github are forks of
-    another project (\todo{Run query}). Of the remaining projects, several are
-    trivial, containing only a few commits, while many do not contain source
-    code (for example, Github pages repositories). To obtain a list of projects
-    worth investigating, the researcher should filter the remaining projects
-    for specific properties (for example, popularity, programming language etc).
-
+%\subsection{Trivial projects} The majority of projects in Github are forks of
+%    another project (\todo{Run query}). Of the remaining projects, several are
+%    trivial, containing only a few commits, while many do not contain source
+%    code (for example, Github pages repositories). To obtain a list of projects
+%    worth investigating, the researcher should filter the remaining projects
+%    for specific properties (for example, popularity, programming language etc).
+%
 \subsection{Issue tracking is open ended} Repository mining for bug tracking
     repositories is greatly enhanced, if records are consistent across
     projects. This is why most studies have been carried on Bugzilla data, which
@@ -292,16 +283,16 @@ Github does not report
     customize the bug report further. On the other hand, Github's bug tracker
     only requires a textual description to open a bug. Bug property annotations
     (e.g. affected versions, severity levels) are delegated to project specific
-    labels. This means that in principle characteristics of bugs cannot be
+    labels. This means that characteristics of bugs cannot be
     examined uniformly across projects.
 
-\subsection{Changing data formats} As Github is in active development, the
-provided data formats and {\sc api} endpointss are moving targets. During the
-lifetime of the project, the commit entry schema changed twice, while the
-\textsf{watchers} entity has been renamed to \textsf{stargazers}. We try to
-follow the developments that affect the generation of our relational schema
-only; so far, no modification was necessary.
-
+%\subsection{Changing data formats} As Github is in active development, the
+%provided data formats and {\sc api} endpointss are moving targets. During the
+%lifetime of the project, the commit entry schema changed twice, while the
+%\textsf{watchers} entity has been renamed to \textsf{stargazers}. We try to
+%follow the developments that affect the generation of our relational schema
+%only; so far, no modification was necessary.
+%
 \subsection{Some events may be missing} Malfunctions in the mirroring system
     (software or network) can result in some parts of the data that are missing.
     In principle, apart from events, all missing data in GHTorrent can be
@@ -321,13 +312,13 @@ The GHTorrent dataset is a rich source for both software engineering and
 big data research; we outline some research opportunities emerging from
 this data set below:
 
-\subsubsection{Software Ecosystems} In Github, project ecosystems are created
+\subsubsection{Software ecosystems} In Github, project ecosystems are created
 through forking, sharing of developers and dependency based linking of
 components. The GHTorrent dataset has rich, timestamped information about 
 projects and their forks, which can be trivially augmented with library
 dependency information by automatically browsing related projects.
 
-\subsubsection{Network Analysis} Several networks are being formed on
+\subsubsection{Network analysis} Several networks are being formed on
 Github, for example project networks through forks, developer networks
 through participation to common projects, social networks through following
 other users and watching repositories. Network analysis can either
@@ -335,10 +326,10 @@ be targeted, for example exploring project community formation dynamics, or
 abstract by investigating the structure and stability of formed networks to
 create predictors of future behavior network behavior.
 
-\subsubsection{Collaboration and Promotion} Researchers often ask questions
+\subsubsection{Collaboration and promotion} Researchers often ask questions
 regarding the collaboration tactics of developers and membership promotion
-strategies in {\sc oss} project organizations.  With the GHTorrent dataset,
-researchers can use timestamped data (albeit since the begining of the GHTorrent
+strategies in {\sc oss} project organizations.  The GHTorrent dataset,
+provides timestamped data (albeit since the beginning of the GHTorrent
 project only, see Challenge~\ref{chal:timestamp} above) to investigate
 how small contributions (known as ``drive-by commits'') and project
 forking leads to developer and project collaboration and promotion of an
@@ -349,8 +340,8 @@ software engineering research is the lack of replications or the
 mediocre replicability of existing works. The GHTorrent dataset offers
 an opportunity to replicate existing work and scale research to many
 projects, as the dataset is homogenized across several thousand projects,
-while it is lacking common problems such as that of developer identities
-across data sources.
+which can be queried for specific characteristics (e.g. programming language,
+team size, presence of external collaborators etc).
 
 \subsubsection{An extensible dataset} While GHTorrent is covering all 
  public Github entities, it does not include advanced ways of
@@ -370,7 +361,7 @@ the mirroring process and outlined the limitations of the current data.  The
 provided dataset has a strong potential for providing interesting insights in
 areas including but not limited to community dynamics, global software
 engineering and distributed collaboration. We are actively seeking contributions
-that will enhance the collected data’s utility to the research community. 
+that will enhance the collected dataset's utility to the research community. 
 More information can be found at \todo{Insert URL of homepage}
 
 The project source code can be obtained at \url{https://github.com/gousiosg/github-mirror}
