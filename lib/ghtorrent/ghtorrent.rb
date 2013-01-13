@@ -24,6 +24,8 @@ module GHTorrent
 
     # Get a connection to the database
     def get_db
+      return @db unless @db.nil?
+
       Sequel.single_threaded = true
       @db = Sequel.connect(config(:sql_url), :encoding => 'utf8')
       #@db.loggers << @logger
@@ -1199,7 +1201,8 @@ module GHTorrent
         forked_repo_owner = retrieved['full_name'].split(/\//)[0]
         forked_repo_name = retrieved['full_name'].split(/\//)[1]
 
-        fork = ensure_repo(forked_repo_owner, forked_repo_name)
+        fork = ensure_repo(forked_repo_owner, forked_repo_name, false, false,
+                           false)
 
         if forked.nil? or fork.nil?
           warn "Could not add fork #{fork_id}"
