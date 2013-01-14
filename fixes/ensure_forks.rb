@@ -27,9 +27,8 @@ class GHTFixForks < GHTorrent::Command
   def go
     @ght ||= GHTorrent::Mirror.new(settings)
     col = persister.get_underlying_connection.collection(:repos.to_s)
-    fixed = 0
-    all = 0
-    col.find({"source" => {"$exists"=>1}}, {:timeout => false}) do |cursor|
+    fixed = tried = all = 0
+    col.find({"source" => {"$exists" => 1}}, {:timeout => false}) do |cursor|
       cursor.each do |x|
         all += 1
         repo = x['name']
@@ -37,27 +36,37 @@ class GHTFixForks < GHTorrent::Command
         source_owner = x['source']['owner']['login']
         source_repo = x['source']['name']
 
-        @ght.transaction do
-          forked = @ght.ensure_repo(owner, repo, false, false, false)
+        begin
+          @ght.transaction do
+            fork = @ght.ensure_repo(owner, repo, false, false, false)
 
-          source = @ght.ensure_repo(source_owner, source_repo, false, false, false)
+            source = @ght.ensure_repo(source_owner, source_repo, false, false, false)
 
-          if source.nil?
-            puts("Source repo #{source_owner}/#{source_repo} does not exist")
-            next
+            if source.nil?
+              puts("Source repo #{source_owner}/#{source_repo} does not exist")
+              next
+            end
+
+            fork_exists = @ght.get_db[:forks].first(:forked_project_id => fork[:id],
+                                                    :forked_from_id => source[:id])
+            if fork_exists.nil?
+              @ght.ensure_forks(source_owner, source_repo)
+              tried += 1
+              fork_exists = @ght.get_db[:forks].first(:forked_project_id => fork[:id],
+                                                      :forked_from_id => source[:id])
+              if fork_exists.nil?
+                puts "Could not find fork #{owner}/#{repo} of #{source_owner}/#{source_repo}"
+              else
+                puts "Added fork #{owner}/#{repo} of #{source_owner}/#{source_repo}"
+                fixed += 1
+              end
+            end
+            puts "Fixed #{fixed}/#{tried} (examined: #{all}) forks"
           end
-
-          fork_exists = @ght.get_db[:forks].first(:forked_project_id => forked[:id],
-                                                  :forked_from_id => source[:id]) 
-          if fork_exists.nil?
-            #@ght.get_db[:forks].insert
-            @ght.ensure_forks(source_owner, source_repo)
-            fixed += 1
-            puts "Added fork #{owner}/#{repo} of #{source_owner}/#{source_repo}"
-          end
-          puts "Fixed #{fixed}/#{all} forks"
+        rescue Exception => e
+          puts "Exception: #{e.message}"
         end
-      end 
+      end
     end
   end
 end
