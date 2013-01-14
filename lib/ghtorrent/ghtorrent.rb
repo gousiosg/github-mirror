@@ -181,7 +181,7 @@ module GHTorrent
     # Make sure a commit exists
     #
     def ensure_commit(repo, sha, user, comments = true)
-      ensure_repo(user, repo)
+      ensure_repo(user, repo, false, false, false, false)
       c = retrieve_commit(repo, sha, user)
 
       if c.nil?
@@ -594,7 +594,8 @@ module GHTorrent
     # == Returns:
     #  If the repo can be retrieved, it is returned as a Hash. Otherwise,
     #  the result is nil
-    def ensure_repo(user, repo, commits = true, project_members = true, watchers = true)
+    def ensure_repo(user, repo, commits = true, project_members = true,
+                    watchers = true, forks = true)
 
       repos = @db[:projects]
       curuser = ensure_user(user, false, false)
@@ -626,6 +627,7 @@ module GHTorrent
         ensure_commits(user, repo) if commits
         ensure_project_members(user, repo) if project_members
         ensure_watchers(user, repo) if watchers
+        ensure_forks(user, repo) if forks
         repos.first(:owner_id => curuser[:id], :name => repo)
       else
         debug "GHTorrent: Repo #{user}/#{repo} exists"
@@ -636,7 +638,7 @@ module GHTorrent
     ##
     # Make sure that a project has all the registered members defined
     def ensure_project_members(user, repo)
-      currepo = ensure_repo(user, repo, true, false, true)
+      currepo = ensure_repo(user, repo, false, false, false, false)
       time = currepo[:created_at]
 
       project_members = @db.from(:project_members, :users).\
@@ -656,7 +658,7 @@ module GHTorrent
     # Make sure that a project member exists in a project
     def ensure_project_member(owner, repo, new_member, date_added)
       pr_members = @db[:project_members]
-      project = ensure_repo(owner, repo, true, false, true)
+      project = ensure_repo(owner, repo, false, false, false, false)
       new_user = ensure_user(new_member, false, false)
 
       if project.nil? or new_user.nil?
@@ -823,7 +825,7 @@ module GHTorrent
     ##
     # Make sure that all watchers exist for a repository
     def ensure_watchers(owner, repo)
-      currepo = ensure_repo(owner, repo, true, true, false)
+      currepo = ensure_repo(owner, repo, false, false, false, false)
 
       if currepo.nil?
         warn "Could not retrieve watchers for #{owner}/#{repo}"
@@ -848,7 +850,7 @@ module GHTorrent
     ##
     # Make sure that a watcher/stargazer exists for a repository
     def ensure_watcher(owner, repo, watcher, date_added = nil)
-      project = ensure_repo(owner, repo, false, false, false)
+      project = ensure_repo(owner, repo, false, false, false, false)
       new_watcher = ensure_user(watcher, false, false)
 
       if new_watcher.nil? or project.nil?
@@ -898,7 +900,7 @@ module GHTorrent
     ##
     # Process all pull requests
     def ensure_pull_requests(owner, repo)
-      currepo = ensure_repo(owner, repo, false, false, false)
+      currepo = ensure_repo(owner, repo, false, false, false, false)
       if currepo.nil?
         warn "Could not retrieve pull requests from #{owner}/#{repo}"
         return
@@ -922,7 +924,7 @@ module GHTorrent
                             state = nil, created_at = nil)
       pulls_reqs = @db[:pull_requests]
 
-      project = ensure_repo(owner, repo, false, false, false)
+      project = ensure_repo(owner, repo, false, false, false, false)
 
       if project.nil?
         return
@@ -986,7 +988,7 @@ module GHTorrent
 
       base_repo = ensure_repo(retrieved['base']['repo']['owner']['login'],
                               retrieved['base']['repo']['name'],
-                              false, false, false)
+                              false, false, false, false)
 
       base_commit = ensure_commit(retrieved['base']['repo']['name'],
                                   retrieved['base']['sha'],
@@ -1002,7 +1004,7 @@ module GHTorrent
         head_repo = if has_head_repo(retrieved)
                       ensure_repo(retrieved['head']['repo']['owner']['login'],
                                   retrieved['head']['repo']['name'],
-                                  false, false, false)
+                                  false, false, false, false)
                     end
 
         head_commit = if not head_repo.nil?
@@ -1055,7 +1057,7 @@ module GHTorrent
     end
 
     def ensure_pullreq_comments(owner, repo, pullreq_id)
-      currepo = ensure_repo(owner, repo, true, true, false)
+      currepo = ensure_repo(owner, repo, false, false, false, false)
 
       if currepo.nil?
         warn "GHTorrent: Could not find repository #{owner}/#{repo}"
@@ -1157,7 +1159,7 @@ module GHTorrent
     # [owner]  The user to which the project belongs
     # [repo]  The repository/project to find forks for
     def ensure_forks(owner, repo)
-      currepo = ensure_repo(owner, repo, false, false, false)
+      currepo = ensure_repo(owner, repo, false, false, false, false)
 
       if currepo.nil?
         warn "Could not retrieve forks for #{owner}/#{repo}"
@@ -1187,7 +1189,7 @@ module GHTorrent
     def ensure_fork(owner, repo, fork_id)
 
       forks = @db[:forks]
-      forked = ensure_repo(owner, repo, false, false, false)
+      forked = ensure_repo(owner, repo, false, false, false, false)
       fork_exists = forks.first(:fork_id => fork_id)
 
       if fork_exists.nil?
@@ -1202,7 +1204,7 @@ module GHTorrent
         forked_repo_name = retrieved['full_name'].split(/\//)[1]
 
         fork = ensure_repo(forked_repo_owner, forked_repo_name, false, false,
-                           false)
+                           false, false)
 
         if forked.nil? or fork.nil?
           warn "Could not add fork #{fork_id}"
@@ -1228,7 +1230,7 @@ module GHTorrent
     ##
     # Make sure all issues exist for a project
     def ensure_issues(owner, repo)
-      currepo = ensure_repo(owner, repo, false, false, false)
+      currepo = ensure_repo(owner, repo, false, false, false, false)
       if currepo.nil?
         warn "GHTorrent: Could not retrieve issues for #{owner}/#{repo}"
         return
@@ -1250,7 +1252,7 @@ module GHTorrent
     def ensure_issue(owner, repo, issue_id, events = true, comments = true)
 
       issues = @db[:issues]
-      repository = ensure_repo(owner, repo, false, false, false)
+      repository = ensure_repo(owner, repo, false, false, false, false)
 
       if repo.nil?
         warn "Cannot find repo #{owner}/#{repo}"
@@ -1302,7 +1304,7 @@ module GHTorrent
     ##
     # Retrieve and process all events for an issue
     def ensure_issue_events(owner, repo, issue_id)
-      currepo = ensure_repo(owner, repo, true, true, false)
+      currepo = ensure_repo(owner, repo, false, false, false, false)
 
       if currepo.nil?
         warn "GHTorrent: Could not find repository #{owner}/#{repo}"
@@ -1406,7 +1408,7 @@ module GHTorrent
     ##
     # Retrieve and process all comments for an issue
     def ensure_issue_comments(owner, repo, issue_id)
-      currepo = ensure_repo(owner, repo, true, true, false)
+      currepo = ensure_repo(owner, repo, false, false, false, false)
 
       if currepo.nil?
         warn "GHTorrent: Could not find repository #{owner}/#{repo}"
