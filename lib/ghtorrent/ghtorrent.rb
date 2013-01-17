@@ -616,14 +616,25 @@ module GHTorrent
         end
 
         repos.insert(:url => r['url'],
-                     :owner_id => @db[:users].filter(:login => user).first[:id],
+                     :owner_id => curuser[:id],
                      :name => r['name'],
                      :description => r['description'],
                      :language => r['language'],
                      :created_at => date(r['created_at']),
                      :ext_ref_id => r[@ext_uniq])
 
-        info "GHTorrent: New repo #{repo}"
+        unless r['parent'].nil?
+          parent_owner = r['parent']['owner']['login']
+          parent_repo = r['parent']['name']
+
+          parent = ensure_repo(parent_owner, parent_repo, false, false, false, false)
+
+          repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => parent[:id])
+
+          info "Repo #{user}/#{repo} is a fork from #{parent_owner}/#{parent_repo}"
+        end
+
+        info "GHTorrent: New repo #{user}/#{repo}"
         ensure_commits(user, repo) if commits
         ensure_project_members(user, repo) if project_members
         ensure_watchers(user, repo) if watchers
@@ -1166,10 +1177,9 @@ module GHTorrent
         return
       end
 
-      existing_forks = @db.from(:forks, :projects, :users).\
-          where(:forks__forked_project_id => :projects__id). \
+      existing_forks = @db.from(:projects, :users).\
           where(:users__id => :projects__owner_id). \
-          where(:forks__forked_from_id => currepo[:id]).select(:projects__name, :login).all
+          where(:projects__forked_from => currepo[:id]).select(:projects__name, :login).all
 
       retrieve_forks(owner, repo).reduce([]) do |acc, x|
         if existing_forks.find {|y|
@@ -1187,44 +1197,23 @@ module GHTorrent
     ##
     # Make sure that a fork is retrieved for a project
     def ensure_fork(owner, repo, fork_id)
+      fork = retrieve_fork(owner, repo, fork_id)
 
-      forks = @db[:forks]
-      forked = ensure_repo(owner, repo, false, false, false, false)
-      fork_exists = forks.first(:fork_id => fork_id)
-
-      if fork_exists.nil?
-        retrieved = retrieve_fork(owner, repo, fork_id)
-
-        if retrieved.nil?
-          warn "GHTorrent: Fork #{fork_id} does not exist for #{owner}/#{repo}"
-          return
-        end
-
-        forked_repo_owner = retrieved['full_name'].split(/\//)[0]
-        forked_repo_name = retrieved['full_name'].split(/\//)[1]
-
-        fork = ensure_repo(forked_repo_owner, forked_repo_name, false, false,
-                           false, false)
-
-        if forked.nil? or fork.nil?
-          warn "Could not add fork #{fork_id}"
-          return
-        end
-
-        # This can happen due to borked fork_id params
-        return unless forks.first(:forked_project_id => fork[:id],
-                                  :forked_from_id => forked[:id]).nil?
-
-        forks.insert(:forked_project_id => fork[:id],
-                     :forked_from_id => forked[:id],
-                     :fork_id => fork_id,
-                     :created_at => retrieved['created_at'],
-                     :ext_ref_id => retrieved[@ext_uniq])
-        info "GHTorrent: Added #{forked_repo_owner}/#{forked_repo_name} as fork of  #{owner}/#{repo}"
-      else
-        debug "GHTorrent: Fork #{fork_id} exists as fork of #{owner}/#{repo}"
+      if fork.nil?
+        warn "GHTorrent: Fork #{fork_id} does not exist for #{owner}/#{repo}"
+        return
       end
-      forks.first(:fork_id => fork_id)
+
+      fork_owner = fork['full_name'].split(/\//)[0]
+      fork_name = fork['full_name'].split(/\//)[1]
+
+      r = ensure_repo(fork_owner, fork_name, false, false, false, false)
+
+      if r.nil?
+        warn "GHTorrent: Failed to add #{fork_owner}/#{fork_name} as fork of  #{owner}/#{repo}"
+      else
+        info "GHTorrent: Added #{fork_owner}/#{fork_name} as fork of  #{owner}/#{repo}"
+      end
     end
 
     ##

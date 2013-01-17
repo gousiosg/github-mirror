@@ -97,9 +97,9 @@ class TransactedGHTorrent < GHTorrent::Mirror
     end
   end
 
-  def ensure_fork(owner, repo, fork_id, date_added = nil)
+  def ensure_fork(owner, repo, fork_id)
     check_transaction do
-      super(owner, repo, fork_id, date_added)
+      super(owner, repo, fork_id)
     end
   end
 
