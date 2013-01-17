@@ -39,7 +39,6 @@ class GHTFixForks < GHTorrent::Command
         begin
           @ght.transaction do
             fork = @ght.ensure_repo(owner, repo, false, false, false)
-
             parent = @ght.ensure_repo(parent_owner, parent_repo, false, false, false)
 
             if parent.nil?
@@ -47,26 +46,20 @@ class GHTFixForks < GHTorrent::Command
               next
             end
 
-            fork_exists = @ght.get_db[:forks].first(:forked_project_id => fork[:id],
-                                                    :forked_from_id => parent[:id])
-            if fork_exists.nil?
-              @ght.ensure_forks(parent_owner, parent_repo)
+            if fork[:forked_from].nil? or fork[:forked_from] != parent[:id]
               tried += 1
-              fork_exists = @ght.get_db[:forks].first(:forked_project_id => fork[:id],
-                                                      :forked_from_id => parent[:id])
-              if fork_exists.nil?
-                puts "Could not find fork #{owner}/#{repo} of #{parent_owner}/#{parent_repo}"
-              else
-                puts "Added fork #{owner}/#{repo} of #{parent_owner}/#{parent_repo}"
-                fixed += 1
-              end
+              @ght.get_db[:projects].filter(:id => fork[:id]).update(:forked_from => parent[:id])
+              fixed += 1
+              puts "Added #{owner}/#{repo} as fork of #{parent_owner}/#{parent_repo}"
             else
               puts "Fork #{owner}/#{repo} of #{parent_owner}/#{parent_repo} exists"
             end
-            puts "Fixed #{fixed}/#{tried} (examined: #{all}) forks"
+
           end
         rescue Exception => e
           puts "Exception: #{e.message}"
+        ensure
+          puts "Fixed #{fixed}/#{tried} (examined: #{all}) forks"
         end
       end
     end
