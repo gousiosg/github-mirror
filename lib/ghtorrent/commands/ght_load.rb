@@ -76,9 +76,6 @@ Loads object ids from a collection to a queue for further processing.
   end
 
   def go
-    # Message tags await publisher ack
-    awaiting_ack = SortedSet.new
-
     # Num events read
     num_read = 0
 
@@ -95,8 +92,8 @@ Loads object ids from a collection to a queue for further processing.
 
     what = case
              when options[:filter].is_a?(Array)
-               options[:filter].reduce({}) { |acc,x|
-                 (k,r) = x.split(/=/)
+               options[:filter].reduce({}) { |acc, x|
+                 (k, r) = x.split(/=/)
                  acc[k] = Regexp.new(r)
                  acc
                }
@@ -117,95 +114,41 @@ Loads object ids from a collection to a queue for further processing.
       exchange = channel.topic(config(:amqp_exchange),
                                :durable => true, :auto_delete => false)
 
-      # What to do when the user hits Ctrl+c
-      show_stopper = Proc.new {
-        connection.close { EventMachine.stop }
-      }
-
-      # Read next 1000 items and queue them
-      read_and_publish = Proc.new {
-
-        to_read = if options.number == -1
-                    1000
-                  else
-                    if options.number - num_read - 1 <= 0
-                      -1
-                    else
-                      options.number - num_read - 1
-                    end
+      process_event = Proc.new do |e|
+        payload = read_value(e, col_info[collection][:payload])
+        payload = if payload.class == BSON::OrderedHash
+                    payload.delete "_id" # Inserted by MongoDB on event insert
+                    payload.to_json
                   end
 
-        read = 0
+        unq = read_value(e, col_info[collection][:unq])
+        if unq.class != String or unq.nil? then
+          throw Exception.new("Unique value can only be a String")
+        end
+
+        key = col_info[collection][:routekey] % unq
+
+        exchange.publish payload, :persistent => true, :routing_key => key
+
+        num_read += 1
+        print "\rPublished #{num_read} messages"
+      end
+
+      if options[:number] == -1
         col_info[collection][:col].find(what.merge(from),
-                                        :skip => num_read,
-                                        :limit => to_read).each do |e|
-
-          payload = read_value(e, col_info[collection][:payload])
-          payload = if payload.class == BSON::OrderedHash
-                      payload.delete "_id" # Inserted by MongoDB on event insert
-                      payload.to_json
-                    end
-          read += 1
-          unq = read_value(e, col_info[collection][:unq])
-          if unq.class != String or unq.nil? then
-            throw Exception.new("Unique value can only be a String")
-          end
-
-          key = col_info[collection][:routekey] % unq
-
-          exchange.publish payload, :persistent => true, :routing_key => key
-
-          num_read += 1
-          puts("Publish id = #{payload[unq]} (#{num_read} total)") if options.verbose
-          awaiting_ack << num_read
-        end
-
-        # Nothing new in the DB and no msgs waiting ack
-        if (read == 0 and awaiting_ack.size == 0) or to_read == -1
-          puts("Finished reading, exiting")
-          show_stopper.call
-        end
-      }
-
-      # Remove acknowledged or failed msg tags from the queue
-      # Trigger more messages to be read when ack msg queue size drops to zero
-      publisher_event = Proc.new { |ack|
-        if ack.multiple then
-          awaiting_ack.delete_if { |x| x <= ack.delivery_tag }
-        else
-          awaiting_ack.delete ack.delivery_tag
-        end
-
-        if awaiting_ack.size == 0
-          puts("ACKS.size= #{awaiting_ack.size}") if options.verbose
-          EventMachine.next_tick do
-            read_and_publish.call
+                                        {:timeout => false}) do |cursor|
+          cursor.each do |e|
+            process_event.call(e)
           end
         end
-      }
-
-      # Await publisher confirms
-      channel.confirm_select
-
-      # Callback when confirms have arrived
-      channel.on_ack do |ack|
-        puts "ACK: tag=#{ack.delivery_tag}, mul=#{ack.multiple}" if options.verbose
-        publisher_event.call(ack)
-      end
-
-      # Callback when confirms failed.
-      channel.on_nack do |nack|
-        puts "NACK: tag=#{nack.delivery_tag}, mul=#{nack.multiple}" if options.verbose
-        publisher_event.call(nack)
-      end
-
-      # Signal handlers
-      Signal.trap('INT', show_stopper)
-      Signal.trap('TERM', show_stopper)
-
-      # Trigger start processing
-      EventMachine.add_timer(0.1) do
-        read_and_publish.call
+      else
+        col_info[collection][:col].find(what.merge(from),
+                                        {:timeout => false,
+                                         :limit => options[:number]}) do |cursor|
+          cursor.each do |e|
+            process_event.call(e)
+          end
+        end
       end
     end
   end
@@ -223,5 +166,4 @@ Loads object ids from a collection to a queue for further processing.
     end
   end
 end
-
 #vim: set filetype=ruby expandtab tabstop=2 shiftwidth=2 autoindent smartindent:

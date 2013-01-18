@@ -56,7 +56,6 @@ module GHTorrent
       end
 
       transaction do
-        ensure_user(user, true, true)
         ensure_commit(repo, sha, user)
       end
     end
@@ -107,8 +106,6 @@ module GHTorrent
     #  [date_added] The timestamp that the add event took place
     def get_follower(follower, followed, date_added)
       transaction do
-        ensure_user(follower, true, true)
-        ensure_user(followed, true, true)
         ensure_user_follower(followed, follower, date_added)
       end
     end
