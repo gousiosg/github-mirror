@@ -50,7 +50,7 @@ An efficient way to get all data for a single repo
     user_entry = ght.transaction{ght.ensure_user(ARGV[0], false, false)}
 
     if user_entry.nil?
-      Trollop::die "Cannot find user #{owner}"
+      Trollop::die "Cannot find user #{ARGV[0]}"
     end
 
     user = user_entry[:login]
@@ -59,7 +59,7 @@ An efficient way to get all data for a single repo
                                                  false, false)}
 
     if repo_entry.nil?
-      Trollop::die "Cannot find repository #{owner}/#{ARGV[1]}"
+      Trollop::die "Cannot find repository #{ARGV[0]}/#{ARGV[1]}"
     end
 
     repo = repo_entry[:name]

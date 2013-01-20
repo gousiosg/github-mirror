@@ -122,7 +122,7 @@ Loads object ids from a collection to a queue for further processing.
         connection.close { EventMachine.stop }
       }
 
-      # Read next 1000 items and queue them
+      # Read next 100000 items and queue them
       read_and_publish = Proc.new {
 
         to_read = if options.number == -1
