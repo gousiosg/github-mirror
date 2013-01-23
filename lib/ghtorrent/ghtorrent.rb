@@ -488,8 +488,8 @@ module GHTorrent
       end
 
       followers = @db[:followers]
-      followed_id = follower_user[:id]
-      follower_id = followed_user[:id]
+      follower_id = follower_user[:id]
+      followed_id = followed_user[:id]
 
       follower_exists = followers.first(:user_id => followed_id,
                                         :follower_id => follower_id)
