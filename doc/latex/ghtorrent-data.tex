@@ -237,11 +237,11 @@ Github does not report
 Github; for each opened pull request, an issue is opened automatically.  Commits
 can also be attached to issues to convert them to pull requests (albeit with
 external tools). As a result, discussion comments for a pull request need to be
-retrieved from multiple sources, namely from {\sf commit\_comments} for code
-reviews, from {\sf issue\_comments} if the pull request is also an issue and
-from {\sf pull\_request\_comments} if the issue tracker is not enabled for a
-project. Moreover, there are two different status entities that need to be
-queried to get the succession of events on a pull request.
+retrieved from multiple sources, namely from {\sf pull\_request\_comments} for
+code reviews and from {\sf issue\_comments} for pull requests. Moreover, there
+are two different status entities (namely, the pull request status and the issue
+status) that need to be queried to get the succession of events on a pull
+request.
 
 \subsection{Commit users} Git allows users to setup custom user names as
     their commit names. The prevailing convention is that users use their email
