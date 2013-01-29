@@ -1038,7 +1038,7 @@ module GHTorrent
             :intra_branch => is_intra_branch(retrieved)
         )
 
-        info log_msg(retrieved)
+        info log_msg(retrieved) + " was added"
       else
         debug log_msg(retrieved) + " exists"
       end
@@ -1142,12 +1142,18 @@ module GHTorrent
     end
 
     def ensure_pull_request_commits(owner, repo, pullreq_id)
+      pullreq = ensure_pull_request(owner, repo, pullreq_id, false, false)
+
+      if pullreq.nil?
+        warn "GHTorrent: Pull request #{pullreq_id} does not exist for #{owner}/#{repo}"
+        return
+      end
+
       retrieve_pull_req_commits(owner, repo, pullreq_id).reduce([]){|acc, c|
         x = ensure_commit(repo, c['sha'], owner, true)
         acc << x if not x.nil?
         acc
       }.map { |c|
-        pullreq = ensure_pull_request(owner, repo, pullreq_id, false, false)
         exists = @db[:pull_request_commits].first(:pull_request_id => pullreq[:id],
                                                   :commit_id => c[:id])
         if exists.nil?
