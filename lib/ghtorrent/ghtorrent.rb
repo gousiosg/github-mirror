@@ -942,15 +942,13 @@ module GHTorrent
       def add_history(id, ts, unq, act)
         pull_req_history = @db[:pull_request_history]
         entry = pull_req_history.first(:pull_request_id => id,
-                                       :ext_ref_id => unq, :action => act)
+                                       :created_at => ts, :action => act)
         if entry.nil?
           pull_req_history.insert(:pull_request_id => id, :created_at => ts,
                                   :ext_ref_id => unq, :action => act)
-          info "GHTorrent: New pull request (#{id}) history entry (#{act})"
+          info "GHTorrent: New pull request (#{id}) history entry (#{act}) timestamp #{ts}"
         else
-          pull_req_history.filter(:pull_request_id => id, :ext_ref_id => unq,
-                                :action => act).update(:created_at => ts)
-          info "GHTorrent: Updating pull request (#{id}) history entry (#{act}) timestamp #{ts}"
+          info "GHTorrent: Pull request (#{id}) history entry (#{act}) timestamp #{ts} exists"
         end
       end
 
