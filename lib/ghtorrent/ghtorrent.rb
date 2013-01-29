@@ -1070,7 +1070,7 @@ module GHTorrent
         return
       end
 
-      pull_req = ensure_pull_request(owner, repo, pullreq_id, false, true)
+      pull_req = ensure_pull_request(owner, repo, pullreq_id, false, false)
 
       if pull_req.nil?
         warn "Could not retrieve pull req #{owner}/#{repo} -> #{pullreq_id}"
@@ -1091,7 +1091,11 @@ module GHTorrent
     end
 
     def ensure_pullreq_comment(owner, repo, pullreq_id, comment_id)
-      pull_req = ensure_pull_request(owner, repo, pullreq_id, false, true)
+      # Commit retrieval is set to false to ensure that no duplicate work
+      # is done on retrieving a pull request. This has the side effect that
+      # commits might not be retrieved if a pullreqcomment event gets processed
+      # before the pullreq event, until the pullreq event has been processed
+      pull_req = ensure_pull_request(owner, repo, pullreq_id, false, false)
 
       if pull_req.nil?
         warn "GHTorrent: Could not retrieve pull req #{owner}/#{repo} -> #{pullreq_id}"
