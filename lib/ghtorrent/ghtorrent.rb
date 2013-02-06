@@ -1026,7 +1026,12 @@ module GHTorrent
 
       pull_req_user = ensure_user(retrieved['user']['login'], false, false)
 
-      merged = if retrieved['merged_at'].nil? then false else true end
+      merged = if retrieved['merged_at'].nil? then
+               # Check if the pr's commits are in the repository
+                false
+               else
+                 true
+               end
       closed = if retrieved['closed_at'].nil? then false else true end
 
       pull_req = pulls_reqs.first(:base_repo_id => project[:id],
@@ -1039,7 +1044,8 @@ module GHTorrent
             :base_commit_id => base_commit[:id],
             :user_id => pull_req_user[:id],
             :pullreq_id => pullreq_id,
-            :intra_branch => is_intra_branch(retrieved)
+            :intra_branch => is_intra_branch(retrieved),
+            :merged => merged
         )
 
         info log_msg(retrieved) + " was added"
