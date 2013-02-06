@@ -1515,14 +1515,13 @@ module GHTorrent
         repository = ensure_repo(user, repo, false, false, false)
 
         if repository.nil?
-          warn "Could not store commit #{user}/#{repo} #{c['sha']}"
-          return
+          warn "GHTorrent: repository #{user}/#{repo} deleted"
         end
 
         commits.insert(:sha => c['sha'],
                        :author_id => author[:id],
                        :committer_id => commiter[:id],
-                       :project_id => repository[:id],
+                       :project_id => if repository.nil? then nil else repository[:id] end ,
                        :created_at => date(c['commit']['author']['date']),
                        :ext_ref_id => c[@ext_uniq]
         )
