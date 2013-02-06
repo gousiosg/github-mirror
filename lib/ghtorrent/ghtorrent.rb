@@ -1154,7 +1154,10 @@ module GHTorrent
       end
 
       retrieve_pull_req_commits(owner, repo, pullreq_id).reduce([]){|acc, c|
-        x = ensure_commit(repo, c['sha'], owner, true)
+        next if c.nil?
+        head_repo_owner = c['url'].split(/\//)[4]
+        head_repo_name = c['url'].split(/\//)[5]
+        x = ensure_commit(head_repo_name, c['sha'], head_repo_owner, true)
         acc << x if not x.nil?
         acc
       }.map { |c|
