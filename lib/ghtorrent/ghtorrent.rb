@@ -273,23 +273,27 @@ module GHTorrent
     #  [repo] The repo receiving the commit
     #  [sha] The commit SHA
     def ensure_repo_commit(user, repo, sha)
-      userid = @db[:users].first(:login => user)[:id]
-      projectid = @db[:projects].first(:owner_id => userid,
-                                     :name => repo)[:id]
+      project = ensure_repo(user, repo, false, false, false, false)
+
+      if project.nil?
+        warn "GHTorrent: Repo #{user}/#{repo} does not exist"
+        return
+      end
+
       commitid = @db[:commits].first(:sha => sha)[:id]
 
-      exists = @db[:project_commits].first(:project_id => projectid,
+      exists = @db[:project_commits].first(:project_id => project[:id],
                                            :commit_id => commitid)
       if exists.nil?
         @db[:project_commits].insert(
-            :project_id => projectid,
+            :project_id => project[:id],
             :commit_id => commitid
         )
-        info "GHTorrent: Added commit #{user}/#{repo} -> #{sha}"
-        @db[:project_commits].first(:project_id => projectid,
+        info "GHTorrent: Associating commit  #{sha} with #{user}/#{repo}"
+        @db[:project_commits].first(:project_id => project[:id],
                                     :commit_id => commitid)
       else
-        debug "GHTorrent: Commit #{user}/#{repo} -> #{sha} exists"
+        debug "GHTorrent: Commit #{sha} already associated with #{user}/#{repo}"
         exists
       end
     end
