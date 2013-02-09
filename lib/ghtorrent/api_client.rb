@@ -178,10 +178,10 @@ module GHTorrent
               403, # Forbidden
               404, # Not found
               422 then # Unprocessable entity
-            warn "#{url}: #{e.io.status[1]}"
+            warn "APIClient: #{url}: #{e.io.status[1]}"
             return nil
           else # Server error or HTTP conditions that Github does not report
-            warn "#{url}"
+            warn "APIClient: #{url}"
             raise e
         end
       end
