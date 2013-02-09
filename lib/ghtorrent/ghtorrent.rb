@@ -205,9 +205,9 @@ module GHTorrent
     # [sha]   The first commit to start retrieving from. If nil, then the
     #         earliest stored commit will be used instead.
     # [num_pages] The number of commit pages to retrieve
-    def ensure_commits(user, repo, sha = nil,
-                       num_pages = config(:mirror_commit_pages_new_repo),
-                       refresh = false)
+    def ensure_commits(user, repo, refresh = false, sha = nil,
+                       num_pages = config(:mirror_commit_pages_new_repo)
+                       )
       userid = @db[:users].filter(:login => user).first[:id]
       repoid = @db[:projects].filter(:owner_id => userid,
                                      :name => repo).first[:id]
