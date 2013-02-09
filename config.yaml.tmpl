@@ -24,7 +24,6 @@ sql:
 
 mirror:
   urlbase: "https://api.github.com/"
-  reqrate: 80 #per minute
   pollevery: 5 #sec
   persister: mongo #or no-op
   uniq_id: 'ext_ref_id' # Field that links persister entries to SQL entries
@@ -57,8 +56,12 @@ mirror:
   username: user
   passwd: password
 
-  # Setting true here will force the client to sleep for
+  # Setting true here will force the client to sleep up to the next hour
+  # if the request limit has been reached (less than 20 requests remain)
   respect_api_ratelimit: true
+
+  # User agent to use for requests. You must use a unique name per client program
+  user_agent: ghtorrent
 
 mongo:
   host: 127.0.0.1      # Mongo's IP addr

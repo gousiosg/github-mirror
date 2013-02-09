@@ -191,8 +191,7 @@ module GHTorrent
       @attach_ip ||= config(:attach_ip)
       @username ||= config(:github_username)
       @passwd ||= config(:github_passwd)
-      #@user_agent ||= "ghtorrent-v#{GHTorrent::VERSION}"
-      @user_agent ||= "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.101 Safari/537.11"
+      @user_agent ||= config(:user_agent)
 
       @open_func ||= if @username.nil?
         lambda {|url| open(url, 'User-Agent' => @user_agent)}

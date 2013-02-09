@@ -19,12 +19,12 @@ module GHTorrent
 
         :mirror_urlbase => "mirror.urlbase",
         :mirror_urlbase_v2 => "mirror.urlbase_v2",
-        :mirror_reqrate => "mirror.reqrate",
         :mirror_pollevery => "mirror.pollevery",
         :mirror_persister => "mirror.persister",
         :mirror_commit_pages_new_repo => "mirror.commit_pages_new_repo",
         :mirror_history_pages_back => "mirror.history_pages_back",
         :uniq_id => "mirror.uniq_id",
+        :user_agent => "mirror.user_agent",
 
         :cache_mode      => "mirror.cache_mode",
         :cache_dir       => "mirror.cache_dir",
