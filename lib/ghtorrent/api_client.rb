@@ -140,24 +140,6 @@ module GHTorrent
 
     # Do the actual request and return the result object
     def api_request_raw(url, use_cache = false)
-      @num_api_calls ||= 0
-      @ts ||= Time.now.to_i
-      @started_min ||= Time.now.min
-
-      #Rate limiting to avoid error requests
-      if Time.now().tv_sec() - @ts < 60 then
-        if @num_api_calls >= @settings['mirror']['reqrate'].to_i
-          sleep = 60 - (Time.now.to_i - @ts)
-          debug "APIClient: Sleeping for #{sleep}"
-          sleep (sleep)
-          @num_api_calls = 0
-          @ts = Time.now.to_i
-        end
-      else
-        debug "APIClient: Tick, num_calls = #{@num_api_calls}, zeroing"
-        @num_api_calls = 0
-        @ts = Time.now.to_i
-      end
 
       begin
         start_time = Time.now
@@ -170,25 +152,21 @@ module GHTorrent
                 cached
               else
                 tocache = Cachable.new(do_request(url))
-                @num_api_calls += 1
                 cache_put(url, tocache)
                 tocache
               end
             else
-              @num_api_calls += 1
               do_request(url)
             end
 
         total = Time.now.to_ms - start_time.to_ms
-        debug "APIClient: Request: #{url} (#{@num_api_calls} calls #{if from_cache then " from cache," else "(#{contents.meta['x-ratelimit-remaining']} remaining)," end} Total: #{total} ms)"
+        debug "APIClient: Request: #{url} #{if from_cache then " from cache," else "(#{contents.meta['x-ratelimit-remaining']} remaining)," end} Total: #{total} ms"
 
-        if not from_cache and config(:respect_api_ratelimit) and
+        if config(:respect_api_ratelimit) and
             contents.meta['x-ratelimit-remaining'].to_i < 20
-          sleep = 60 - @started_min
+          sleep = 61 - Time.now.min
           debug "APIClient: Request limit reached, sleeping for #{sleep} min"
           sleep(sleep * 60)
-          @started_min = Time.now.min
-          @num_api_calls = 0
         end
 
         contents
