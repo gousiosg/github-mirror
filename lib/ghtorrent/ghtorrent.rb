@@ -206,7 +206,8 @@ module GHTorrent
     #         earliest stored commit will be used instead.
     # [num_pages] The number of commit pages to retrieve
     def ensure_commits(user, repo, sha = nil,
-                       num_pages = config(:mirror_commit_pages_new_repo))
+                       num_pages = config(:mirror_commit_pages_new_repo),
+                       refresh = false)
       userid = @db[:users].filter(:login => user).first[:id]
       repoid = @db[:projects].filter(:owner_id => userid,
                                      :name => repo).first[:id]
@@ -649,7 +650,7 @@ module GHTorrent
 
     ##
     # Make sure that a project has all the registered members defined
-    def ensure_project_members(user, repo)
+    def ensure_project_members(user, repo, refresh = false)
       currepo = ensure_repo(user, repo, false, false, false, false)
       time = currepo[:created_at]
 
@@ -836,7 +837,7 @@ module GHTorrent
 
     ##
     # Make sure that all watchers exist for a repository
-    def ensure_watchers(owner, repo)
+    def ensure_watchers(owner, repo, refresh = false)
       currepo = ensure_repo(owner, repo, false, false, false, false)
 
       if currepo.nil?
@@ -911,22 +912,27 @@ module GHTorrent
 
     ##
     # Process all pull requests
-    def ensure_pull_requests(owner, repo)
+    def ensure_pull_requests(owner, repo, refresh = false)
       currepo = ensure_repo(owner, repo, false, false, false, false)
       if currepo.nil?
         warn "Could not retrieve pull requests from #{owner}/#{repo}"
         return
       end
 
-      pull_reqs = @db[:pull_requests].filter(:base_repo_id => currepo[:id]).all
+      raw_pull_reqs = if refresh
+                        retrieve_pull_requests(owner, repo, refresh = true)
+                      else
+                        pull_reqs = @db[:pull_requests].filter(:base_repo_id => currepo[:id]).all
+                        retrieve_pull_requests(owner, repo).reduce([]) do |acc, x|
+                          if pull_reqs.find { |y| y[:pullreq_id] == x['number'] }.nil?
+                            acc << x
+                          else
+                            acc
+                          end
+                        end
+                      end
 
-      retrieve_pull_requests(owner, repo).reduce([]) do |acc, x|
-        if pull_reqs.find { |y| y[:pullreq_id] == x['number'] }.nil?
-          acc << x
-        else
-          acc
-        end
-      end.map { |x| ensure_pull_request(owner, repo, x['number']) }
+      raw_pull_reqs.map { |x| ensure_pull_request(owner, repo, x['number']) }
     end
 
     ##
@@ -1187,7 +1193,7 @@ module GHTorrent
     # ==Parameters:
     # [owner]  The user to which the project belongs
     # [repo]  The repository/project to find forks for
-    def ensure_forks(owner, repo)
+    def ensure_forks(owner, repo, refresh = false)
       currepo = ensure_repo(owner, repo, false, false, false, false)
 
       if currepo.nil?
@@ -1236,22 +1242,27 @@ module GHTorrent
 
     ##
     # Make sure all issues exist for a project
-    def ensure_issues(owner, repo)
+    def ensure_issues(owner, repo, refresh = false)
       currepo = ensure_repo(owner, repo, false, false, false, false)
       if currepo.nil?
         warn "GHTorrent: Could not retrieve issues for #{owner}/#{repo}"
         return
       end
 
-      issues = @db[:issues].filter(:repo_id => currepo[:id]).all
+      raw_issues = if refresh
+                     retrieve_issues(owner, repo, refresh = true)
+                   else
+                     issues = @db[:issues].filter(:repo_id => currepo[:id]).all
+                     retrieve_issues(owner, repo).reduce([]) do |acc, x|
+                       if issues.find { |y| y[:issue_id] == x['number'] }.nil?
+                         acc << x
+                       else
+                         acc
+                       end
+                     end
+                   end
 
-      retrieve_issues(owner, repo).reduce([]) do |acc, x|
-        if issues.find { |y| y[:issue_id] == x['number'] }.nil?
-          acc << x
-        else
-          acc
-        end
-      end.map { |x| ensure_issue(owner, repo, x['number']) }
+      raw_issues.map { |x| ensure_issue(owner, repo, x['number']) }
     end
 
     ##
@@ -1296,16 +1307,14 @@ module GHTorrent
                      :created_at => date(retrieved['created_at']),
                      :ext_ref_id => retrieved[@ext_uniq])
 
-        ensure_issue_events(owner, repo, issue_id) if events
-        ensure_issue_comments(owner, repo, issue_id) if comments and retrieved['comments'] > 0
-
         info "GHTorrent: Added issue #{owner}/#{repo} -> #{issue_id}"
-        issues.first(:issue_id => issue_id,
-                     :repo_id => repository[:id])
       else
         info "GHTorrent: Issue #{owner}/#{repo}->#{issue_id} exists"
-        cur_issue
       end
+      ensure_issue_events(owner, repo, issue_id) if events
+      ensure_issue_comments(owner, repo, issue_id) if comments
+      issues.first(:issue_id => issue_id,
+                   :repo_id => repository[:id])
     end
 
     ##
@@ -1444,7 +1453,7 @@ module GHTorrent
     ##
     # Retrieve and process +comment_id+ for an +issue_id+
     def ensure_issue_comment(owner, repo, issue_id, comment_id)
-      issue = ensure_issue(owner, repo, issue_id)
+      issue = ensure_issue(owner, repo, issue_id, false, false)
 
       if issue.nil?
         warn "GHTorrent: Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"

@@ -291,13 +291,13 @@ module GHTorrent
                       'login')
     end
 
-    def retrieve_pull_requests(user, repo)
+    def retrieve_pull_requests(user, repo, refr = false)
       open = "repos/#{user}/#{repo}/pulls"
       closed = "repos/#{user}/#{repo}/pulls?state=closed"
       repo_bound_items(user, repo, :pull_requests,
                        [open, closed],
                        {'repo' => repo, 'owner' => user},
-                       'number')
+                       'number', item = nil, refresh = refr)
     end
 
     def retrieve_pull_request(user, repo, pullreq_id)
@@ -409,13 +409,13 @@ module GHTorrent
       end
     end
 
-    def retrieve_issues(user, repo)
+    def retrieve_issues(user, repo, refr = false)
       open = "repos/#{user}/#{repo}/issues"
       closed = "repos/#{user}/#{repo}/issues?state=closed"
       repo_bound_items(user, repo, :issues,
                        [open, closed],
                        {'repo' => repo, 'owner' => user},
-                       'number')
+                       'number', item = nil, refresh = refr)
     end
 
     def retrieve_issue(user, repo, issue_id)
@@ -551,7 +551,7 @@ module GHTorrent
     private
 
     def repo_bound_items(user, repo, entity, urls, selector, descriminator,
-                         item_id = nil)
+                         item_id = nil, refresh = false)
 
       items = if urls.class == Array
                 urls.map { |url| paged_api_request(ghurl url) }.flatten
@@ -563,14 +563,31 @@ module GHTorrent
         x['repo'] = repo
         x['owner'] = user
 
-        exists = !repo_bound_instance(entity, selector,
-                                      descriminator, x[descriminator]).empty?
+        instances = repo_bound_instance(entity, selector,
+                                        descriminator, x[descriminator])
+        exists = !instances.empty?
 
-        if not exists
+        unless exists
           persister.store(entity, x)
           info "Retriever: Added #{entity} #{user}/#{repo} -> #{x[descriminator]}"
         else
-          debug "Retriever: #{entity} #{user}/#{repo} -> #{x[descriminator]} exists"
+          if refresh
+            instances.each do |i|
+
+              id = if i[descriminator].to_i.to_s != i[descriminator]
+                i[descriminator] # item_id is int
+              else
+                i[descriminator].to_i # convert to int
+              end
+
+              instance_selector = selector.merge({descriminator => id})
+              persister.del(entity, instance_selector)
+              persister.store(entity, x)
+              debug "Retriever: Refreshing #{entity} #{user}/#{repo} -> #{x[descriminator]}"
+            end
+          else
+            debug "Retriever: #{entity} #{user}/#{repo} -> #{x[descriminator]} exists"
+          end
         end
       end
 
