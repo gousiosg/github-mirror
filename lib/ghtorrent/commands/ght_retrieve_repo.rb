@@ -66,7 +66,7 @@ An efficient way to get all data for a single repo
 
     def send_message(function, user, repo)
       begin
-        ght.send(function, user, repo)
+        ght.send(function, user, repo, refresh = true)
       rescue Exception => e
         puts STDERR, e.message
         puts STDERR, e.backtrace
