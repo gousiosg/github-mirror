@@ -65,6 +65,12 @@ module GHTorrent
       end
     end
 
+    def del(entity, query)
+      super
+      raise Exception 'No filter was specifed. Cowardily refusing to remove all entries' if query == {}
+      get_entity(entity).remove(query)
+    end
+
     def get_underlying_connection
       mongo
     end

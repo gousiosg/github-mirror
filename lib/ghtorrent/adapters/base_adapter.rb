@@ -70,6 +70,12 @@ module GHTorrent
       end
     end
 
+    def del(entity, query = {})
+      unless ENTITIES.include?(entity)
+        raise GHTorrentException.new("Perister: Entity #{entity} not known")
+      end
+    end
+
     # Get a raw connection to the underlying data store. The connection is
     # implementaiton dependent.
     def get_underlying_connection
