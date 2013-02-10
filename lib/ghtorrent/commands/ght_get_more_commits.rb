@@ -90,9 +90,7 @@ Retrieves more commits for the provided repository
           break
         end
 
-        head = commits.sort{|a,b|
-          Time.parse(a['commit']['author']['date']) <=> Time.parse(b['commit']['author']['date'])
-        }.last['sha']
+        head = commits.last['sha']
 
         commits.map do |c|
           total_commits += 1
