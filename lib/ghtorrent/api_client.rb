@@ -162,7 +162,7 @@ module GHTorrent
         total = Time.now.to_ms - start_time.to_ms
         debug "APIClient: Request: #{url} #{if from_cache then " from cache," else "(#{contents.meta['x-ratelimit-remaining']} remaining)," end} Total: #{total} ms"
 
-        if config(:respect_api_ratelimit) and
+        if not from_cache and config(:respect_api_ratelimit) and
             contents.meta['x-ratelimit-remaining'].to_i < 20
           sleep = 61 - Time.now.min
           debug "APIClient: Request limit reached, sleeping for #{sleep} min"
@@ -181,7 +181,7 @@ module GHTorrent
             warn "APIClient: #{url}: #{e.io.status[1]}"
             return nil
           else # Server error or HTTP conditions that Github does not report
-            warn "APIClient: #{url}"
+            warn "APIClient: #{url}: #{e.io.status[1]}"
             raise e
         end
       end

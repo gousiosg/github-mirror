@@ -23,17 +23,17 @@ Retrieves more commits for the provided repository
     BANNER
 
     options.opt :num, 'Number of commits to retrieve',
-                :short => 'n', :default => -1, :type => :int
-    options.opt :full, 'Retrieve all commits, filling in potential holes',
-                :short => 'f', :default => -1, :type => :int
+                :short => 'n', :default => 1024 * 1024 * 1024, :type => :int
+    options.opt :full, 'Retrieve all commits, starting from the latest available.
+                        If not set, will start from latest stored commit',
+                :short => 'f', :default => false, :type => :boolean
+    options.opt :upto, 'Get all commits up to the provided timestamp',
+                :short => 't', :default => 0, :type => :int
   end
 
   def validate
     super
     Trollop::die "Two arguments are required" unless args[0] && !args[0].empty?
-
-    Trollop::die "-a and -n cannot be defined at the same time" \
-      if not options[:all].nil? and not options[:foo].nil?
   end
 
   def logger
@@ -68,37 +68,45 @@ Retrieves more commits for the provided repository
     end
 
     repo = repo_entry[:name]
-    num_pages = if options[:num] == -1 then 1024 * 1024 else options[:n]/30 end
-    num_pages = if options[:full] == -1 then num_pages else 1024 * 1024 end
-    page = 0
 
-
-    head = unless options[:full] == -1
+    head = if options[:full] == false
              @ght.get_db.from(:commits).\
                       where(:commits__project_id => repo_entry[:id]).\
                       order(:created_at).\
-                      first.\
-                      select(:sha)
+                      first[:sha]
            else
              "master"
            end
 
     total_commits = 0
-    while (page < num_pages)
+    old_head = nil
+    while (true)
       begin
         logger.debug("Retrieving more commits for #{user}/#{repo} from head: #{head}")
 
         commits = retrieve_commits(repo, head, user, 1)
-        page += 1
-        if commits.nil? or commits.empty? or commits.size == 1
-          page = num_pages # To break the loop
+
+        if commits.nil? or commits.empty?
           break
         end
 
-        total_commits += commits.size
-        head = commits.last['sha']
+        head = commits.sort{|a,b|
+          Time.parse(a['commit']['author']['date']) <=> Time.parse(b['commit']['author']['date'])
+        }.last['sha']
 
         commits.map do |c|
+          total_commits += 1
+
+          if options[:num] < total_commits
+            logger.info("Already retrieved #{total_commits} commits. Stopping.")
+            return
+          end
+
+          if Time.parse(c['commit']['author']['date']) < Time.at(options[:upto])
+            logger.info("Commit #{c['sha']} older than #{Time.at(options[:upto])}. Stopping.")
+            return
+          end
+
           @ght.transaction do
             @ght.ensure_commit(repo, c['sha'], user)
           end
@@ -106,6 +114,11 @@ Retrieves more commits for the provided repository
       rescue Exception => e
         logger.warn("Error processing: #{e}")
         logger.warn(e.backtrace.join("\n"))
+        if old_head == head
+          logger.info("Commit #{c['sha']} older than #{Time.at(options[:upto])}. Stopping.")
+          fail("Cannot retrieve commits from head: #{head}")
+        end
+        old_head = head
       end
     end
     logger.debug("Processed #{total_commits} commits for #{user}/#{repo}")
