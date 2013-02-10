@@ -86,7 +86,7 @@ Retrieves more commits for the provided repository
 
         commits = retrieve_commits(repo, head, user, 1)
 
-        if commits.nil? or commits.empty?
+        if commits.nil? or commits.empty? or commits.size == 1
           break
         end
 
