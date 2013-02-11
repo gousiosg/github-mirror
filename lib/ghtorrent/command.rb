@@ -35,8 +35,6 @@ module GHTorrent
         command.process_options
         command.validate
 
-        puts "GHTorrent version: #{GHTorrent::VERSION}"
-
         command.settings = YAML::load_file command.options[:config]
 
         unless command.options[:addr].nil?
