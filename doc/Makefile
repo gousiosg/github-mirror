@@ -45,6 +45,7 @@ TEXFILES_DEST := $(addprefix $(BUILD)/, $(notdir $(TEXFILES_SRC)))
 
 # Bib file
 BIB=$(patsubst %.tex,%,${TEXFILE})
+BIB_FILE=$(patsubst %.tex,%.bib,${TEXFILE})
 
 # Latex aux file
 AUXFILE=$(patsubst %.tex,%.aux,${TEXFILE})
@@ -95,7 +96,11 @@ $(TEXFILES_DEST) : $(TEXFILES_SRC) $(BUILD)
 $(PICTURES_DEST): $(PICTURES_SRC) $(BUILD)
 	cp $(PICS)/$(@F) $@
 
+$(PICTURES_DEST): $(PICTURES_SRC) $(BUILD)
+	cp $(PICS)/$(@F) $@
+
 copy: $(TEXFILES_DEST) $(PICTURES_DEST)
+	cp latex/ghtorrent-data.bib $(BUILD)
 
 # Produce the aux file
 $(BUILD)/$(MASTERTEX).aux: $(TEXFILES_DEST) $(PICTURES_DEST)
@@ -104,8 +109,8 @@ $(BUILD)/$(MASTERTEX).aux: $(TEXFILES_DEST) $(PICTURES_DEST)
 
 # Bibliography
 $(BUILD)/$(MASTERTEX).bib: $(BUILD)/$(MASTERTEX).aux
-	cd $(BUILD) && \
-	$(PYBCOMPACT) $(MASTERTEX).aux $(PAPERPATH) > `basename $(BUILD)/$(MASTERTEX).bib`
+	cd $(BUILD) # && \
+	#$(PYBCOMPACT) $(MASTERTEX).aux $(PAPERPATH) > `basename $(BUILD)/$(MASTERTEX).bib`
 
 $(BUILD)/$(MASTERTEX).bbl: $(BUILD)/$(MASTERTEX).bib $(BUILD)/$(MASTERTEX).aux
 	cd $(BUILD) && \

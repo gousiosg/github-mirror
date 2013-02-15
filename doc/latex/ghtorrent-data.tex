@@ -9,12 +9,12 @@
 
 \title{The GHTorrent dataset and tool suite}
 
-\author{\IEEEauthorblockN{Georgios Gousios \and Arie van Deursen} 
+\author{\IEEEauthorblockN{Georgios Gousios} 
 \IEEEauthorblockA{
 Software Engineering Research Group\\
 Delft University of Technology\\
 Delft, The Netherlands\\
-Email: \{g.gousios,a.vandeursen\}@tudelft.nl}
+Email: g.gousios@tudelft.nl}
 }
 
 \maketitle
@@ -39,14 +39,19 @@ dataset, repository, GitHub
 hosting site of choice for many Open Source Software ({\sc oss}) projects.
 Interestingly, Github provides a {\sc rest api} to its full data set, making it
 an attractive research target. The GHTorrent project uses the Github {\sc api}
-to collect data and extract, archive and share queriable metadata. The
-GHTorrent project was first presented in~\cite{GS12}. Since this work, we fully
-implemented the data collection process, stabilized the data and metadata schema
-and developed a service to collaboratively collect and query the data. In
-this paper, we present the finalized schema, we analyze the collection process
-and go through the challenges and limitations of working with the dataset.
+to collect raw data and extract, archive and share queriable metadata. The
+created datasets have already been exploited in other work (analysis of the pull
+development model~\cite{GPD13}, analysis of drive-by commits~\cite{TMAGS13}),
+while collaborations with external research groups are under way. 
 
-\begin{table*}
+An outline of the project and bits of the implementation was presented in~\cite{GS12}. Since this work, we fully implemented the data collection process, stabilized the data and metadata
+schema and developed a service to collaboratively collect and share data. More
+than 900{\sc gb} of raw data and 10{\sc gb} of metadata have been collected
+and are offered back.
+In this paper, we present the finalized schema, go through the challenges and limitations of working with the dataset and outline several research
+opportunities.
+
+\begin{figure*}
   
   \begin{center}
     \includegraphics[scale=0.83]{ghtorrent-schema.pdf}
@@ -56,48 +61,50 @@ and go through the challenges and limitations of working with the dataset.
       \hline
       \bf{Entity} & \bf{Description} & \bf{Raw data entity} & \bf{Num Items} \\
       \hline
-      \sf{projects} & Project repositories & \tt{repos} & 652.665\\
-      
-      \sf{users} & Github users. & \tt{users} & 589.101\\
-      
-      \sf{project\_members} & Users with commit access to the referenced
-      \sf {project}. & \tt{repo\_collabs} & 773.307\\
-      
-      \sf{organization\_members} & List members of an organization ``\sf{user}'' & \tt{org\_members} & 34.924\\
+      \sf{events} & Events on repositories & \texttt{events} & 43,090,195\\
 
-      \sf{forks} & Forks of a \sf{project} & \tt{forks} & 1.106.469\\
+      \sf{projects} & Project repositories & \tt{repos} & 1,326,900\\
+      
+      \sf{users} & Github users. & \tt{users} & 793,855\\
+
+      \sf{project\_members} & Users with commit access to the referenced
+      \sf {project}. & \tt{repo\_collabs} & 983,629\\
+      
+      \sf{organization\_members} & List members of an organization ``\sf{user}'' & \tt{org\_members} & 34,924\\
+
+      \sf{forks} & Forks of a \sf{project} & \tt{forks} & 1,474,285\\
 
       \sf{commits} & A list of all commits on Github. The \sf{project\_id} field
       refers to the first \sf{project} this commit has been done to &
-      \tt{commits} & 23.886.460\\
+      \tt{commits} & 29,978,291\\
       
       \sf{project\_commits} & List of all \sf{commits} to a \sf{project}.& --- &
       ---\\
 
       \sf{commit\_parents} & Commits that are parents to a \sf{commit}.& --- & ---\\
       
-      \sf{commit\_comments} & Code review comments for a \sf{commit}.& \tt{commit\_comments} & 82.133 \\
+      \sf{commit\_comments} & Code review comments for a \sf{commit}.& \tt{commit\_comments} & 126,697 \\
       
-      \sf{watchers} & \sf{user}s that have starred (was watched) a \sf{project} & \tt{watchers} & 6.153.510\\
+      \sf{watchers} & \sf{user}s that have starred (was watched) a \sf{project} & \tt{watchers} & 7,744,619\\
 
       \sf{followers} & \sf{user}s that are following another \sf{user}
-      \sf{project}& \tt{followers} & 1.447.713\\
+      \sf{project}& \tt{followers} & 1,797,343\\
 
       \sf{issues} & Issues that have been recorded for a \sf{project}.&
-      \tt{issues} & 1.765.821 \\
+      \tt{issues} & 2,326,069 \\
       
       \sf{issue\_events} & Chronologically sortable list of events on an
-      \sf{issue}. & \tt{issue\_events} & 3.484.944 \\
+      \sf{issue}. & \tt{issue\_events} & 4,085,294\\
       
       \sf{issue\_comments} & Discussion comments on an \sf{issue} &
-      \tt{issue\_comments} & 2.247.567 \\
+      \tt{issue\_comments} & 2,886,006\\
       
       \sf{pull\_requests} & List of pull requests for \sf{base\_repo}. Requests
       originate at head \sf{head\_repo}/\sf{commit} and are created by
-      \sf{user\_id} & \tt{pull\_requests} & 929.037 \\ 
+      \sf{user\_id} & \tt{pull\_requests} & 1,144,251 \\ 
  
       \sf{pull\_request\_comments} & Discussion comments on a \sf{pull\_request}
-      &  & 288.850\\
+      & \texttt{pullreq\_comnts} & 2,228,894\\
 
       \sf{pull\_request\_history} & Chronologically sortable list of events on
       on a \sf{pull\_request} & --- & ---\\
@@ -106,24 +113,20 @@ and go through the challenges and limitations of working with the dataset.
     
   \end{tabular}
   \caption{Schema entities, their description, the corresponding raw data
-  entities and the number of raw data items (Jan 2013).}
+  entities and the number of raw data items (Feb 15, 2013).}
   \label{tab:entities}
-\end{table*}
-
-\section{The GHTorrent project}
-
-
+\end{figure*}
 
 \section{Data Collection}
 
-The primary challenge that the data collection process has to overcome is the
-fact that Github imposes a 5.000 requests per hour limit for authenticated
-requests, while the event generation rate is already higher (\todo{fill in
-number}); given that a single event can lead to several (even thousands) of
-requests being made in order to fill in the relational schema, it is not
+The primary challenge for the data collection process was that Github imposes a
+5,000 requests per hour limit for authenticated requests, while the event
+generation rate is already higher;\footnote{On an average day, Github produces
+200,000 events, or about 8,300 events per hour} given that a single event can
+lead to several (even thousands) of dependent requests requests, it is not
 practical to assume that a single Github account is enough to mirror the whole
-dataset. GHTorrent was designed from the ground up to use caching excessively
-in various parts of the request cycle and also to be distributed. We briefly
+dataset. GHTorrent was designed from the ground up to use caching excessively in
+various parts of the request cycle and also to be distributed. We briefly
 describe how GHTorrent employs those two mechanisms in the following paragraphs.
 
 The Github {\sc api} supports two types of queries:
@@ -134,15 +137,14 @@ The Github {\sc api} supports two types of queries:
     {\sc rest} architecture mandates, the {\sc url} identifying a static
     resource remains constant after the resource has been initialized. 
 
-  \item Range queries retrieve a list of resources, usually related
-    to a given resource. For example, the query \texttt{/user/followers} 
-    retrieves the followers for a user, while the query
-    \texttt{/user/repo/commits} retrieves the commits for a repository. Paging
-    is used to limit the amount of data per response. Range queries do not
-    necessarily return the full entity instance for each item, but they
-    usually include a {\sc url} where the item may be retrieved. As a result,
-    a range query might result to several (thousands for large projects) 
-    resource queries.
+  \item Range queries retrieve a list of resources, usually related to a given
+    resource. For example, the query \texttt{/\{user\}/followers} retrieves the
+    followers for a user, while the query \texttt{/\{user\}/\{repo\}/commits}
+    retrieves the commits for a repository. Paging is used to limit the amount
+    of data per response. Range queries do not necessarily return the full
+    entity instance for each item, but they usually include a {\sc url} where
+    the item may be retrieved. As a result, a range query might result to
+    several (thousands for large projects) resource queries.
 
 \end{itemize}
 
@@ -154,16 +156,16 @@ pages of results only in order to retrieve the updated data. To cache the
 results per entity, we use a Mongo{\sc db} database, which offers the added
 benefit of enabling querying on the raw data. Caching is also used at the {\sc
 http} request layer; GHTorrent automatically serializes {\sc http} responses to
-disk. This helps avoiding retrieving again older pages in range queries.
+disk. This avoids retrieving older pages in range queries twice.
 
-\begin{figure}
-  \begin{center}
-    \includegraphics[scale=0.5]{ghtorrent-process.pdf}
-  \end{center}
-  \caption{The mirroring algorithm}
-  \label{fig:mirror}
-\end{figure}
-
+%\begin{figure}
+%  \begin{center}
+%    \includegraphics[scale=0.5]{ghtorrent-process.pdf}
+%  \end{center}
+%  \caption{The mirroring algorithm}
+%  \label{fig:mirror}
+%\end{figure}
+%
 The mirroring algorithm is based on a recursive dependency resolution process.
 For each retrievable item, we specify a set of dependencies, as they logically
 flow from the data schema. For example, in order to retrieve a \textsf{project},
@@ -174,55 +176,44 @@ non-retrieved.  The process was designed from start to be \emph{idempotent}:
 every step of the dependency resolution may fail but once it succeeds, it will
 always return the same result. This design choice has been very important since
 it makes our data stores append only and the results of each step memoizable and
-therefore cachable. Figure~\ref{fig:mirror} presents an example of the retrieval
-of a pull request $id$ for a project $p$.  The steps of retrieving the
-dependencies are presented in short for brevity.
+therefore cachable.
+
+\subsection*{Data schema}
+
+The data schema can be seen in Figure~\ref{}
+
+\subsection*{Workers for Data}
 
 The data collection was designed from the beginning as a decentralized process.
 Decentralization is mediated using the worker queue model; a message producer
 sends messages to the appropriate queue and several workers process messages,
-perform the requests and store the results in a common database. There are two
-types of messages whose processing can be distributed:
-
-\begin{itemize}
-
-  \item Events: Those correspond to entries in the Github event stream. The
-    \texttt{retrieve-data} client uses them to update
-
-  \item Repository names (format \texttt{owner/repo}): The
-    \texttt{retrieve-repo} tool uses the information to retrieve all available
-    information for a single project repository. As getting the commits for a
-    repository requires an excessive amount of {\sc api} calls to be performed,
-    an extra tool, \texttt{get-more-commits}, has been written to retrieve the
-    full list of commits on request. 
-
-\end{itemize}
+perform the requests and store the results in a common database.
 
 Decentralization enables collaborating researchers to contribute to the data
-collection effort, by simply installing the GHTorrent command line client and
-configuring it to connect to the central repository databases. In exchange for
-data collection resources, the project offers direct access to the project
-databases. Apart from direct access to the data, the project also distributes
-dumps of the collected data, in both raw and relational formats. The raw data
-dumps are incremental, while the relational dumps are full database dumps.
-Depending on the use case, the relational dump might be enough for further
-processing.  The dumps are distributed using the BitTorrent protocol.
-Furthermore, a query interface allows third party users to directly query an
-archived version of the relational database.
+collection effort, through what we call the \emph{workers for data} model.  In
+exchange for data collection \emph{workers}, the project offers direct access to
+the live project \emph{data}bases. Set up instructions for workers as well as a
+preconfigured virtual machine are offered through the project's web site. Apart
+from offering direct access to the data, the project also distributes dumps of
+the collected data, in both raw and relational formats. Depending on the use
+case, the relational dump might be enough for further processing. The dumps are
+distributed using the BitTorrent protocol. Furthermore, a query interface
+allows third party users to directly query an archived version of the relational
+database.
 
 \section{Challenges and Limitations}
 
 From a repository mining perspective, the GHTorrent dataset has the following
 limitations. 
 
-\subsection{Data is additive} Github is a dynamic site where developers, 
+\paragraph*{Data is additive} Github is a dynamic site where developers, 
     projects and wikis are created and deleted constantly. Despite the fact
     that the Github event stream reports additions of entities, it does
     not report deletions. This means that the information in the GHTorrent 
     database cannot be updated when a user or a repository has been marked
     as deleted.
 
-\subsection{Important entities are not timestamped}
+\paragraph*{Important entities are not timestamped}
 \label{chal:timestamp}
 Github does not report
     timestamps for the watchers/stars and followers entities. This means that it
@@ -233,7 +224,7 @@ Github does not report
     the GHTorrent project started collecting data.
 
 
-\subsection{Issues and pull requests} Issues and pull requests are dual on
+\paragraph*{Issues and pull requests} Issues and pull requests are dual on
 Github; for each opened pull request, an issue is opened automatically.  Commits
 can also be attached to issues to convert them to pull requests (albeit with
 external tools). As a result, discussion comments for a pull request need to be
@@ -243,7 +234,7 @@ are two different status entities (namely, the pull request status and the issue
 status) that need to be queried to get the succession of events on a pull
 request.
 
-\subsection{Commit users} Git allows users to setup custom user names as
+\paragraph*{Commit users} Git allows users to setup custom user names as
     their commit names. The prevailing convention is that users use their email
     as their commit names; this is not a strict requirement though. By matching
     the commit email to the email the user has registered with at Github, it is
@@ -256,27 +247,30 @@ request.
     a fake user entry with as much information as available. If in a future
     update, the resolution does take place, GHTorrent will attempt to replace
     the fake entry with the normal entry. Despite this, there are several
-    thousand fake users in the current dataset~\todo{run query}.
+    thousand fake users in the current dataset.
     
-\subsection{Pull requests merged outside Github} Although Github
+\paragraph*{Pull requests merged outside Github} Although Github
     automates the generation and submission of patches among repositories
     through pull requests, those need not be merged through the Github
     interface. Indeed, several projects choose to track the discussion on pull
     requests using Github's facilities while doing the actual merge using
-    {\sf git}. A researcher can observe this behaviour because an usually big
+    {\sf git}. This behaviour can be observed in projects where an usually big
     number of pull requests are closed without being reported as merged.
-    Unfortunately, there is no precise way to tell whether those pull requests
-    have been indeed merged, except by resolving to commit log mining
-    heuristics.
+    In such cases, we can deduce that a pull request has been merged by checking
+    whether the commits (identified by their {\sc sha} \texttt{id}) appear in 
+    the main project's repository (through a metadata query). However, this
+    heuristic is not complete, as several projects use commit-squashing or
+    even diff-based patching to transfer commits between branches, thereby
+    loosing authorship information.
 
 %\subsection{Trivial projects} The majority of projects in Github are forks of
-%    another project (\todo{Run query}). Of the remaining projects, several are
+%    another project (54\% of the dataset). Of the remaining projects, several are
 %    trivial, containing only a few commits, while many do not contain source
 %    code (for example, Github pages repositories). To obtain a list of projects
 %    worth investigating, the researcher should filter the remaining projects
 %    for specific properties (for example, popularity, programming language etc).
-%
-\subsection{Issue tracking is open ended} Repository mining for bug tracking
+
+\paragraph*{Issue tracking is open ended} Repository mining for bug tracking
     repositories is greatly enhanced, if records are consistent across
     projects. This is why most studies have been carried on Bugzilla data, which
     offers a good default set of properties per bug and little opportunities to
@@ -286,14 +280,14 @@ request.
     labels. This means that characteristics of bugs cannot be
     examined uniformly across projects.
 
-%\subsection{Changing data formats} As Github is in active development, the
-%provided data formats and {\sc api} endpointss are moving targets. During the
-%lifetime of the project, the commit entry schema changed twice, while the
-%\textsf{watchers} entity has been renamed to \textsf{stargazers}. We try to
-%follow the developments that affect the generation of our relational schema
-%only; so far, no modification was necessary.
-%
-\subsection{Some events may be missing} Malfunctions in the mirroring system
+\paragraph*{Changing data formats} As Github is in active development, the
+provided data formats and {\sc api} endpointss are moving targets. During the
+lifetime of the project, the commit entry schema changed twice, while the
+\textsf{watchers} entity has been renamed to \textsf{stargazers}. We try to
+follow the developments that affect the generation of our relational schema
+only; so far, no modification was necessary.
+
+\paragraph*{Some events may be missing} Malfunctions in the mirroring system
     (software or network) can result in some parts of the data that are missing.
     In principle, apart from events, all missing data in GHTorrent can be
     restored (by replaying the event log or using the \texttt{ght-retrieve-repo}
@@ -306,16 +300,32 @@ request.
     2012, when we were trying to adapt GHTorrent to the newly imposed
     requirement for authenticated {\sc api} requests.
 
+\paragraph*{REST queries return modified results} Some {\sc rest api} calls
+return slightly modified results if they are queried in different time 
+moments. We have noticed this behaviour in the \texttt{created\_at} 
+timestamps in several entities. In cases where the field is used as part
+of a primary key, this might lead to duplicated records. Currently, this 
+behaviour affects the \textsf{pull\_request\_history} and
+\textsf{issue\_events}.
+
 \section{Research Opportunities}
 
 The GHTorrent dataset is a rich source for both software engineering and
 big data research; we outline some research opportunities emerging from
 this data set below:
 
+\subsubsection{Unified developer identities} {\sc msr} researchers usually face the
+problem of disjoin developer identities when attempting to do research accross
+projects and data sources. The GHTorrent dataset offers
+combined source code, source code management, code review, issue and social
+data using a single developer identity. Researchers can thus track developer
+actions accross projects (e.g. developer migrations) and combine them in 
+novel and interesting ways. 
+
 \subsubsection{Software ecosystems} In Github, project ecosystems are created
 through forking, sharing of developers and dependency based linking of
 components. The GHTorrent dataset has rich, timestamped information about 
-projects and their forks, which can be trivially augmented with library
+projects and their forks, which can be easily augmented with library
 dependency information by automatically browsing related projects.
 
 \subsubsection{Network analysis} Several networks are being formed on
@@ -354,6 +364,22 @@ command line clients that exploit the distribution infrastructure are
 trivial to develop. Collaborating researchers can thus extend the dataset
 with custom analyses and data linking facilities.
 
+
+\section{Related Work}
+
+Similar to GHTorrent is the Github Archive project~\cite{Grigo13}.  Both
+projects mirror Github's public event timeline. The timeline sources are
+different; while GHTorrent uses the official Github {\sc api} timeline, Github
+Archive parses the data used to create the corresponding Github web page.  Due
+to the differences in the two {\sc api} endpoints, Github Archive's event
+dataset is richer.  However, GHTorrent also retrieves the data linked from the
+event timeline, which allows it to go back in history; in fact, while Github
+Archive's data starts in February 2012, GHTorrent's dataset can and has been
+extended for certain projects to 2008.  In addition, the GHTorrent toolset
+allows for retrieving the full history for a single project and the full list of
+actions for a single developer, which may make it more appealing for the {\sc
+msr} community.
+
 \section{Conclusions}
 
 In this work, we presented the GHTorrent dataset and suite of tools, analyzed
@@ -362,9 +388,9 @@ provided dataset has a strong potential for providing interesting insights in
 areas including but not limited to community dynamics, global software
 engineering and distributed collaboration. We are actively seeking contributions
 that will enhance the collected dataset's utility to the research community. 
-More information can be found at \todo{Insert URL of homepage}
+More information can be found at \url{http://www.ghtorrent.org}.
 
-The project source code can be obtained at \url{https://github.com/gousiosg/github-mirror}
+The source code for the project can be obtained at \url{https://github.com/gousiosg/github-mirror}
 
 \section*{Acknowledgements}
 This work is funded by Marie Curie {\sc ief} 298930 --- {\sc sefunc}.
