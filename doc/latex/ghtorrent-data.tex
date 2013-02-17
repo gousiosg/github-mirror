@@ -45,12 +45,13 @@ development model~\cite{GPD13}, analysis of drive-by commits and analysis of
 test incentives on social sites),
 while collaborations with external research groups are under way. 
 
-An outline of the project and bits of the implementation was presented in~\cite{GS12}. Since this work, we extended the collection process to
-an additional 15 {\sc api} end points, stabilized the data and metadata
-schema and developed a service to collaboratively collect and share data. More
-than 900{\sc gb} of raw data and 10{\sc gb} of metadata have been collected
-and are available for download.
-In this paper, we present the finalized schema, go through the challenges and limitations of working with the dataset and outline research
+An outline of the project and bits of the implementation were presented
+in~\cite{GS12}. Since this work, we extended the collection process to an
+additional 15 {\sc api} end points, stabilized the data and metadata schema and
+developed a service to collaboratively collect and share data. More than 900{\sc
+gb} of raw data and 10{\sc gb} of metadata have been collected and are available
+for download. In this paper, we present the finalized schema, go through the
+challenges and limitations of working with the dataset and outline research
 opportunities that emerge from it.
 
 \begin{figure*}
@@ -63,7 +64,7 @@ opportunities that emerge from it.
       \hline
       \bf{Entity} & \bf{Description} & \bf{Raw data entity} & \bf{Num Items} \\
       \hline
-      \sf{events} & Events on repositories. & \texttt{events} & 43,090,195\\
+      --- & Events on repositories. & \texttt{events} & 43,090,195\\
 
       \sf{projects} & Project repositories. & \tt{repos} & 1,326,900\\
       
@@ -105,7 +106,7 @@ opportunities that emerge from it.
       \sf{pull\_request\_comments} & Discussion comments on a \sf{pull\_request}
       & \texttt{pullreq\_comnts} & 2,228,894\\
 
-      \sf{pull\_request\_history} & Chronologically ordered list of events on
+      \sf{pull\_request\_history} & Chronologically ordered list of events
       on a \sf{pull\_request} & --- & ---\\
 
       \hline
@@ -118,14 +119,14 @@ opportunities that emerge from it.
 
 \section{Data Collection}
 
-The primary challenge for the data collection process was that Github imposes a
+The primary challenge for the data collection process is the Github imposed
 5,000 requests per hour limit for authenticated requests, while the event
 generation rate is already higher;\footnote{On an average day, Github produces
 200,000 events, or about 8,300 events per hour} given that a single event can
-lead to several (even thousands) of dependent requests requests, it is not
+lead to several (even thousands) of dependent requests, it is not
 practical to assume that a single Github account will suffice to mirror the whole
-dataset. {\sc ght}orent was designed from the ground up to use caching excessively in
-various parts of the request cycle and also to be distributed. We briefly
+dataset. For this reason, {\sc ght}orent was designed from the ground up to use caching excessively (to avoid duplicate requests) and also to be distributed (to 
+enable multiple users to retrieve data in parallel). We briefly
 describe how {\sc ght}orent employs those two mechanisms in the following paragraphs.
 
 The Github {\sc api} supports two types of queries:
@@ -143,7 +144,7 @@ The Github {\sc api} supports two types of queries:
     of data per response. Range queries do not necessarily return the full
     entity instance for each item, but they usually include a {\sc url} where
     the item may be retrieved. As a result, a range query might result to
-    several (thousands for large projects) resource queries.
+    several resource queries.
 
 \end{itemize}
 
@@ -178,7 +179,7 @@ The data schema can be seen in Figure~\ref{fig:entities}. Following Github's
 {\sc api} organization, most entities belong to a {\sf project} and contain
 entries corresponding to actions initiated by a {\sf user}. The schema also
 records information about {\sf users}, organizations and their members ({\sf
-organization\_members}), while {\sf commits} are shared among {\sf projects} their
+organization\_members}), while {\sf commits} are shared among {\sf projects}, their
 forks, and {\sf pull\_requests}.  Most entities are timestamped with their
 creation date (the \texttt{created\_at} field), while for entities which can be
 in more than one states in time (e.g.  {\sf pull\_requests} and {\sf issues}),
@@ -319,12 +320,13 @@ The {\sc ght}orent dataset is a rich source for both software engineering and
 big data research; we outline some research opportunities emerging from
 this data set below:
 
-\subsubsection{Unified developer identities} {\sc msr} researchers usually face the
-problem of disjoin developer identities when attempting to do research accross
+\subsubsection{Unified developer identities} {\sc msr} researchers have long
+faced the
+problem of disjoint developer identities when attempting to do research across
 projects and data sources. The {\sc ght}orent dataset offers
 combined source code, source code management, code review, issue and social
 data using a single developer identity. Researchers can thus track developer
-actions accross projects (e.g. developer migrations) and combine them in 
+actions across projects (e.g. developer migrations) and combine them in 
 novel and interesting ways. 
 
 \subsubsection{Software ecosystems} In Github, project ecosystems are created
@@ -382,7 +384,7 @@ event timeline, which allows it to go back in history; in fact, while Github
 Archive's data starts in February 2012, {\sc ght}orent's dataset can and has been
 extended for certain projects to 2008.  In addition, the {\sc ght}orent toolset
 allows for retrieving the full history for a single project and the full list of
-actions for a single developer, which may make it more appealing for the {\sc
+actions for a single developer, which may make it more appealing to the {\sc
 msr} community.
 
 \section{Conclusions}
@@ -395,7 +397,7 @@ engineering and distributed collaboration. We are actively seeking contributions
 that will enhance the collected dataset's utility to the research community. 
 More information can be found at \url{http://www.ghtorrent.org}.
 
-The source code for the project can be obtained at \url{https://github.com/gousiosg/github-mirror}
+The source code for the project can be obtained at \url{https://github.com/gousiosg/github-mirror}.
 
 \section*{Acknowledgements}
 This work is funded by Marie Curie {\sc ief} 298930 --- {\sc sefunc}.
