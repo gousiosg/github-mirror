@@ -11,3 +11,5 @@
 *.iws
 *.db
 config.yaml
+doc/build
+
