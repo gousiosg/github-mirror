@@ -1280,22 +1280,25 @@ module GHTorrent
       cur_issue = issues.first(:issue_id => issue_id,
                                :repo_id => repository[:id])
 
-      if cur_issue.nil?
-        retrieved = retrieve_issue(owner, repo, issue_id)
+      retrieved = retrieve_issue(owner, repo, issue_id)
 
-        if retrieved.nil?
-          warn "GHTorrent: Issue #{issue_id} does not exist for #{owner}/#{repo}"
-          return
-        end
+      if retrieved.nil?
+        warn "GHTorrent: Issue #{issue_id} does not exist for #{owner}/#{repo}"
+        return
+      end
+
+      # Pull requests and issues share the same issue_id
+      pull_req = unless retrieved['pull_request'].nil? or
+          retrieved['pull_request']['patch_url'].nil?
+                   info "GHTorrent: Issue #{owner}/#{repo}->#{issue_id} is a pull request"
+                   ensure_pull_request(owner, repo, issue_id)
+                 end
+
+      if cur_issue.nil?
 
         reporter = ensure_user(retrieved['user']['login'], false, false)
         assignee = unless retrieved['assignee'].nil?
                      ensure_user(retrieved['assignee']['login'], false, false)
-                   end
-
-        # Pull requests and issues share the same issue_id
-        pull_req = unless retrieved['pull_request'].nil? or retrieved['pull_request']['patch_url'].nil?
-                     ensure_pull_request(owner, repo, issue_id)
                    end
 
         issues.insert(:repo_id => repository[:id],
@@ -1310,6 +1313,12 @@ module GHTorrent
         info "GHTorrent: Added issue #{owner}/#{repo} -> #{issue_id}"
       else
         info "GHTorrent: Issue #{owner}/#{repo}->#{issue_id} exists"
+        if cur_issue[:pull_request] == false and not pull_req.nil?
+          info "GHTorrent: Updating issue #{owner}/#{repo}->#{issue_id} as pull request"
+          issues.filter(:issue_id => issue_id, :repo_id => repository[:id]).update(
+              :pull_request => true,
+              :pull_request_id => pull_req[:id])
+        end
       end
       ensure_issue_events(owner, repo, issue_id) if events
       ensure_issue_comments(owner, repo, issue_id) if comments
