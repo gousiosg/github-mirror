@@ -38,7 +38,7 @@ class GHTFixForks < GHTorrent::Command
 
         begin
           @ght.transaction do
-            fork = @ght.ensure_repo(owner, repo, false, false, false)
+            forked = @ght.ensure_repo(owner, repo, false, false, false)
             parent = @ght.ensure_repo(parent_owner, parent_repo, false, false, false)
 
             if parent.nil?
@@ -46,9 +46,9 @@ class GHTFixForks < GHTorrent::Command
               next
             end
 
-            if fork[:forked_from].nil? or fork[:forked_from] != parent[:id]
+            if forked[:forked_from].nil? or forked[:forked_from] != parent[:id]
               tried += 1
-              @ght.get_db[:projects].filter(:id => fork[:id]).update(:forked_from => parent[:id])
+              @ght.get_db[:projects].filter(:id => forked[:id]).update(:forked_from => parent[:id])
               fixed += 1
               puts "Added #{owner}/#{repo} as fork of #{parent_owner}/#{parent_repo}"
             else
