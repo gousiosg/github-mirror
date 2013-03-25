@@ -1,4 +1,4 @@
-\documentclass[conference]{IEEEtran}
+\documentclass[conference,letter]{IEEEtran}
 \usepackage{url}
 \usepackage{graphicx}
 \usepackage{subfigure}
@@ -7,7 +7,7 @@
 
 \begin{document}
 
-\title{The GHTorent dataset and tool suite}
+\title{The GHTorent Dataset and Tool Suite}
 
 \author{\IEEEauthorblockN{Georgios Gousios} 
 \IEEEauthorblockA{
@@ -148,14 +148,16 @@ The Github {\sc api} supports two types of queries:
 
 \end{itemize}
 
-Resource query results can be cached very efficiently, as by definition they never change. Range queries are trickier to cache, as their result might
-change as the project evolves (new commits, new followers, etc); fortunately, by
+Resource query results can be cached very efficiently, as by definition they
+never change. Range queries are trickier to cache, as their result might change
+as the project evolves (new commits, new followers, etc); fortunately, by
 default Github serves newer results first, so it is enough to go through the
 first few pages of results only in order to retrieve the updated data. To cache
-the results per entity, we use a Mongo{\sc db} database, which offers the added
-benefit of enabling querying on the raw data. Caching is also used at the {\sc
-http} request layer; {\sc ght}orent automatically serializes {\sc http}
-responses to disk. This avoids retrieving older pages in range queries twice.
+the results per entity, {\sc ght}orent uses a Mongo{\sc db} database, which
+offers the added benefit of enabling querying on the raw data. Caching is also
+used at the {\sc http} request layer; {\sc ght}orent automatically serializes
+{\sc http} responses to disk. This avoids retrieving older pages in range
+queries twice.
 
 %\begin{figure} \begin{center}
 %\includegraphics[scale=0.5]{ghtorrent-process.pdf} \end{center} \caption{The
@@ -182,7 +184,7 @@ records information about {\sf users}, organizations and their members ({\sf
 organization\_members}), while {\sf commits} are shared among {\sf projects}, their
 forks, and {\sf pull\_requests}.  Most entities are timestamped with their
 creation date (the \texttt{created\_at} field), while for entities which can be
-in more than one states in time (e.g.  {\sf pull\_requests} and {\sf issues}),
+in more than one states in time (e.g.,  {\sf pull\_requests} and {\sf issues}),
 additional tables record those states in chronological order.  
 For entities that correspond to {\sc api} calls, the \texttt{ext\_ref\_id}
 field contains the unique identifier to the raw entity in the Mongo{\sc
@@ -198,7 +200,7 @@ perform the requests and store the results in the shared database.
 Decentralization enables collaborating researchers to contribute to the data
 collection effort, through what we call the \emph{workers for data} model.  In
 exchange for data collection \emph{workers}, the project offers direct access to
-the live project \emph{data}bases. Set up instructions for workers as well as a
+the live project \emph{databases}. Set up instructions for workers as well as a
 preconfigured virtual machine are offered through the project's web site. Apart
 from offering direct access to the data, the project also distributes dumps of
 the collected data, in both raw and relational formats. Depending on the use
@@ -287,7 +289,7 @@ request.
     examined uniformly across projects.
 
 \paragraph*{Changing data formats} As Github is in active development, the
-provided data formats and {\sc api} endpointss are moving targets. During the
+provided data formats and {\sc api} endpoints are moving targets. During the
 lifetime of the project, the commit entry schema changed twice, while the
 \textsf{watchers} entity has been renamed to \textsf{stargazers}. We try to
 follow the developments that affect the generation of our relational schema
@@ -299,7 +301,7 @@ only; so far, no modification was necessary.
     restored (by replaying the event log or using the \texttt{ght-retrieve-repo}
     script) provided that the original data have not been deleted from Github.
     In the case of missing events, the current Github {\sc api} does not permit
-    retrieving more than the 300 newest per repository. On busy projects, this
+    retrieving more than the 300 newest events per repository. On busy projects, this
     is less than a day's worth of event log. Known periods of missing events are
     several days at the beginning of March 2012, when an error to the event
     mirroring script went unnoticed, and from mid October 2012 to mid November
