@@ -14,7 +14,7 @@
 Software Engineering Research Group\\
 Delft University of Technology\\
 Delft, The Netherlands\\
-Email: g.gousios@tudelft.nl}
+g.gousios@tudelft.nl}
 }
 
 \maketitle
@@ -175,7 +175,7 @@ resolution may fail but once it succeeds, it will always return the same result.
 This design choice has been very important since it makes our data stores append
 only and the results of each step memoizable and therefore cachable.
 
-\subsection*{Data schema}
+\subsection{Data schema}
 
 The data schema can be seen in Figure~\ref{fig:entities}. Following Github's
 {\sc api} organization, most entities belong to a {\sf project} and contain
@@ -190,7 +190,7 @@ For entities that correspond to {\sc api} calls, the \texttt{ext\_ref\_id}
 field contains the unique identifier to the raw entity in the Mongo{\sc
 db} database.
 
-\subsection*{Workers for Data}
+\subsection{Workers for Data}
 
 The data collection was designed from the beginning as a decentralized process.
 Decentralization is mediated using the worker queue model; a message producer
