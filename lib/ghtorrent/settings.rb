@@ -68,7 +68,7 @@ module GHTorrent
         :attach_ip => "0.0.0.0"
     }
 
-    def config(key, use_default = false)
+    def config(key, use_default = true)
       begin
         read_value(settings, CONFIGKEYS[key])
       rescue Exception => e
