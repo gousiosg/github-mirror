@@ -1,13 +1,10 @@
 require 'rake'
 require File.expand_path('../lib/version', __FILE__)
 
-ts = `git log --date=raw lib/ghtorrent.rb |grep Date|head|tr -s ' '|cut -f2 -d' '|head -n 1`
-date = Time.at(ts.to_i).strftime("%Y-%m-%d")
-
 Gem::Specification.new do |s|
   s.name          = 'ghtorrent'
   s.version       = GHTorrent::VERSION
-  s.date          = date
+  s.date          = Time.now.strftime("%Y-%m-%d") 
   s.summary       = 'Mirror and process Github data'
   s.description   = 'A library and a collection of associated programs
                     to mirror and process Github data'
