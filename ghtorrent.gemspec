@@ -24,14 +24,13 @@ Gem::Specification.new do |s|
                              '[A-Z]*',
                              'test/**/*'].to_a
 
-  s.add_dependency "amqp", ['>= 0.9']
-  s.add_dependency "mongo", ['>= 1.6']
-  s.add_dependency "bson_ext", ['>= 1.6']
-  s.add_dependency "json", ['>= 1.6']
-  s.add_dependency "trollop", ['>= 1.16']
-  s.add_dependency "sequel", ['>= 3.35']
-  s.add_dependency "sqlite3-ruby", ['>= 1.3.2']
-  s.add_dependency "daemons", ['>= 1.1.8']
+  s.add_dependency "amqp", ['~> 1.0.0']
+  s.add_dependency "mongo", ['~> 1.8.0']
+  s.add_dependency "bson_ext", ['~> 1.8.0']
+#  s.add_dependency "json", ['~> 1.6.']
+  s.add_dependency "trollop", ['~> 2.0.0']
+  s.add_dependency "sequel", ['~> 3.47']
+  s.add_dependency "daemons", ['~> 1.1.0']
 
   begin
     require "changelog"
