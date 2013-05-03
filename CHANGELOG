@@ -1,3 +1,15 @@
+= Version 0.7
+	* Full support for issues (comments, labels etc) and pull requests
+	* Cleaned up retrieval of pull request commits
+	* Cleaned up association of commits with repositories.
+	* Removed the forks table. Forks are now tracked by the forked_from field in projects
+	* Use Github's HTTP headers for request throttling
+	* Support for setting user agent header as per Github API requirements
+	* Support for marking projects as deleted (run fixes/update_deleted.rb)
+	* New tool (ght-retrieve-user) to retrieve all data for a single user 
+	* Support for running without a config.yaml file
+	* Technical report in doc/
+
 = Version 0.6
 
 	* Support retrieval of issues, issue events and issue history
