@@ -1,4 +1,5 @@
 require 'yaml'
+require 'tmpdir'
 
 require 'ghtorrent/utils'
 
@@ -18,7 +19,6 @@ module GHTorrent
         :sql_url => "sql.url",
 
         :mirror_urlbase => "mirror.urlbase",
-        :mirror_urlbase_v2 => "mirror.urlbase_v2",
         :mirror_pollevery => "mirror.pollevery",
         :mirror_persister => "mirror.persister",
         :mirror_commit_pages_new_repo => "mirror.commit_pages_new_repo",
@@ -38,8 +38,46 @@ module GHTorrent
         :attach_ip => "mirror.attach_ip"
     }
 
-    def config(key)
-      read_value(settings, CONFIGKEYS[key])
+    DEFAULTS = {
+        :amqp_host => "localhost",
+        :amqp_port => 5672,
+        :amqp_username => "github",
+        :amqp_password => "github",
+        :amqp_exchange => "github",
+        :amqp_prefetch  => 1,
+
+        :sql_url => "sqlite://github.db",
+
+        :mirror_urlbase => "https://api.github.com/",
+        :mirror_pollevery => "mirror.pollevery",
+        :mirror_persister => "no-op",
+        :mirror_commit_pages_new_repo => 3,
+        :mirror_history_pages_back => 1,
+        :uniq_id => "ext_ref_id",
+        :user_agent => "ghtorrent",
+
+        :cache_mode      => "dev",
+        :cache_dir       => Dir::tmpdir + File::SEPARATOR + "ghtorrent",
+        :cache_stale_age => 604800,
+
+        :github_username => "foo",
+        :github_passwd => "bar",
+
+        :respect_api_ratelimit => "true",
+
+        :attach_ip => "0.0.0.0"
+    }
+
+    def config(key, use_default = false)
+      begin
+        read_value(settings, CONFIGKEYS[key])
+      rescue Exception => e
+        if use_default
+          DEFAULTS[key]
+        else
+          raise e
+        end
+      end
     end
 
     def merge(more_keys)
