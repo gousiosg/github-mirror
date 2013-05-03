@@ -9,22 +9,21 @@ GHTorrent relies on the following software to work:
 
 * MongoDB > 2.0
 * RabbitMQ >= 2.7
-* An SQL database compatible with [Sequel](http://sequel.rubyforge.org/rdoc/files/doc/opening_databases_rdoc.html). 
-GHTorrent is tested mainly with MySQL, so your mileage may vary if you are using other databases.
+* MySQL >= 5.5. GHTorrent is tested mainly with MySQL, but can theoretically be
+used with any SQL database compatible with [Sequel](http://sequel.rubyforge.org/rdoc/files/doc/opening_databases_rdoc.html). Your milaege may vary.
 
-GHTorrent is written in Ruby (tested with 1.9 and JRuby). To install 
-it as a Gem do:
+GHTorrent is written in Ruby (tested with 1.9). To install it as a Gem do:
 
 <code>
 sudo gem install ghtorrent 
 </code>
 
 Depending on which SQL database you want to use, install the appropriate
-dependency gem. GHTorrent already installs the `sqlite3` gem (if it fails,
-install the development package for `sqlite3` for your system).
+dependency gem. GHTorrent already installs the `mysql2` gem (if it fails,
+install the development package for `libmysql-dev` for your system).
 
 <code>
-sudo gem install mysql2 #or postgres
+sudo gem install mysql2 #or sqlite3-ruby #or postgres
 </code>
 
 #### Configuring
@@ -95,23 +94,20 @@ and performance reasons. To catch up with Github's event stream, it is
 usually enough to run `ght-mirror-events` on one host. To collect all data
 pointed by each event, one instance of `ght-data-retrieval` is not enough.
 Both scripts employ throttling mechanisms to keep API usage whithin the
-limits imposed by Github (currently 5000 reqs/hr).
+limits imposed by Github (currently 60 reqs/hr/ip). If you want the full
+5000 reqs/hr/ip, you will have to provide your Github login details 
+in the `config.yaml` file.
 
 #### Data
 
 You can find torrents for retrieving data on the 
-[Available Torrents](https://github.com/gousiosg/github-mirror/wiki/Available-Torrents) page. You need two sets of data:
+[Available Torrents](https://ghtorrent.org/downloads.html) page. You need two sets of data:
 
 * Raw events: Github's [event stream](https://api.github.com/events). These
 are the roots for mirroring operations. The `ght-data-retrieval` crawler starts
 from an event and goes deep into the rabbit hole.
 * SQL dumps+Linked data: Data dumps from the SQL database and the corresponding
 MongoDB entities.
-
-
-*At the moment, GHTorrent is in the process of redesigning its data storage
-schema. Consequently, it does not distribute SQL dumps or linked data raw data.
-The distribution service will come back shortly.*
 
 #### Reporting bugs
 
