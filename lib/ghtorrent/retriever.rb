@@ -559,7 +559,7 @@ module GHTorrent
                 paged_api_request(ghurl urls)
               end
 
-      items.each do |x|
+      items = items.map do |x|
         x['repo'] = repo
         x['owner'] = user
 
@@ -592,9 +592,9 @@ module GHTorrent
       end
 
       if item_id.nil?
-        persister.find(entity, selector)
+        items
       else
-        repo_bound_instance(entity, selector, descriminator, item_id)
+        [items.find{|x| x[descriminator] == item_id}]
       end
     end
 
