@@ -11,25 +11,27 @@ Sequel.migration do
 
     puts "Updating pull_requests.merged"
     DB.transaction(:rollback => :reraise, :isolation => :committed) do
-      DB << "update pull_requests pr
-      set pr.merged = true
-      where exists (select *
-          from pull_request_commits prc, project_commits pc
-          where prc.commit_id = pc.commit_id
-          and prc.pull_request_id = pr.id
-	        and pc.project_id = pr.base_repo_id
-          and pr.base_repo_id <> pr.head_repo_id)"
-      DB << "update pull_requests pr
-      set pr.merged = true
+      DB << "update pull_requests
+             set merged = '1'
+             where exists (
+              select *
+              from pull_request_commits prc, project_commits pc
+              where prc.commit_id = pc.commit_id
+                  and prc.pull_request_id = pull_requests.id
+                  and pc.project_id = pull_requests.base_repo_id
+                  and pull_requests.base_repo_id <> pull_requests.head_repo_id);"
+
+      DB << "update pull_requests
+      set merged = '1'
       where exists(
         select prh.created_at
         from pull_request_history prh
-        where prh.action='merged' and prh.pull_request_id=pr.id)"
+        where prh.action='merged' and prh.pull_request_id=pull_requests.id)"
     end
 
-    puts "Correcting intra_branch field"
+    puts 'Correcting intra_branch field'
     DB.transaction(:rollback => :reraise, :isolation => :committed) do
-      DB << "update pull_requests set intra_branch = true where base_repo_id = head_repo_id"
+      DB << "update pull_requests set intra_branch = '1' where base_repo_id = head_repo_id"
     end
   end
 
