@@ -3,7 +3,7 @@ module GHTorrent
   # Persister adapter that does not store any data.
   class NoopPersister < BaseAdapter
 
-    def init(settings)
+    def initialize(settings)
     end
 
     def store(entity, data = {})

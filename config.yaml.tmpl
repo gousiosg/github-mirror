@@ -25,7 +25,7 @@ sql:
 mirror:
   urlbase: "https://api.github.com/"
   pollevery: 5 #sec
-  persister: mongo #or no-op
+  persister: mongo #or noop
   uniq_id: 'ext_ref_id' # Field that links persister entries to SQL entries
 
   # Number of commit pages to retrieve when a new repo is added. Each page
@@ -43,9 +43,9 @@ mirror:
   # Time (in seconds) before items in the cache are considered stale
   cache_stale_age: 604800 # One week
 
-  # Choose whether to cache all requests (dev(elopment) mode) or only
+  # Choose whether to cache all requests, or only
   # requests that make sense (prod(uction) mode).
-  cache_mode: prod #or dev
+  cache_mode: prod #or all
 
   # On a machine with multiple IP addresses, select the one to send the
   # HTTP requests from.

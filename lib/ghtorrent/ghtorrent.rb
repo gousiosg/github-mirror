@@ -41,7 +41,7 @@ module GHTorrent
     end
 
     def persister
-      @persister ||= connect(:mongo, @settings)
+      @persister ||= connect(config(:mirror_persister), @settings)
       @persister
     end
 

@@ -50,7 +50,7 @@ module GHTorrent
 
         :mirror_urlbase => "https://api.github.com/",
         :mirror_pollevery => "mirror.pollevery",
-        :mirror_persister => "no-op",
+        :mirror_persister => "noop",
         :mirror_commit_pages_new_repo => 3,
         :mirror_history_pages_back => 1,
         :uniq_id => "ext_ref_id",
