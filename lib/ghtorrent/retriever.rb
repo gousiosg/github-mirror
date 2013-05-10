@@ -589,6 +589,12 @@ module GHTorrent
             debug "Retriever: #{entity} #{user}/#{repo} -> #{x[descriminator]} exists"
           end
         end
+        # If the persistence driver does not set an ext_ref_id key, set a dummy
+        # one here
+        unless x.has_key? ext_uniq
+          x[ext_uniq] = '0'
+        end
+        x
       end
 
       if item_id.nil?
