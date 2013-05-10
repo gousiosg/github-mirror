@@ -33,7 +33,7 @@ module GHTorrent
           end
         end
       rescue
-        warn "Could not cache object #{file} for key #{key}"
+        warn "Cache: Could not cache object #{file} for key #{key}"
       end
     end
 
@@ -47,7 +47,7 @@ module GHTorrent
       end
 
       unless (Time.now() - File.mtime(file)) < max_life
-        debug "Cached object for key #{key} too old"
+        debug "Cache: Cached object for key #{key} too old"
         return nil
       end
 
@@ -58,7 +58,7 @@ module GHTorrent
           end
         end
       rescue
-        warn "Could not read object from cache location #{file}"
+        warn "Cache: Could not read object from cache location #{file}"
         File.delete(file)
       end
     end

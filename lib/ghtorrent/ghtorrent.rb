@@ -20,6 +20,7 @@ module GHTorrent
       @settings = settings
       @ext_uniq = config(:uniq_id)
       @logger = Logger.new(STDOUT)
+      debug "GHTorrent: Using cache dir #{config(:cache_dir)}"
     end
 
     # Get a connection to the database

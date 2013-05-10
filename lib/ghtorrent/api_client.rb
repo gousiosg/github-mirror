@@ -28,20 +28,25 @@ module GHTorrent
     def paged_api_request(url, pages = config(:mirror_history_pages_back),
         cache = true, last = nil)
 
-      url = if not url.include?("per_page")
-              if url.include?("?")
-                url + "&per_page=100"
+      url = if not url.include?('per_page')
+              if url.include?('?')
+                url + '&per_page=100'
               else
-                url + "?per_page=100"
+                url + '?per_page=100'
               end
             else
               url
             end
 
-      data = if CGI::parse(URI::parse(url).query).has_key?("page")
+      params = CGI::parse(URI::parse(url).query)
+      data = if params.has_key?('page') or (params.has_key?('last_sha'))
                api_request_raw(url, use_cache?(cache, method = :paged))
              else
-               api_request_raw(url, false)
+               if @cache_mode == :all
+                 api_request_raw(url, true)
+               else
+                 api_request_raw(url, false)
+              end
              end
 
       return [] if data.nil?
@@ -77,7 +82,7 @@ module GHTorrent
 
     # A normal request. Returns a hash or an array of hashes representing the
     # parsed JSON result.
-    def api_request(url, cache = false)
+    def api_request(url, cache = true)
       parse_request_result api_request_raw(url, use_cache?(cache))
     end
 
@@ -87,14 +92,18 @@ module GHTorrent
     # request
     def use_cache?(client_request, method = :non_paged)
       @cache_mode ||= case config(:cache_mode)
-                        when "dev"
+                        when 'dev'
                           :dev
-                        when "prod"
+                        when 'prod'
                           :prod
+                        when 'all'
+                          :all
                         else
                           raise GHTorrentException.new("Don't know cache configuration #{@cache_mode}")
                       end
       case @cache_mode
+        when :all
+          return true
         when :dev
           unless client_request
             return false
@@ -160,7 +169,7 @@ module GHTorrent
             end
 
         total = Time.now.to_ms - start_time.to_ms
-        debug "APIClient: Request: #{url} #{if from_cache then " from cache," else "(#{contents.meta['x-ratelimit-remaining']} remaining)," end} Total: #{total} ms"
+        debug "APIClient: Request: #{url} #{if from_cache then "from cache," else "(#{contents.meta['x-ratelimit-remaining']} remaining)," end} Total: #{total} ms"
 
         if not from_cache and config(:respect_api_ratelimit) and
             contents.meta['x-ratelimit-remaining'].to_i < 20
@@ -201,7 +210,7 @@ module GHTorrent
                            :http_basic_authentication => [@username, @passwd])}
       end
 
-      if @attach_ip.nil? or @attach_ip.eql? "0.0.0.0"
+      if @attach_ip.nil? or @attach_ip.eql? '0.0.0.0'
         @open_func.call(url)
       else
         attach_to(@attach_ip) do
