@@ -24,7 +24,6 @@ Gem::Specification.new do |s|
   s.add_dependency "amqp", ['~> 1.0.0']
   s.add_dependency "mongo", ['~> 1.8.0']
   s.add_dependency "bson_ext", ['~> 1.8.0']
-#  s.add_dependency "json", ['~> 1.6.']
   s.add_dependency "trollop", ['~> 2.0.0']
   s.add_dependency "sequel", ['~> 3.47']
   s.add_dependency "daemons", ['~> 1.1.0']

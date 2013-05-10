@@ -1,16 +1,41 @@
-ghtorrent: Mirror and process the Github event steam
-=========================================================
+##ghtorrent: Mirror and process data from the Github API 
 
-A collection of scripts used to mirror the Github event stream, for 
-research purposes. The scripts are distributed as a Gem (`ghtorrent`),
-but they can also be run by checking out this repository.
+A library and a collection of scripts used to retrieve data from the Github API
+and extract metadata in an SQL database, in a modular and scalable manner. The
+scripts are distributed as a Gem (`ghtorrent`), but they can also be run by
+checking out this repository.
 
-GHTorrent relies on the following software to work:
+GHTorrent can be used for a variety of purposes, such as:
 
-* MongoDB > 2.0
-* RabbitMQ >= 2.7
-* MySQL >= 5.5. GHTorrent is tested mainly with MySQL, but can theoretically be
+* Mirror the Github API event stream and follow links from events to actual data
+ to gradually build a [Github index](http://ghtorrent.org/dblite/)
+* Create a queriable metadata index for a specific repository
+* Query the Github API using intelligent caching to avoid duplicate queries
+
+GHTorrent is comprised from the following components (which can be used
+individually):
+
+* [APIClient](https://github.com/gousiosg/github-mirror/blob/master/lib/ghtorrent/api_client.rb): Knows how to query the Github API (both single entities and
+pages) and respect the API request limit. Can be configured to override the
+default IP address, in case of multihomed hosts. Uses configurable on disk [caching](https://github.com/gousiosg/github-mirror/blob/master/lib/ghtorrent/cache.rb) to avoid retrieving data that do not change.
+* [Retriever](https://github.com/gousiosg/github-mirror/blob/master/lib/ghtorrent/retriever.rb): Knows how to retrieve specific Github entities (users, repositories, watchers) by name. Uses an optional persister to avoid 
+retrieving data that have not changed.
+* [Persister](https://github.com/gousiosg/github-mirror/blob/master/lib/ghtorrent/persister.rb): A key/value store, which can be backed by a real key/value store,
+to store Github JSON replies and query them on request. The backing key/value
+store must support arbitrary queries to the stored JSON objects.
+* [GHTorrent](https://github.com/gousiosg/github-mirror/blob/master/lib/ghtorrent/ghtorrent.rb): Knows how to extract information from the data retrieved by
+the retriever in order to update an SQL database (see [schema](http://ghtorrent.org/relational.html)) with metadata.
+
+The Persister and GHTorrent components have configurable back ends:
+
+* Persister: Either uses MongoDB > 2.0 (`mongo` driver) or no persister (`noop` driver)
+* GHTorrent: GHTorrent is tested mainly with MySQL, but can theoretically be
 used with any SQL database compatible with [Sequel](http://sequel.rubyforge.org/rdoc/files/doc/opening_databases_rdoc.html). Your milaege may vary.
+
+
+The distributed mirroring scripts also require RabbitMQ >= 2.8 or other
+
+#### Installing
 
 GHTorrent is written in Ruby (tested with 1.9). To install it as a Gem do:
 
@@ -19,8 +44,7 @@ sudo gem install ghtorrent
 </code>
 
 Depending on which SQL database you want to use, install the appropriate
-dependency gem. GHTorrent already installs the `mysql2` gem (if it fails,
-install the development package for `libmysql-dev` for your system).
+dependency gem.
 
 <code>
 sudo gem install mysql2 #or sqlite3-ruby #or postgres
@@ -34,74 +58,41 @@ file to a file in your home directory. All provided scripts accept the `-c`
 option, which you can use to pass the location of the configuration file as
 a parameter.
 
-Edit the MongoDB and AMQP configuration options accordingly. The scripts
-require accounts with permissions to create queues and exchanges in the AMQP
-queue, collections in MongoDB and tables in the selected SQL database,
-respectively.
-
-To prepare MongoDB:
-
-<pre>
-$ mongo admin
-> db.addUser('github', 'github')
-> use github
-> db.addUser('github', 'github')
-</pre>
-
-To prepare RabbitMQ:
-
-<pre>
-$ rabbitmqctl add_user github
-$ rabbitmqctl set_permissions -p / github ".*" ".*" ".*"
-
-# The following will enable the RabbitMQ web admin for the github user
-# Not necessary to have, but good to debug and diagnose problems
-$ rabbitmq-plugins enable rabbitmq_management
-$ rabbitmqctl set_user_tags github administrator
-</pre>
-
-To prepare MySQL:
-
-<pre>
-$ mysql -u root -p
-mysql> create user 'github'@'localhost' identified by 'github';
-mysql> create database github;
-mysql> GRANT ALL PRIVILEGES ON github.* to github@'localhost';
-mysql> flush privileges;
-</pre>
-
-You can find more information of how you can setup a cluster of machines
+You can find more information of how you can setup a mirroring cluster of machines
 to retrieve data in parallel on the [Wiki](https://github.com/gousiosg/github-mirror/wiki/Setting-up-a-mirroring-cluster).
 
 ### Running
 
-To retrieve data with GHTorrent: 
+To mirror the event stream and capture all data: 
 
 * `ght-mirror-events.rb` periodically polls Github's event
 queue (`https://api.github.com/events`), stores all new events in the
-`events` collection in MongoDB and posts them to the `github` exchange in
+configured pestister and posts them to the `github` exchange in
 RabbitMQ.
 
 * `ght-data_retrieval.rb` creates queues that route posted events to processor
 functions, which in turn use the appropriate Github API call to retrieve the
 linked contents, extract metadata to store in the SQL database and store the
-retrieved data in the appropriate collection in Mongo, to avoid further API
-calls. Data in the SQL database contain pointers (the MongoDB key) to the
-"raw" data in MongoDB.
+retrieved data in the appropriate collection in the persister, to avoid
+duplicate API
+calls. Data in the SQL database contain pointers (the `ext_ref_id` field) to the
+"raw" data in the persister.
 
-Both scripts can be run concurrently on more than one hosts, for resilience
-and performance reasons. To catch up with Github's event stream, it is
-usually enough to run `ght-mirror-events` on one host. To collect all data
-pointed by each event, one instance of `ght-data-retrieval` is not enough.
-Both scripts employ throttling mechanisms to keep API usage whithin the
-limits imposed by Github (currently 60 reqs/hr/ip). If you want the full
-5000 reqs/hr/ip, you will have to provide your Github login details 
-in the `config.yaml` file.
+To retrieve data for a repository or user:
+
+* `ght-retrieve-repo` retrieves all data for a specific repository
+* `ght-retrieve-user` retrieves all data for a specific user
+
+To perform maintenance:
+
+* `ght-load` loads selected events from the persister to the queue in order for
+the `ght-data-retrieval` script to reprocess them
+* `ght-get-more-commits` retrieves all commits for a specific repository
 
 #### Data
 
 You can find torrents for retrieving data on the 
-[Available Torrents](https://ghtorrent.org/downloads.html) page. You need two sets of data:
+[Available Torrents](https://ghtorrent.org/downloads.html) page. You can find two sets of data:
 
 * Raw events: Github's [event stream](https://api.github.com/events). These
 are the roots for mirroring operations. The `ght-data-retrieval` crawler starts
