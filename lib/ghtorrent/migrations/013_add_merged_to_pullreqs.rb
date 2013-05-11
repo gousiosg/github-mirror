@@ -10,8 +10,8 @@ Sequel.migration do
                :default => false
 
     puts "Updating pull_requests.merged"
-    DB.transaction(:rollback => :reraise, :isolation => :committed) do
-      DB << "update pull_requests
+    self.transaction(:rollback => :reraise, :isolation => :committed) do
+      self << "update pull_requests
              set merged = '1'
              where exists (
               select *
@@ -21,7 +21,7 @@ Sequel.migration do
                   and pc.project_id = pull_requests.base_repo_id
                   and pull_requests.base_repo_id <> pull_requests.head_repo_id);"
 
-      DB << "update pull_requests
+      self << "update pull_requests
       set merged = '1'
       where exists(
         select prh.created_at
@@ -30,8 +30,8 @@ Sequel.migration do
     end
 
     puts 'Correcting intra_branch field'
-    DB.transaction(:rollback => :reraise, :isolation => :committed) do
-      DB << "update pull_requests set intra_branch = '1' where base_repo_id = head_repo_id"
+    self.transaction(:rollback => :reraise, :isolation => :committed) do
+      self << "update pull_requests set intra_branch = '1' where base_repo_id = head_repo_id"
     end
   end
 
