@@ -431,7 +431,7 @@ module GHTorrent
       url = ghurl "repos/#{owner}/#{repo}/issues/#{issue_id}/events"
       retrieved_events = paged_api_request url
 
-      retrieved_events.each { |x|
+      issue_events = retrieved_events.map { |x|
         x['owner'] = owner
         x['repo'] = repo
         x['issue_id'] = issue_id
@@ -443,9 +443,11 @@ module GHTorrent
           info "Retriever: Added issue event #{owner}/#{repo} #{issue_id}->#{x['id']}"
           persister.store(:issue_events, x)
         end
-      }
-      persister.find(:issue_events, {'owner' => owner, 'repo' => repo,
-                                     'issue_id' => issue_id})
+        x
+      }.map {|y| y[ext_uniq] = '0'}
+      a = persister.find(:issue_events, {'owner' => owner, 'repo' => repo,
+                                         'issue_id' => issue_id})
+      if a.empty? then issue_events else a end
     end
 
     def retrieve_issue_event(owner, repo, issue_id, event_id)
@@ -466,9 +468,10 @@ module GHTorrent
         r['issue_id'] = issue_id
         persister.store(:issue_events, r)
         info "Retriever: Added issue event #{owner}/#{repo} #{issue_id}->#{event_id}"
-        persister.find(:issue_events, {'repo' => repo, 'owner' => owner,
+        a = persister.find(:issue_events, {'repo' => repo, 'owner' => owner,
                                        'issue_id' => issue_id,
                                        'id' => event_id}).first
+        if a.nil? then r[ext_uniq] = '0'; r else a end
       else
         debug "Retriever: Issue event #{owner}/#{repo} #{issue_id}->#{event_id} exists"
         event
@@ -479,7 +482,7 @@ module GHTorrent
       url = ghurl "repos/#{owner}/#{repo}/issues/#{issue_id}/comments"
       retrieved_comments = paged_api_request url
 
-      retrieved_comments.each { |x|
+      comments = retrieved_comments.each { |x|
         x['owner'] = owner
         x['repo'] = repo
         x['issue_id'] = issue_id
@@ -490,9 +493,11 @@ module GHTorrent
                                             'id' => x['id']}).empty?
           persister.store(:issue_comments, x)
         end
-      }
-      persister.find(:issue_comments, {'owner' => owner, 'repo' => repo,
-                                       'issue_id' => issue_id})
+        x
+      }.map {|y| y[ext_uniq] = '0'}
+      a = persister.find(:issue_comments, {'owner' => owner, 'repo' => repo,
+                                           'issue_id' => issue_id})
+      if a.empty? then comments else a end
     end
 
     def retrieve_issue_comment(owner, repo, issue_id, comment_id)
@@ -513,10 +518,10 @@ module GHTorrent
         r['issue_id'] = issue_id
         persister.store(:issue_comments, r)
         info "Retriever: Added issue comment #{owner}/#{repo} #{issue_id}->#{comment_id}"
-        persister.find(:issue_comments, {'repo' => repo, 'owner' => owner,
+        a = persister.find(:issue_comments, {'repo' => repo, 'owner' => owner,
                                          'issue_id' => issue_id,
                                          'id' => comment_id}).first
-        r
+        if a.nil? then r[ext_uniq] = '0'; r else a end
       else
         debug "Retriever: Issue comment #{owner}/#{repo} #{issue_id}->#{comment_id} exists"
         comment
@@ -598,9 +603,11 @@ module GHTorrent
       end
 
       if item_id.nil?
-        items
+        a = persister.find(entity, selector)
+        if a.empty? then items else a end
       else
-        [items.find{|x| x[descriminator] == item_id}]
+        a = repo_bound_instance(entity, selector, descriminator, item_id)
+        if a.empty? then [items.find{|x| x[descriminator] == item_id}] else a end
       end
     end
 
