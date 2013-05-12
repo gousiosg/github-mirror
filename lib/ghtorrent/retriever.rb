@@ -444,7 +444,7 @@ module GHTorrent
           persister.store(:issue_events, x)
         end
         x
-      }.map {|y| y[ext_uniq] = '0'}
+      }.map {|y| y[ext_uniq] = '0'; y}
       a = persister.find(:issue_events, {'owner' => owner, 'repo' => repo,
                                          'issue_id' => issue_id})
       if a.empty? then issue_events else a end
@@ -494,7 +494,7 @@ module GHTorrent
           persister.store(:issue_comments, x)
         end
         x
-      }.map {|y| y[ext_uniq] = '0'}
+      }.map {|y| y[ext_uniq] = '0'; y}
       a = persister.find(:issue_comments, {'owner' => owner, 'repo' => repo,
                                            'issue_id' => issue_id})
       if a.empty? then comments else a end
