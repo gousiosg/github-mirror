@@ -122,6 +122,8 @@ module GHTorrent
           get_collection("issue_comments")
         when :issue_events
           get_collection("issue_events")
+        when :repo_labels
+          get_collection("repo_labels")
       end
     end
 
@@ -202,6 +204,8 @@ module GHTorrent
       ensure_index(:issue_events, "owner")
       ensure_index(:issue_events, "issue_id")
       ensure_index(:issue_events, "id")
+      ensure_index(:repo_labels, "repo")
+      ensure_index(:repo_labels, "owner")
     end
 
     def rescue_connection_failure(max_retries=60)

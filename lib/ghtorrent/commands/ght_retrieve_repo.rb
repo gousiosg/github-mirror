@@ -55,8 +55,7 @@ An efficient way to get all data for a single repo
 
     user = user_entry[:login]
 
-    repo_entry = ght.transaction{ght.ensure_repo(ARGV[0], ARGV[1], false, false,
-                                                 false, false)}
+    repo_entry = ght.transaction{ght.ensure_repo(ARGV[0], ARGV[1])}
 
     if repo_entry.nil?
       Trollop::die "Cannot find repository #{ARGV[0]}/#{ARGV[1]}"
@@ -74,7 +73,7 @@ An efficient way to get all data for a single repo
     end
 
     functions = %w(ensure_commits ensure_forks ensure_pull_requests
-       ensure_issues ensure_project_members ensure_watchers)
+       ensure_issues ensure_project_members ensure_watchers, ensure_labels)
 
     if ARGV[2].nil?
       functions.each do |x|

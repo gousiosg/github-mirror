@@ -528,6 +528,24 @@ module GHTorrent
       end
     end
 
+    def retrieve_issue_labels(owner, repo, issue_id)
+
+    end
+
+    def retrieve_repo_labels(owner, repo, refr = false)
+      repo_bound_items(owner, repo, :repo_labels,
+                       "repos/#{owner}/#{repo}/labels",
+                       {'repo' => repo, 'owner' => owner},
+                       'name', item = nil, refresh = refr)
+    end
+
+    def retrieve_repo_label(owner, repo, name)
+      repo_bound_item(owner, repo, name, :repo_labels,
+                       "repos/#{owner}/#{repo}/labels",
+                       {'repo' => repo, 'owner' => owner},
+                       'name')
+    end
+
     # Get current Github events
     def get_events
       api_request "https://api.github.com/events"
