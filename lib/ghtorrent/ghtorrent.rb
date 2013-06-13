@@ -1267,7 +1267,8 @@ module GHTorrent
 
     ##
     # Make sure that the issue exists
-    def ensure_issue(owner, repo, issue_id, events = true, comments = true)
+    def ensure_issue(owner, repo, issue_id, events = true,
+                     comments = true, labels = true)
 
       issues = @db[:issues]
       repository = ensure_repo(owner, repo)
@@ -1322,6 +1323,7 @@ module GHTorrent
       end
       ensure_issue_events(owner, repo, issue_id) if events
       ensure_issue_comments(owner, repo, issue_id) if comments
+      ensure_issue_labels(owner, repo, issue_id) if labels
       issues.first(:issue_id => issue_id,
                    :repo_id => repository[:id])
     end
@@ -1503,18 +1505,18 @@ module GHTorrent
 
     ##
     # Retrieve repository issue labels
-    def ensure_labels(onwer, repo, refresh = false)
-      currepo = ensure_repo(onwer, repo)
+    def ensure_labels(owner, repo, refresh = false)
+      currepo = ensure_repo(owner, repo)
 
       repo_labels = @db[:repo_labels].filter(:repo_id => currepo[:id]).all
 
-      retrieve_repo_labels(onwer, repo).reduce([]) do |acc, x|
+      retrieve_repo_labels(owner, repo).reduce([]) do |acc, x|
         if repo_labels.find {|y| y[:name] == x['name']}.nil?
           acc << x
         else
           acc
         end
-      end.map { |x| ensure_repo_label(onwer, repo, x['name']) }
+      end.map { |x| ensure_repo_label(owner, repo, x['name']) }
     end
 
     ##
@@ -1548,6 +1550,68 @@ module GHTorrent
       else
         label
       end
+    end
+
+    ##
+    # Ensure that all labels have been assigned to the issue
+    def ensure_issue_labels(owner, repo, issue_id)
+
+      issue = ensure_issue(owner, repo, issue_id, false, false, false)
+
+      if issue.nil?
+        warn "GHTorrent: Issue #{owner}/#{repo} -> #{issue_id} does not exist"
+        return
+      end
+
+      issue_labels = @db.from(:issue_labels, :repo_labels)\
+                        .where(:issue_labels__label_id => :repo_labels__id)\
+                        .where(:issue_labels__issue_id => issue[:id])\
+                        .select(:repo_labels__name).all
+
+      retrieve_issue_labels(owner, repo, issue_id).reduce([]) do |acc, x|
+        if issue_labels.find {|y| y[:name] == x['name']}.nil?
+          acc << x
+        else
+          acc
+        end
+      end.map { |x| ensure_issue_label(owner, repo, issue[:issue_id], x['name']) }
+
+    end
+
+    ##
+    # Ensure that a specific label has been assigned to the issue
+    def ensure_issue_label(owner, repo, issue_id, name)
+
+      issue = ensure_issue(owner, repo, issue_id, false, false, false)
+
+      if issue.nil?
+        warn "GHTorrent: Issue #{owner}/#{repo} -> #{issue_id} does not exist"
+        return
+      end
+
+      label = ensure_repo_label(owner, repo, name)
+
+      if label.nil?
+        warn "GHTorrent: Label #{owner}/#{repo} -> #{name} does not exist"
+        return
+      end
+
+      issue_lbl = @db[:issue_labels].first(:label_id => label[:id],
+                                           :issue_id => issue[:id])
+
+      if issue_lbl.nil?
+
+        @db[:issue_labels].insert(
+            :label_id => label[:id],
+            :issue_id => issue[:id],
+        )
+        info "GHTorrent: Added issue label #{name} to issue #{owner}/#{repo} -> #{issue_id}"
+        @db[:issue_labels].first(:label_id => label[:id],
+                                 :issue_id => issue[:id])
+      else
+        issue_lbl
+      end
+
     end
 
     # Run a block in a DB transaction. Exceptions trigger transaction rollback

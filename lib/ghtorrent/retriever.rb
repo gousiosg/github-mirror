@@ -546,6 +546,11 @@ module GHTorrent
                        'name')
     end
 
+    def retrieve_issue_labels(owner, repo, issue_id)
+      url = ghurl("repos/#{owner}/#{repo}/issues/#{issue_id}/labels")
+      paged_api_request(url)
+    end
+
     # Get current Github events
     def get_events
       api_request "https://api.github.com/events"

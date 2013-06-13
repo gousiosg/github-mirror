@@ -110,9 +110,9 @@ class TransactedGHTorrent < GHTorrent::Mirror
     end
   end
 
-  def ensure_issue(owner, repo, issue_id, events = true, comments = true)
+  def ensure_issue(owner, repo, issue_id, events = true, comments = true, labels = true)
     check_transaction do
-      super(owner, repo, issue_id, events, comments)
+      super(owner, repo, issue_id, events, comments, labels)
     end
   end
 
@@ -125,6 +125,12 @@ class TransactedGHTorrent < GHTorrent::Mirror
   def ensure_watcher(owner, repo, watcher, date_added = nil)
     check_transaction do
       super(owner, repo, watcher, date_added)
+    end
+  end
+
+  def ensure_repo_label(owner, repo, name)
+    check_transaction do
+      super(owner, repo, name)
     end
   end
 
