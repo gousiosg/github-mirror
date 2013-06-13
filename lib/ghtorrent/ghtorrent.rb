@@ -1510,7 +1510,7 @@ module GHTorrent
 
       repo_labels = @db[:repo_labels].filter(:repo_id => currepo[:id]).all
 
-      retrieve_repo_labels(owner, repo).reduce([]) do |acc, x|
+      retrieve_repo_labels(owner, repo, refresh).reduce([]) do |acc, x|
         if repo_labels.find {|y| y[:name] == x['name']}.nil?
           acc << x
         else
