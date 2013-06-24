@@ -15,25 +15,6 @@ class GHTLoad < GHTorrent::Command
   include GHTorrent::Settings
   include GHTorrent::Persister
 
-  def col_info
-    {
-        :commits => {
-            :name => "commits",
-            :payload => "commit.id",
-            :unq => "commit.id",
-            :col => persister.get_underlying_connection.collection(:commits.to_s),
-            :routekey => "commit.%s"
-        },
-        :events => {
-            :name => "events",
-            :payload => "",
-            :unq => "type",
-            :col => persister.get_underlying_connection.collection(:events.to_s),
-            :routekey => "evt.%s"
-        }
-    }
-  end
-
   def persister
     @persister ||= connect(:mongo, settings)
     @persister
@@ -63,7 +44,6 @@ Loads object ids from a collection to a queue for further processing.
 
   def validate
     super
-    Trollop::die 'no collection specified' unless args[0] && !args[0].empty?
     filter = options[:filter]
     case
       when filter.is_a?(Array)
@@ -81,14 +61,6 @@ Loads object ids from a collection to a queue for further processing.
     # Num events read
     num_read = 0
 
-    collection = case args[0]
-                   when 'events'
-                     :events
-                   when 'commits'
-                     :commits
-                 end
-
-    puts "Loading from collection #{collection}"
     puts "Loading items after #{Time.at(options[:earliest])}" if options[:verbose]
     puts "Loading items before #{Time.at(options[:latest])}" if options[:verbose]
     puts "Loading #{options[:batch]} items per batch" if options[:batch]
@@ -141,27 +113,24 @@ Loads object ids from a collection to a queue for further processing.
                   end
 
         read = 0
-        col_info[collection][:col].find(what.merge(from),
+        persister.get_underlying_connection[:events].find(what.merge(from),
                                         :skip => num_read,
                                         :limit => to_read).each do |e|
-
-          payload = read_value(e, col_info[collection][:payload])
-          payload = if payload.class == BSON::OrderedHash
-                      payload.delete '_id' # Inserted by MongoDB on event insert
-                      payload.to_json
-                    end
           read += 1
-          unq = read_value(e, col_info[collection][:unq])
+          unq = read_value(e, 'type')
           if unq.class != String or unq.nil? then
             throw Exception.new('Unique value can only be a String')
           end
 
-          key = col_info[collection][:routekey] % unq
+          e = if e.class == BSON::OrderedHash
+                e.delete '_id' # Inserted by MongoDB on event insert
+                e.to_json
+              end
 
-          exchange.publish payload, :persistent => true, :routing_key => key
+          exchange.publish e, :persistent => true, :routing_key => "evt.#{unq}"
 
           num_read += 1
-          puts "Publish id = #{payload[unq]} (#{num_read} total)" if options.verbose
+          puts "Publish id = #{e[unq]} (#{num_read} total)" if options.verbose
         end
 
         if read == 0 or to_read == -1
