@@ -1,10 +1,8 @@
 require 'rubygems'
 require 'mongo'
 require 'amqp'
-require 'set'
 require 'eventmachine'
 require 'pp'
-require "amqp/extensions/rabbitmq"
 
 require 'ghtorrent/settings'
 require 'ghtorrent/logging'
@@ -17,7 +15,7 @@ class GHTLoad < GHTorrent::Command
   include GHTorrent::Settings
   include GHTorrent::Persister
 
-  def col_info()
+  def col_info
     {
         :commits => {
             :name => "commits",
@@ -37,7 +35,7 @@ class GHTLoad < GHTorrent::Command
   end
 
   def persister
-    @persister ||= connect(:mongo, @settings)
+    @persister ||= connect(:mongo, settings)
     @persister
   end
 
@@ -52,8 +50,12 @@ Loads object ids from a collection to a queue for further processing.
 
     options.opt :earliest, 'Seconds since epoch of earliest item to load',
                 :short => 'e', :default => 0, :type => :int
+    options.opt :latest, 'Seconds since epoch of latest item to load',
+                :short => 'l', :default => 4294967296, :type => :int
     options.opt :number, 'Number of items to load (-1 means all)',
                 :short => 'n', :type => :int, :default => -1
+    options.opt :batch, 'Number of items to process in a batch',
+                :short => 'b', :type => :int, :default => 10000
     options.opt :filter,
                 'Filter items by regexp on item attributes: item.attr=regexp',
                 :short => 'f', :type => String, :multi => true
@@ -61,7 +63,7 @@ Loads object ids from a collection to a queue for further processing.
 
   def validate
     super
-    Trollop::die "no collection specified" unless args[0] && !args[0].empty?
+    Trollop::die 'no collection specified' unless args[0] && !args[0].empty?
     filter = options[:filter]
     case
       when filter.is_a?(Array)
@@ -71,26 +73,25 @@ Loads object ids from a collection to a queue for further processing.
       when filter == []
         # Noop
       else
-        Trollop::die "A filter can only be a string"
+        Trollop::die 'A filter can only be a string'
     end
   end
 
   def go
-    # Message tags await publisher ack
-    awaiting_ack = SortedSet.new
-
     # Num events read
     num_read = 0
 
     collection = case args[0]
-                   when "events"
+                   when 'events'
                      :events
-                   when "commits"
+                   when 'commits'
                      :commits
                  end
 
     puts "Loading from collection #{collection}"
     puts "Loading items after #{Time.at(options[:earliest])}" if options[:verbose]
+    puts "Loading items before #{Time.at(options[:latest])}" if options[:verbose]
+    puts "Loading #{options[:batch]} items per batch" if options[:batch]
     puts "Loading #{options[:number]} items" if options[:verbose] && options[:number] != -1
 
     what = case
@@ -104,9 +105,12 @@ Loads object ids from a collection to a queue for further processing.
                {}
            end
 
-    from = {'_id' => {'$gte' => BSON::ObjectId.from_time(Time.at(options[:earliest]))}}
+    from = {'_id' => {
+        '$gte' => BSON::ObjectId.from_time(Time.at(options[:earliest])),
+        '$lte' => BSON::ObjectId.from_time(Time.at(options[:latest]))}
+    }
 
-    (puts "Mongo filter:"; pp what.merge(from)) if options[:verbose]
+    (puts 'Mongo filter:'; pp what.merge(from)) if options[:verbose]
 
     AMQP.start(:host => config(:amqp_host),
                :port => config(:amqp_port),
@@ -119,14 +123,15 @@ Loads object ids from a collection to a queue for further processing.
 
       # What to do when the user hits Ctrl+c
       show_stopper = Proc.new {
+        puts('Closing connection')
         connection.close { EventMachine.stop }
       }
 
-      # Read next 100000 items and queue them
+      # Read next options[:batch] items and queue them
       read_and_publish = Proc.new {
 
         to_read = if options.number == -1
-                    100000
+                    options[:batch]
                   else
                     if options.number - num_read - 1 <= 0
                       -1
@@ -142,13 +147,13 @@ Loads object ids from a collection to a queue for further processing.
 
           payload = read_value(e, col_info[collection][:payload])
           payload = if payload.class == BSON::OrderedHash
-                      payload.delete "_id" # Inserted by MongoDB on event insert
+                      payload.delete '_id' # Inserted by MongoDB on event insert
                       payload.to_json
                     end
           read += 1
           unq = read_value(e, col_info[collection][:unq])
           if unq.class != String or unq.nil? then
-            throw Exception.new("Unique value can only be a String")
+            throw Exception.new('Unique value can only be a String')
           end
 
           key = col_info[collection][:routekey] % unq
@@ -156,48 +161,19 @@ Loads object ids from a collection to a queue for further processing.
           exchange.publish payload, :persistent => true, :routing_key => key
 
           num_read += 1
-          puts("Publish id = #{payload[unq]} (#{num_read} total)") if options.verbose
-          awaiting_ack << num_read
+          puts "Publish id = #{payload[unq]} (#{num_read} total)" if options.verbose
         end
 
-        # Nothing new in the DB and no msgs waiting ack
-        if (read == 0 and awaiting_ack.size == 0) or to_read == -1
-          puts("Finished reading, exiting")
+        if read == 0 or to_read == -1
+          puts 'Finished reading, exiting'
           show_stopper.call
         end
-      }
 
-      # Remove acknowledged or failed msg tags from the queue
-      # Trigger more messages to be read when ack msg queue size drops to zero
-      publisher_event = Proc.new { |ack|
-        if ack.multiple then
-          awaiting_ack.delete_if { |x| x <= ack.delivery_tag }
-        else
-          awaiting_ack.delete ack.delivery_tag
-        end
-
-        if awaiting_ack.size == 0
-          puts("ACKS.size= #{awaiting_ack.size}") if options.verbose
-          EventMachine.next_tick do
-            read_and_publish.call
-          end
+        # Schedule new event processing cycle
+        EventMachine.add_timer(0.1) do
+          read_and_publish.call
         end
       }
-
-      # Await publisher confirms
-      channel.confirm_select
-
-      # Callback when confirms have arrived
-      channel.on_ack do |ack|
-        puts "ACK: tag=#{ack.delivery_tag}, mul=#{ack.multiple}" if options.verbose
-        publisher_event.call(ack)
-      end
-
-      # Callback when confirms failed.
-      channel.on_nack do |nack|
-        puts "NACK: tag=#{nack.delivery_tag}, mul=#{nack.multiple}" if options.verbose
-        publisher_event.call(nack)
-      end
 
       # Signal handlers
       Signal.trap('INT', show_stopper)
