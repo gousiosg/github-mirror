@@ -31,8 +31,8 @@ class GHTUpdatePullRequestHistoryActor < GHTorrent::Command
     @ght.get_db
     prs = 0
 
-    limit = if ARGV[0].nil? then 0 else ARGV[0] end
-    skip = if ARGV[1].nil? then 0 else ARGV[1] end
+    limit = if ARGV[0].nil? then 0 else ARGV[0].to_i end
+    skip = if ARGV[1].nil? then 0 else ARGV[1].to_i end
 
     col.find({'type' => 'PullRequestEvent'},{:timeout => false,
                                              :skip => skip,
