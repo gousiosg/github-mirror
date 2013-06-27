@@ -165,7 +165,8 @@ Retrieves events from queues and processes them through GHTorrent
                :username => config(:amqp_username),
                :password => config(:amqp_password)) do |connection|
 
-      channel = AMQP::Channel.new(connection, :prefetch => config(:amqp_prefetch))
+      channel = AMQP::Channel.new(connection)
+      channel.prefetch(config(:amqp_prefetch))
       exchange = channel.topic(config(:amqp_exchange), :durable => true,
                                :auto_delete => false)
 
