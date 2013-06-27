@@ -64,9 +64,10 @@ class GHTDataRetrieval < GHTorrent::Command
     repo = data['payload']['pull_request']['base']['repo']['name']
     pullreq_id = data['payload']['number']
     action = data['payload']['action']
+    actor = data['actor']['login']
     created_at = data['created_at']
 
-    ghtorrent.get_pull_request(owner, repo, pullreq_id, action, created_at)
+    ghtorrent.get_pull_request(owner, repo, pullreq_id, action, actor, created_at)
   end
 
   def ForkEvent(data)
@@ -155,6 +156,7 @@ Retrieves events from queues and processes them through GHTorrent
       info "GHTDataRetrieval: Received SIGINT, exiting"
       AMQP.stop { EM.stop }
     }
+
     Signal.trap('TERM') {
       info "GHTDataRetrieval: Received SIGTERM, exiting"
       AMQP.stop { EM.stop }
