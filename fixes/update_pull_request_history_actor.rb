@@ -31,12 +31,10 @@ class GHTUpdatePullRequestHistoryActor < GHTorrent::Command
     @ght.get_db
     prs = 0
 
-    limit = if ARGV[0].nil? then 0 else ARGV[0] end
-    skip = if ARGV[1].nil? then 0 else ARGV[1] end
+    query = if ARGV[0].nil? then {'type' => 'PullRequestEvent'}
+            else {'type' => 'PullRequestEvent', 'id' => ARGV[0]} end
 
-    col.find({'type' => 'PullRequestEvent'},{:timeout => false,
-                                             :skip => skip,
-                                             :limit => limit}) do |cursor|
+    col.find(query, {:timeout => false}) do |cursor|
       cursor.each do |pr|
         prs += 1
 
@@ -53,7 +51,7 @@ class GHTUpdatePullRequestHistoryActor < GHTorrent::Command
           logger.debug "Could not process pull req #{owner}/#{repo} -> #{pullreq_id}"
           logger.debug "Reason: #{e}"
         end
-        STDERR.write "\r Processing #{prs} pull request events"
+        STDERR.write "Processed pull req #{owner}/#{repo} -> #{pullreq_id}"
       end
     end
   end
