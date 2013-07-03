@@ -169,14 +169,7 @@ module GHTorrent
             end
 
         total = Time.now.to_ms - start_time.to_ms
-        debug "APIClient: Request: #{url} #{if from_cache then "from cache," else "(#{contents.meta['x-ratelimit-remaining']} remaining)," end} Total: #{total} ms"
-
-        if not from_cache and config(:respect_api_ratelimit) and
-            contents.meta['x-ratelimit-remaining'].to_i < 20
-          sleep = 61 - Time.now.min
-          debug "APIClient: Request limit reached, sleeping for #{sleep} min"
-          sleep(sleep * 60)
-        end
+        debug "APIClient: Request: #{url} #{if from_cache then "from cache," else "(#{@remaining} remaining)," end} Total: #{total} ms"
 
         contents
       rescue OpenURI::HTTPError => e
@@ -188,21 +181,29 @@ module GHTorrent
               404, # Not found
               422 then # Unprocessable entity
             warn "APIClient: #{url}: #{e.io.status[1]}"
+            @remaining = e.io.meta['x-ratelimit-remaining'].to_i
+            @reset = e.io.meta['x-ratelimit-reset'].to_i
             return nil
           else # Server error or HTTP conditions that Github does not report
             warn "APIClient: #{url}: #{e.io.status[1]}"
             raise e
         end
+      ensure
+        if not from_cache and config(:respect_api_ratelimit) and @remaining < 10
+          sleep = (@reset - Time.now.to_i) / 60
+          debug "APIClient: Request limit reached, sleeping for #{sleep} min"
+          sleep(@reset - Time.now.to_i)
+        end
       end
     end
 
     def do_request(url)
-      @attach_ip ||= config(:attach_ip)
-      @username ||= config(:github_username)
-      @passwd ||= config(:github_passwd)
+      @attach_ip  ||= config(:attach_ip)
+      @username   ||= config(:github_username)
+      @passwd     ||= config(:github_passwd)
       @user_agent ||= config(:user_agent)
 
-      @open_func ||= if @username.nil?
+      open_func ||= if @username.nil?
         lambda {|url| open(url, 'User-Agent' => @user_agent)}
       else
         lambda {|url| open(url,
@@ -210,13 +211,16 @@ module GHTorrent
                            :http_basic_authentication => [@username, @passwd])}
       end
 
-      if @attach_ip.nil? or @attach_ip.eql? '0.0.0.0'
-        @open_func.call(url)
-      else
-        attach_to(@attach_ip) do
-          @open_func.call(url)
+      result = if @attach_ip.nil? or @attach_ip.eql? '0.0.0.0'
+          open_func.call(url)
+        else
+          attach_to(@attach_ip) do
+            open_func.call(url)
+          end
         end
-      end
+      @remaining = result.meta['x-ratelimit-remaining'].to_i
+      @reset = result.meta['x-ratelimit-reset'].to_i
+      result
     end
 
     # Attach to a specific IP address if the machine has multiple
