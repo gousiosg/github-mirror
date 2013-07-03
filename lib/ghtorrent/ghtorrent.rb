@@ -1400,7 +1400,7 @@ module GHTorrent
         if retrieved['event'] == "assigned"
 
           def update_assignee(owner, repo, issue, actor)
-            @db[:issues][:id => issue[:id]] = {:assignee_id => actor[:id]}
+            @db[:issues].first(:id => issue[:id]).update(:assignee_id => actor[:id])
             info "Updating #{owner}/#{repo} -> #{issue[:id]} assignee to #{actor[:id]}"
           end
 
