@@ -1064,7 +1064,7 @@ module GHTorrent
 
       if history
         # Actions on pull requests
-        actor = if actor.nil? then pull_req_user['login'] else actor end
+        actor = if actor.nil? then pull_req_user[:login] else actor end
         add_history(pull_req[:id], date(retrieved['created_at']),
                        retrieved[@ext_uniq], 'opened', actor)
 
