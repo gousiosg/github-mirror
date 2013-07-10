@@ -33,7 +33,7 @@ class GHTFixPullReqComments < GHTorrent::Command
   end
 
   def go
-    @ght ||= GHTorrent::Mirror.new(settings)
+    db
     col = persister.get_underlying_connection.collection(:pull_request_comments.to_s)
 
     processed = duplicates = no_pullreq_id = sql_upd = 0
@@ -44,9 +44,9 @@ class GHTFixPullReqComments < GHTorrent::Command
         # 1. Select a comment
         comments = col.find({'id' => id}, {:sort => [['_id' => Mongo::ASCENDING]]}).to_a
 
-        if comments.size == 1
-          next
-        end
+        #if comments.size == 1
+        #  next
+        #end
 
         duplicates += (comments.size - 1)
         selected = comments.last
@@ -70,6 +70,9 @@ class GHTFixPullReqComments < GHTorrent::Command
           end
         end
 
+        # Make sure the pullreq_id field is an int
+        selected['pullreq_id'] = selected['pullreq_id'].to_i
+
         # 3. Remove all comments with this id from Mongo
         col.remove('id' => id)
 
@@ -77,11 +80,20 @@ class GHTFixPullReqComments < GHTorrent::Command
         ext_ref_id = col.insert(selected)
 
         # 5. Use _id to update ext_ref_id field in SQL
-        sql_upd =+ db[:pull_request_comments].where(:comment_id => id).update(:ext_ref_id => ext_ref_id.to_s)
+        upd = db[:pull_request_comments].\
+                where(:comment_id => id).\
+                update(:ext_ref_id => ext_ref_id.to_s)
+
+        if upd == 0
+          ght.ensure_pullreq_comment(selected['owner'], selected['repo'],
+                                     selected['pullreq_id'], id)
+          upd += 1
+        end
+        sql_upd += upd
         logger.info("Processed pull request comment: #{id}")
       rescue Exception => e
         logger.warn("Cannot process comment #{id}: #{e.message}")
-        raise e
+        #raise e
       ensure
         STDERR.write("\r Processed #{processed} comments, #{duplicates} duplicates, #{no_pullreq_id} no pullreq id, #{sql_upd} updated in sql")
       end

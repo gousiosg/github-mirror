@@ -368,7 +368,7 @@ module GHTorrent
       retrieved_comments.each { |x|
         x['owner'] = owner
         x['repo'] = repo
-        x['pullreq_id'] = pullreq_id
+        x['pullreq_id'] = pullreq_id.to_i
 
         if persister.find(:pull_request_comments, {'owner' => owner,
                                                    'repo' => repo,
@@ -397,7 +397,7 @@ module GHTorrent
 
         r['repo'] = repo
         r['owner'] = owner
-        r['pullreq_id'] = pullreq_id
+        r['pullreq_id'] = pullreq_id.to_i
         persister.store(:pull_request_comments, r)
         info "Retriever: Added pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id}"
         persister.find(:pull_request_comments, {'repo' => repo, 'owner' => owner,
