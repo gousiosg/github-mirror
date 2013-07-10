@@ -1100,7 +1100,7 @@ module GHTorrent
 
       retrieve_pull_req_comments(owner, repo, pullreq_id).reduce([]) do |acc, x|
 
-        if @db[:pull_request_comments].first(:pullreq_id => pull_req[:id],
+        if @db[:pull_request_comments].first(:pull_request_id => pull_req[:id],
                                              :comment_id => x['id']).nil?
           acc << x
         else
