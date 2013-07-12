@@ -122,12 +122,8 @@ Loads object ids from a collection to a queue for further processing.
             throw Exception.new('Unique value can only be a String')
           end
 
-          e = if e.class == BSON::OrderedHash
-                e.delete '_id' # Inserted by MongoDB on event insert
-                e.to_json
-              end
-
-          exchange.publish e, :persistent => true, :routing_key => "evt.#{unq}"
+          exchange.publish e['id'], :persistent => true,
+                           :routing_key => "evt.#{unq}"
 
           num_read += 1
           puts "Publish id = #{e[unq]} (#{num_read} total)" if options.verbose

@@ -12,6 +12,12 @@ class GHTDataRetrieval < GHTorrent::Command
 
   include GHTorrent::Settings
   include GHTorrent::Logging
+  include GHTorrent::Persister
+
+  def persister
+    @persister ||= connect(:mongo, settings)
+    @persister
+  end
 
   def parse(msg)
     JSON.parse(msg)
@@ -180,7 +186,10 @@ Retrieves events from queues and processes them through GHTorrent
 
         queue.subscribe(:ack => true) do |headers, msg|
           begin
-            data = parse(msg)
+
+            event = persister.get_underlying_connection[:events].find_one('id' => msg)
+            event.delete '_id'
+            data = parse(event.to_json)
             info "GHTDataRetrieval: Processing event: #{data['type']}-#{data['id']}"
 
             unless options[:filter].nil?
@@ -197,8 +206,7 @@ Retrieves events from queues and processes them through GHTorrent
           rescue Exception => e
             # Give a message a chance to be reprocessed
             if headers.redelivered?
-              data = parse(msg)
-              warn "GHTDataRetrieval: Could not process event: #{data['type']}-#{data['id']}"
+              warn "GHTDataRetrieval: Could not process event: #{msg}"
               headers.reject(:requeue => false)
             else
               headers.reject(:requeue => true)
