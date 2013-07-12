@@ -57,9 +57,8 @@ class GHTMirrorEvents < GHTorrent::Command
       end
 
       stored.each do |e|
-        msg = JSON.dump(e)
         key = "evt.%s" % e['type']
-        exchange.publish msg, :persistent => true, :routing_key => key
+        exchange.publish e['id'], :persistent => true, :routing_key => key
       end
       return new, dupl
     rescue Exception => e
@@ -97,48 +96,21 @@ class GHTMirrorEvents < GHTorrent::Command
       exchange = channel.topic(config(:amqp_exchange), :durable => true,
                                :auto_delete => false)
 
-      # Initial delay for the retrieve event loop
-      retrieval_delay = config(:mirror_pollevery)
-
       # Retrieve events
-      retriever = EventMachine.add_periodic_timer(retrieval_delay) do
+      EventMachine.add_periodic_timer(5) do
         (new, dupl) = retrieve exchange
         dupl_msgs += dupl
         new_msgs += new
       end
 
       # Adjust event retrieval delay time to reduce load to Github
-      EventMachine.add_periodic_timer(120) do
+      EventMachine.add_periodic_timer(12) do
         ratio = (dupl_msgs.to_f / (dupl_msgs + new_msgs).to_f)
 
         info("Stats: #{new_msgs} new, #{dupl_msgs} duplicate, ratio: #{ratio}")
 
-        new_delay = if ratio >= 0 and ratio < 0.3 then
-                      -1
-                    elsif ratio >= 0.3 and ratio <= 0.5 then
-                      0
-                    elsif ratio > 0.5 and ratio < 1 then
-                      +1
-                    end
-
         # Reset counters for new loop
         dupl_msgs = new_msgs = 0
-
-        # Update the retrieval delay and restart the event retriever
-        if new_delay != 0
-
-          # Stop the retriever task and adjust retrieval delay
-          retriever.cancel
-          retrieval_delay = retrieval_delay + new_delay
-          info("Setting event retrieval delay to #{retrieval_delay} secs")
-
-          # Restart the retriever
-          retriever = EventMachine.add_periodic_timer(retrieval_delay) do
-            (new, dupl) = retrieve exchange
-            dupl_msgs += dupl
-            new_msgs += new
-          end
-        end
       end
     end
   end

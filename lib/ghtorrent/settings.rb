@@ -19,7 +19,6 @@ module GHTorrent
         :sql_url => 'sql.url',
 
         :mirror_urlbase => 'mirror.urlbase',
-        :mirror_pollevery => 'mirror.pollevery',
         :mirror_persister => 'mirror.persister',
         :mirror_commit_pages_new_repo => 'mirror.commit_pages_new_repo',
         :mirror_history_pages_back => 'mirror.history_pages_back',
@@ -49,7 +48,6 @@ module GHTorrent
         :sql_url => 'sqlite://github.db',
 
         :mirror_urlbase => 'https://api.github.com/',
-        :mirror_pollevery => 'mirror.pollevery',
         :mirror_persister => 'noop',
         :mirror_commit_pages_new_repo => 3,
         :mirror_history_pages_back => 1,
