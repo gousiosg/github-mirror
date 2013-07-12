@@ -32,9 +32,10 @@ Loads object ids from a collection to a queue for further processing.
     options.opt :earliest, 'Seconds since epoch of earliest item to load',
                 :short => 'e', :default => 0, :type => :int
     options.opt :latest, 'Seconds since epoch of latest item to load',
-                :short => 'l', :default => 4294967296, :type => :int
-    options.opt :number, 'Number of items to load (-1 means all)',
-                :short => 'n', :type => :int, :default => -1
+                :short => 'l', :default => Time.now.to_i + (60 * 60 * 24 * 360 * 20),
+                :type => :int
+    options.opt :number, 'Total number of items to load',
+                :short => 'n', :type => :int, :default => 2**48
     options.opt :batch, 'Number of items to process in a batch',
                 :short => 'b', :type => :int, :default => 10000
     options.opt :filter,
@@ -64,7 +65,12 @@ Loads object ids from a collection to a queue for further processing.
     puts "Loading items after #{Time.at(options[:earliest])}" if options[:verbose]
     puts "Loading items before #{Time.at(options[:latest])}" if options[:verbose]
     puts "Loading #{options[:batch]} items per batch" if options[:batch]
-    puts "Loading #{options[:number]} items" if options[:verbose] && options[:number] != -1
+    puts "Loading #{options[:number]} items" if options[:verbose]
+
+    if options[:batch] >= options[:number]
+      puts "Batch > number of items, setting batch to #{options[:number]}"
+      options[:batch] = options[:number]
+    end
 
     what = case
              when options[:filter].is_a?(Array)
@@ -102,41 +108,29 @@ Loads object ids from a collection to a queue for further processing.
       # Read next options[:batch] items and queue them
       read_and_publish = Proc.new {
 
-        to_read = if options.number == -1
-                    options[:batch]
-                  else
-                    if options.number - num_read - 1 <= 0
-                      -1
-                    else
-                      options.number - num_read - 1
-                    end
-                  end
-
-        read = 0
         persister.get_underlying_connection[:events].find(what.merge(from),
                                         :skip => num_read,
-                                        :limit => to_read).each do |e|
-          read += 1
+                                        :limit => options[:batch]).each do |e|
           unq = read_value(e, 'type')
           if unq.class != String or unq.nil? then
             throw Exception.new('Unique value can only be a String')
           end
 
-          exchange.publish e['id'], :persistent => true,
-                           :routing_key => "evt.#{unq}"
+          exchange.publish e['id'], :persistent => false,
+                           :routing_key => "evt.#{e['type']}"
 
           num_read += 1
-          puts "Publish id = #{e[unq]} (#{num_read} total)" if options.verbose
+          puts "Publish id = #{e['id']} (#{num_read} total)" if options.verbose
         end
 
-        if read == 0 or to_read == -1
+        if num_read >= options[:number]
           puts 'Finished reading, exiting'
           show_stopper.call
-        end
-
-        # Schedule new event processing cycle
-        EventMachine.add_timer(0.1) do
-          read_and_publish.call
+        else
+          # Schedule new event processing cycle
+          EventMachine.next_tick do
+            read_and_publish.call
+          end
         end
       }
 
@@ -144,10 +138,10 @@ Loads object ids from a collection to a queue for further processing.
       Signal.trap('INT', show_stopper)
       Signal.trap('TERM', show_stopper)
 
-      # Trigger start processing
       EventMachine.add_timer(0.1) do
         read_and_publish.call
       end
+
     end
   end
 
