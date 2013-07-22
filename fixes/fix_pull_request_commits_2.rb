@@ -18,6 +18,10 @@ Fixes issues with multiple commits in pull requests
     super
   end
 
+  def logger
+    ght.logger
+  end
+
   def persister
     @persister ||= connect(:mongo, settings)
     @persister
