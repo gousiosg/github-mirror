@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'ghtorrent'
-require 'parallel'
 
 class GHTFixPullReqCommits2 < GHTorrent::Command
 
@@ -17,12 +16,6 @@ Fixes issues with multiple commits in pull requests
 
   def validate
     super
-    Trollop::die "Either takes no arguments or two" if ARGV.size == 1
-  end
-
-
-  def logger
-    ght.logger
   end
 
   def persister
@@ -38,10 +31,6 @@ Fixes issues with multiple commits in pull requests
   def ght
     @ght ||= GHTorrent::Mirror.new(settings)
     @ght
-  end
-
-  def project
-    "#{@owner}/#{@repo}"
   end
 
   def go
