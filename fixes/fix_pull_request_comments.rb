@@ -44,9 +44,9 @@ class GHTFixPullReqComments < GHTorrent::Command
         # 1. Select a comment
         comments = col.find({'id' => id}, {:sort => [['_id' => Mongo::ASCENDING]]}).to_a
 
-        #if comments.size == 1
-        #  next
-        #end
+        if comments.size == 1
+          next
+        end
 
         duplicates += (comments.size - 1)
         selected = comments.last
