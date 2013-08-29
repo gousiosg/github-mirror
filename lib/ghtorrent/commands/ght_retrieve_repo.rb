@@ -137,7 +137,6 @@ class TransactedGHTorrent < GHTorrent::Mirror
   def check_transaction(&block)
     begin
       if @db.in_transaction?
-        debug "Transaction already started"
         yield block
       else
         transaction do
