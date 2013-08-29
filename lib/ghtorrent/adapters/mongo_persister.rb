@@ -20,6 +20,25 @@ module GHTorrent
         :mongo_replicas => "mongo.replicas"
     }
 
+    IDXS = {
+        :events                => %w(id),
+        :users                 => %w(login),
+        :commits               => %w(sha),
+        :commit_comments       => %w(repo user commit_id),
+        :repos                 => %w(name owner.login),
+        :repo_labels           => %w(repo owner),
+        :repo_collaborators    => %w(repo owner login),
+        :followers             => %w(follows login),
+        :org_members           => %w(org),
+        :watchers              => %w(repo owner login),
+        :forks                 => %w(repo owner id),
+        :pull_requests         => %w(repo owner),
+        :pull_request_comments => %w(repo owner pullreq_id id),
+        :issues                => %w(repo owner issue_id),
+        :issue_events          => %w(repo owner issue_id id),
+        :issue_comments        => %w(repo owner issue_id id)
+    }
+
     attr_reader :settings
 
     # Creates a new instance of the MongoDB persistence adapter.
@@ -142,24 +161,14 @@ module GHTorrent
                    Mongo::ReplSetConnection.new(repl_arr, :read => :secondary)\
                                            .db(config(:mongo_db))
                  end
-        init_db(@mongo) if @mongo.collections.size < ENTITIES.size
+
+        stats = @mongo.stats
+        init_db(@mongo) if stats['collections'] < ENTITIES.size + 2
+        init_db(@mongo) if stats['indexes'] < IDXS.keys.size + ENTITIES.size
+
         @mongo
       else
         @mongo
-      end
-    end
-
-    # Declare an index on +field+ for +collection+ if it does not exist
-    def ensure_index(collection, field)
-      col = get_entity(collection)
-
-      exists = col.index_information.find {|k,v|
-        k == "#{field}_1"
-      }
-
-      if exists.nil?
-        col.create_index(field, :background => true)
-        STDERR.puts "Creating index on #{collection}(#{field})"
       end
     end
 
@@ -167,45 +176,20 @@ module GHTorrent
       ENTITIES.each {|x| mongo.collection(x.to_s)}
 
       # Ensure that the necessary indexes exist
-      ensure_index(:events, "id")
-      ensure_index(:users, "login")
-      ensure_index(:commits, "sha")
-      ensure_index(:repos, "name")
-      ensure_index(:repos, "owner.login")
-      ensure_index(:followers, "follows")
-      ensure_index(:followers, "login")
-      ensure_index(:org_members, "org")
-      ensure_index(:commit_comments, "repo")
-      ensure_index(:commit_comments, "user")
-      ensure_index(:commit_comments, "commit_id")
-      ensure_index(:repo_collaborators, "repo")
-      ensure_index(:repo_collaborators, "owner")
-      ensure_index(:repo_collaborators, "login")
-      ensure_index(:watchers, "repo")
-      ensure_index(:watchers, "owner")
-      ensure_index(:watchers, "login")
-      ensure_index(:pull_requests, "repo")
-      ensure_index(:pull_requests, "owner")
-      ensure_index(:forks, "repo")
-      ensure_index(:forks, "owner")
-      ensure_index(:forks, "id")
-      ensure_index(:issue_comments, "repo")
-      ensure_index(:issue_comments, "owner")
-      ensure_index(:issue_comments, "issue_id")
-      ensure_index(:issue_comments, "id")
-      ensure_index(:pull_request_comments, "repo")
-      ensure_index(:pull_request_comments, "owner")
-      ensure_index(:pull_request_comments, "pullreq_id")
-      ensure_index(:pull_request_comments, "id")
-      ensure_index(:issues, "repo")
-      ensure_index(:issues, "owner")
-      ensure_index(:issues, "issue_id")
-      ensure_index(:issue_events, "repo")
-      ensure_index(:issue_events, "owner")
-      ensure_index(:issue_events, "issue_id")
-      ensure_index(:issue_events, "id")
-      ensure_index(:repo_labels, "repo")
-      ensure_index(:repo_labels, "owner")
+      IDXS.each do |k,v|
+        col = get_entity(k)
+        name = v.join('_1_') + '_1'
+        exists = col.index_information.find {|k,v| k == name}
+
+        idx_fields = v.reduce({}){|acc, x| acc.merge({x => 1})}
+        if exists.nil?
+          col.create_index(idx_fields, :background => true)
+          STDERR.puts "Creating index on #{collection}(#{v})"
+        else
+          STDERR.puts "Index on #{collection}(#{v}) exists"
+        end
+
+      end
     end
 
     def rescue_connection_failure(max_retries=60)

@@ -1053,7 +1053,6 @@ module GHTorrent
             :intra_branch => is_intra_branch(retrieved),
             :merged => merged
         )
-
         info log_msg(retrieved) + ' was added'
       else
         debug log_msg(retrieved) + ' exists'
@@ -1061,6 +1060,25 @@ module GHTorrent
 
       pull_req = pulls_reqs.first(:base_repo_id => project[:id],
                                   :pullreq_id => pullreq_id)
+
+      # Add a fake (or not so fake) issue in the issues table to serve
+      # as root for retrieving discussion comments for this pull request
+      issues = @db[:issues]
+      issue = issues.first(:pull_request_id => pull_req[:id])
+
+      if issue.nil?
+        issues.insert(:repo_id => base_repo[:id],
+                      :assignee_id => nil,
+                      :reporter_id => nil,
+                      :issue_id => pullreq_id,
+                      :pull_request => true,
+                      :pull_request_id => pull_req[:id],
+                      :created_at => date(retrieved['created_at']),
+                      :ext_ref_id => retrieved[@ext_uniq])
+        debug 'Adding accompanying issue for ' + log_msg(retrieved)
+      else
+        debug 'Accompanying issue exists for ' + log_msg(retrieved)
+      end
 
       if history
         # Actions on pull requests
@@ -1079,6 +1097,7 @@ module GHTorrent
       end
       ensure_pull_request_commits(owner, repo, pullreq_id) if commits
       ensure_pullreq_comments(owner, repo, pullreq_id) if comments
+      ensure_issue_comments(owner, repo, pullreq_id, pull_req[:id]) if comments
 
       pull_req
     end
@@ -1438,8 +1457,11 @@ module GHTorrent
     end
 
     ##
-    # Retrieve and process all comments for an issue
-    def ensure_issue_comments(owner, repo, issue_id)
+    # Retrieve and process all comments for an issue.
+    # If pull_req_id is not nil this means that we are only retrieving
+    # comments for the pull request discussion for projects that don't have
+    # issues enabled
+    def ensure_issue_comments(owner, repo, issue_id, pull_req_id = nil)
       currepo = ensure_repo(owner, repo)
 
       if currepo.nil?
@@ -1447,7 +1469,12 @@ module GHTorrent
         return
       end
 
-      issue = ensure_issue(owner, repo, issue_id, false, false)
+      issue = if pull_req_id.nil?
+                ensure_issue(owner, repo, issue_id, false, false)
+              else
+                @db[:issues].first(:pull_request_id => pull_req_id)
+              end
+
       if issue.nil?
         warn "Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
         return
@@ -1462,14 +1489,19 @@ module GHTorrent
           acc
         end
       end.map { |x|
-        ensure_issue_comment(owner, repo, issue_id, x['id'])
+        ensure_issue_comment(owner, repo, issue_id, x['id'], pull_req_id)
       }
     end
 
     ##
     # Retrieve and process +comment_id+ for an +issue_id+
-    def ensure_issue_comment(owner, repo, issue_id, comment_id)
-      issue = ensure_issue(owner, repo, issue_id, false, false)
+    def ensure_issue_comment(owner, repo, issue_id, comment_id,
+        pull_req_id = nil)
+      issue = if pull_req_id.nil?
+                ensure_issue(owner, repo, issue_id, false, false)
+              else
+                @db[:issues].first(:pull_request_id => pull_req_id)
+              end
 
       if issue.nil?
         warn "GHTorrent: Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
