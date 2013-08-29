@@ -47,11 +47,11 @@ class GHTUpdatePullRequestHistoryActor < GHTorrent::Command
 
         begin
           @ght.get_pull_request(owner, repo, pullreq_id, action, actor, created_at)
+          STDERR.write "Processed pull req #{owner}/#{repo} -> #{pullreq_id}\n"
         rescue Exception => e
           logger.debug "Could not process pull req #{owner}/#{repo} -> #{pullreq_id}"
           logger.debug "Reason: #{e}"
         end
-        STDERR.write "Processed pull req #{owner}/#{repo} -> #{pullreq_id}"
       end
     end
   end
