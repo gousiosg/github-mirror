@@ -955,7 +955,7 @@ module GHTorrent
         user = ensure_user(actor, false, false)
         pull_req_history = @db[:pull_request_history]
         entry = pull_req_history.first(:pull_request_id => id,
-                                       :created_at => (ts - 2)..(ts + 2),
+                                       :created_at => (ts - 4)..(ts + 4),
                                        :action => act)
         if entry.nil?
           pull_req_history.insert(:pull_request_id => id,
@@ -1084,15 +1084,16 @@ module GHTorrent
       if history
         # Actions on pull requests
         actor = if actor.nil? then pull_req_user[:login] else actor end
+        opener = pull_req_user[:login]
         add_history(pull_req[:id], date(retrieved['created_at']),
-                       retrieved[@ext_uniq], 'opened', actor) if (state != 'opened')
-
+                       retrieved[@ext_uniq], 'opened', opener)
         # There is an additional merged_by field for merged pull requests
         merger = if retrieved['merged_by'].nil? then actor else retrieved['merged_by']['login'] end
         add_history(pull_req[:id], date(retrieved['merged_at']),
                          retrieved[@ext_uniq], 'merged', merger) if (merged && state != 'merged')
+        closer = if merged then merger else actor end
         add_history(pull_req[:id], date(retrieved['closed_at']),
-                         retrieved[@ext_uniq], 'closed', actor) if (closed && state != 'closed')
+                         retrieved[@ext_uniq], 'closed', closer) if (closed && state != 'closed')
         add_history(pull_req[:id], date(created_at), retrieved[@ext_uniq],
                          state, actor) unless state.nil?
       end
