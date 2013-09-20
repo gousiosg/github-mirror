@@ -34,7 +34,7 @@ module GHTorrent
         :forks                 => %w(repo owner id),
         :pull_requests         => %w(repo owner),
         :pull_request_comments => %w(repo owner pullreq_id id),
-        :issues                => %w(repo owner issue_id),
+        :issues                => %w(repo owner number),
         :issue_events          => %w(repo owner issue_id id),
         :issue_comments        => %w(repo owner issue_id id)
     }
