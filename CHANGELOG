@@ -1,3 +1,13 @@
+= Version 0.8
+	* Retrieve and process issue labels
+	* Retrive and process actors for pull request events
+	* Retrieve pullreq comments for projects with no issuetracker
+	* Better heuristics for avoiding dulpicate entries in pull request histories
+	* The event loader now loads events by IDs to reduce pressure to the queue
+	* Compound indexes in MongoDB by default
+	* X-RateLimit-Reset header support
+	* Remove lots of dead code, general cleanups
+
 = Version 0.7.3
 	* Support for running in standalone mode
 
