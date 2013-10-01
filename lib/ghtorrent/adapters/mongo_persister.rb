@@ -32,7 +32,7 @@ module GHTorrent
         :org_members           => %w(org),
         :watchers              => %w(repo owner login),
         :forks                 => %w(repo owner id),
-        :pull_requests         => %w(repo owner),
+        :pull_requests         => %w(repo owner number),
         :pull_request_comments => %w(repo owner pullreq_id id),
         :issues                => %w(repo owner number),
         :issue_events          => %w(repo owner issue_id id),

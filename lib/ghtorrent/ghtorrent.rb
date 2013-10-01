@@ -1364,7 +1364,7 @@ module GHTorrent
         return
       end
 
-      issue = ensure_issue(owner, repo, issue_id, false, false)
+      issue = ensure_issue(owner, repo, issue_id, false, false, false)
       if issue.nil?
         warn "Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
         return
@@ -1386,7 +1386,7 @@ module GHTorrent
     ##
     # Retrieve and process +event_id+ for an +issue_id+
     def ensure_issue_event(owner, repo, issue_id, event_id)
-      issue = ensure_issue(owner, repo, issue_id, false, false)
+      issue = ensure_issue(owner, repo, issue_id, false, false, false)
 
       if issue.nil?
         warn "GHTorrent: Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
@@ -1472,7 +1472,7 @@ module GHTorrent
       end
 
       issue = if pull_req_id.nil?
-                ensure_issue(owner, repo, issue_id, false, false)
+                ensure_issue(owner, repo, issue_id, false, false, false)
               else
                 @db[:issues].first(:pull_request_id => pull_req_id)
               end
@@ -1500,7 +1500,7 @@ module GHTorrent
     def ensure_issue_comment(owner, repo, issue_id, comment_id,
         pull_req_id = nil)
       issue = if pull_req_id.nil?
-                ensure_issue(owner, repo, issue_id, false, false)
+                ensure_issue(owner, repo, issue_id, false, false, false)
               else
                 @db[:issues].first(:pull_request_id => pull_req_id)
               end
