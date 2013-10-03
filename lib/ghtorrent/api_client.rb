@@ -169,7 +169,7 @@ module GHTorrent
             end
 
         total = Time.now.to_ms - start_time.to_ms
-        debug "APIClient: Request: #{url} #{if from_cache then "from cache," else "(#{@remaining} remaining)," end} Total: #{total} ms"
+        debug "APIClient[#{@attach_ip}]: Request: #{url} #{if from_cache then "from cache," else "(#{@remaining} remaining)," end} Total: #{total} ms"
 
         contents
       rescue OpenURI::HTTPError => e
