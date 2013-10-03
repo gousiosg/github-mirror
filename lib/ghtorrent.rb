@@ -57,5 +57,6 @@ require 'ghtorrent/commands/ght_rm_dupl'
 require 'ghtorrent/commands/ght_load'
 require 'ghtorrent/commands/ght_retrieve_repo'
 require 'ghtorrent/commands/ght_retrieve_user'
+require 'ghtorrent/commands/ght_retrieve_dependents'
 
 # vim: set sta sts=2 shiftwidth=2 sw=2 et ai :
