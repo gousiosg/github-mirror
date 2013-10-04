@@ -223,8 +223,8 @@ module GHTorrent
                 end
 
       commits.map do |c|
-        ensure_commit(repo, c['sha'], user)
-      end
+        save{ensure_commit(repo, c['sha'], user)}
+      end.select{|x| !x.nil?}
     end
 
     ##
@@ -234,35 +234,37 @@ module GHTorrent
       commits = @db[:commits]
       parents = @db[:commit_parents]
       commit['parents'].map do |p|
-        url = p['url'].split(/\//)
-        this = commits.first(:sha => commit['sha'])
-        parent = commits.first(:sha => url[7])
+        save do
+          url = p['url'].split(/\//)
+          this = commits.first(:sha => commit['sha'])
+          parent = commits.first(:sha => url[7])
 
-        if parent.nil?
-          c = retrieve_commit(url[5], url[7], url[4])
-          if c.nil?
+          if parent.nil?
+            c = retrieve_commit(url[5], url[7], url[4])
+            if c.nil?
+              warn "GHTorrent: Could not retrieve #{url[4]}/#{url[5]} -> #{url[7]}, parent to commit #{this[:sha]}"
+              next
+            end
+            parent = store_commit(c, url[5], url[4])
+          end
+
+          if parent.nil?
             warn "GHTorrent: Could not retrieve #{url[4]}/#{url[5]} -> #{url[7]}, parent to commit #{this[:sha]}"
             next
           end
-          parent = store_commit(c, url[5], url[4])
-        end
 
-        if parent.nil?
-          warn "GHTorrent: Could not retrieve #{url[4]}/#{url[5]} -> #{url[7]}, parent to commit #{this[:sha]}"
-          next
-        end
+          if parents.first(:commit_id => this[:id],
+                           :parent_id => parent[:id]).nil?
 
-        if parents.first(:commit_id => this[:id],
-                         :parent_id => parent[:id]).nil?
-
-          parents.insert(:commit_id => this[:id],
-                         :parent_id => parent[:id])
-          info "GHTorrent: Added parent #{parent[:sha]} to commit #{this[:sha]}"
-        else
-          debug "GHTorrent: Parent #{parent[:sha]} for commit #{this[:sha]} exists"
+            parents.insert(:commit_id => this[:id],
+                           :parent_id => parent[:id])
+            info "GHTorrent: Added parent #{parent[:sha]} to commit #{this[:sha]}"
+          else
+            debug "GHTorrent: Parent #{parent[:sha]} for commit #{this[:sha]} exists"
+          end
+          parents.first(:commit_id => this[:id], :parent_id => parent[:id])
         end
-        parents.first(:commit_id => this[:id], :parent_id => parent[:id])
-      end
+      end.select{|x| !x.nil?}
     end
 
     ##
@@ -476,7 +478,7 @@ module GHTorrent
         else
           acc
         end
-      end.map { |x| ensure_user_follower(followed, x['login']) }
+      end.map { |x| save{ensure_user_follower(followed, x['login']) }}.select{|x| !x.nil?}
     end
 
     ##
@@ -663,7 +665,7 @@ module GHTorrent
         else
           acc
         end
-      end.map { |x| ensure_project_member(user, repo, x['login'], time) }
+      end.map { |x| save{ensure_project_member(user, repo, x['login'], time) }}.select{|x| !x.nil?}
     end
 
     ##
@@ -719,7 +721,7 @@ module GHTorrent
     # [user]  The login name of the user to check the organizations for
     #
     def ensure_orgs(user)
-      retrieve_orgs(user).map{|o| ensure_participation(user, o['login'])}
+      retrieve_orgs(user).map{|o| save{ensure_participation(user, o['login'])}}.select{|x| !x.nil?}
     end
 
     ##
@@ -793,7 +795,7 @@ module GHTorrent
         end
       end
 
-      not_saved.map{|x| ensure_commit_comment(user, repo, x['id'])}
+      not_saved.map{|x| save{ensure_commit_comment(user, repo, x['id'])}}.select{|x| !x.nil?}
     end
 
     ##
@@ -856,7 +858,7 @@ module GHTorrent
         else
           acc
         end
-      end.map { |x| ensure_watcher(owner, repo, x['login'], nil) }
+      end.map { |x| save{ensure_watcher(owner, repo, x['login'], nil) }}.select{|x| !x.nil?}
     end
 
     ##
@@ -931,7 +933,7 @@ module GHTorrent
                         end
                       end
 
-      raw_pull_reqs.map { |x| ensure_pull_request(owner, repo, x['number']) }
+      raw_pull_reqs.map { |x| save { ensure_pull_request(owner, repo, x['number']) } }.select { |x| !x.nil? }
     end
 
     ##
@@ -1125,8 +1127,8 @@ module GHTorrent
           acc
         end
       end.map { |x|
-        ensure_pullreq_comment(owner, repo, pullreq_id, x['id'])
-      }
+        save{ensure_pullreq_comment(owner, repo, pullreq_id, x['id'])}
+      }.select{|x| !x.nil?}
     end
 
     def ensure_pullreq_comment(owner, repo, pullreq_id, comment_id)
@@ -1188,26 +1190,28 @@ module GHTorrent
         return
       end
 
-      retrieve_pull_req_commits(owner, repo, pullreq_id).reduce([]){|acc, c|
+      retrieve_pull_req_commits(owner, repo, pullreq_id).reduce([]) { |acc, c|
         next if c.nil?
         head_repo_owner = c['url'].split(/\//)[4]
         head_repo_name = c['url'].split(/\//)[5]
         x = ensure_commit(head_repo_name, c['sha'], head_repo_owner, true)
         acc << x if not x.nil?
         acc
-      }.map { |c|
-        exists = @db[:pull_request_commits].first(:pull_request_id => pullreq[:id],
-                                                  :commit_id => c[:id])
-        if exists.nil?
-          @db[:pull_request_commits].insert(:pull_request_id => pullreq[:id],
-                                            :commit_id => c[:id])
+      }.map do |c|
+        save do
+          exists = @db[:pull_request_commits].first(:pull_request_id => pullreq[:id],
+                                                    :commit_id => c[:id])
+          if exists.nil?
+            @db[:pull_request_commits].insert(:pull_request_id => pullreq[:id],
+                                              :commit_id => c[:id])
 
-          info "GHTorrent: Added commit #{c[:sha]} to pullreq #{owner}/#{repo} -> #{pullreq_id}"
-        else
-          debug "GHTorrent: Commit #{c[:sha]} exists in pullreq #{owner}/#{repo} -> #{pullreq_id}"
-          exists
+            info "GHTorrent: Added commit #{c[:sha]} to pullreq #{owner}/#{repo} -> #{pullreq_id}"
+          else
+            debug "GHTorrent: Commit #{c[:sha]} exists in pullreq #{owner}/#{repo} -> #{pullreq_id}"
+            exists
+          end
         end
-      }
+      end.select{|x| !x.nil?}
     end
 
     ##
@@ -1238,7 +1242,7 @@ module GHTorrent
         else
           acc
         end
-      end.map { |x| ensure_fork(owner, repo, x['id']) }
+      end.map { |x| save{ensure_fork(owner, repo, x['id']) }}.select{|x| !x.nil?}
     end
 
     ##
@@ -1285,7 +1289,7 @@ module GHTorrent
                      end
                    end
 
-      raw_issues.map { |x| ensure_issue(owner, repo, x['number']) }
+      raw_issues.map { |x| save { ensure_issue(owner, repo, x['number']) } }.select { |x| !x.nil? }
     end
 
     ##
@@ -1376,8 +1380,8 @@ module GHTorrent
           acc
         end
       end.map { |x|
-        ensure_issue_event(owner, repo, issue_id, x['id'])
-      }
+        save{ensure_issue_event(owner, repo, issue_id, x['id'])}
+      }.select{|x| !x.nil?}
     end
 
     ##
@@ -1488,8 +1492,8 @@ module GHTorrent
           acc
         end
       end.map { |x|
-        ensure_issue_comment(owner, repo, issue_id, x['id'], pull_req_id)
-      }
+        save{ensure_issue_comment(owner, repo, issue_id, x['id'], pull_req_id)}
+      }.select{|x| !x.nil?}
     end
 
     ##
@@ -1552,7 +1556,7 @@ module GHTorrent
         else
           acc
         end
-      end.map { |x| ensure_repo_label(owner, repo, x['name']) }
+      end.map { |x| save { ensure_repo_label(owner, repo, x['name']) } }.select { |x| !x.nil? }
     end
 
     ##
@@ -1610,7 +1614,7 @@ module GHTorrent
         else
           acc
         end
-      end.map { |x| ensure_issue_label(owner, repo, issue[:issue_id], x['name']) }
+      end.map { |x| save{ensure_issue_label(owner, repo, issue[:issue_id], x['name']) }}.select{|x| !x.nil?}
 
     end
 
@@ -1671,6 +1675,20 @@ module GHTorrent
         raise e
       ensure
         GC.start
+      end
+    end
+
+    def save(&block)
+      if config(:rescue_loops) == 'true'
+        begin
+          yield block
+        rescue Exception => e
+          @logger.error e.message
+          @logger.error e.backtrace.join("\n")
+          nil
+        end
+      else
+        yield block
       end
     end
 
