@@ -34,7 +34,9 @@ module GHTorrent
 
         :respect_api_ratelimit => 'mirror.respect_api_ratelimit',
 
-        :attach_ip => 'mirror.attach_ip'
+        :attach_ip => 'mirror.attach_ip',
+
+        :rescue_loops => 'mirror.rescue_loops'
     }
 
     DEFAULTS = {
@@ -63,7 +65,9 @@ module GHTorrent
 
         :respect_api_ratelimit => 'true',
 
-        :attach_ip => '0.0.0.0'
+        :attach_ip => '0.0.0.0',
+
+        :rescue_loops => 'true'
     }
 
     def config(key, use_default = true)
