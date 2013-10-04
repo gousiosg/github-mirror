@@ -64,12 +64,7 @@ An efficient way to get all data for a single repo
     repo = repo_entry[:name]
 
     def send_message(function, user, repo)
-      begin
-        ght.send(function, user, repo, refresh = true)
-      rescue Exception => e
-        puts STDERR, e.message
-        puts STDERR, e.backtrace
-      end
+      ght.send(function, user, repo, refresh = true)
     end
 
     functions = %w(ensure_commits ensure_forks ensure_pull_requests
@@ -135,18 +130,12 @@ class TransactedGHTorrent < GHTorrent::Mirror
   end
 
   def check_transaction(&block)
-    begin
-      if @db.in_transaction?
+    if @db.in_transaction?
+      yield block
+    else
+      transaction do
         yield block
-      else
-        transaction do
-          yield block
-        end
       end
-    rescue Exception => e
-      puts STDERR, e.message
-      puts STDERR, e.backtrace
     end
   end
-
 end
