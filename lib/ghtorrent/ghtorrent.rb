@@ -189,7 +189,10 @@ module GHTorrent
 
       stored = store_commit(c, repo, user)
       ensure_parents(c)
-      ensure_commit_comments(user, repo, sha) if comments
+      if not c['commit']['comment_count'].nil? \
+         and c['commit']['comment_count'] > 0
+        ensure_commit_comments(user, repo, sha) if comments
+      end
       ensure_repo_commit(user, repo, sha)
       stored
     end
