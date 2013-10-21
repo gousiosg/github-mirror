@@ -80,9 +80,9 @@ module GHTorrent
     #  [user] The login of the repository owner
     #  [repo] The name of the repository
     #  [comment_id] The login of the member to add
-    def get_commit_comment(user, repo, comment_id)
+    def get_commit_comment(user, repo, sha, comment_id)
       transaction do
-        ensure_commit_comment(user, repo, comment_id)
+        ensure_commit_comment(user, repo, sha, comment_id)
       end
     end
 
@@ -788,7 +788,7 @@ module GHTorrent
     def ensure_commit_comments(user, repo, sha)
       commit_id = @db[:commits].first(:sha => sha)[:id]
       stored_comments = @db[:commit_comments].filter(:commit_id => commit_id)
-      commit_comments = retrieve_commit_comments(user, repo, sha)
+      commit_comments = retrieve_commit_comments(sha)
 
       not_saved = commit_comments.reduce([]) do |acc, x|
         if stored_comments.find{|y| y[:comment_id] == x['id']}.nil?
@@ -798,30 +798,23 @@ module GHTorrent
         end
       end
 
-      not_saved.map{|x| save{ensure_commit_comment(user, repo, x['id'])}}.select{|x| !x.nil?}
+      not_saved.map{|x| save{ensure_commit_comment(user, repo, sha, x['id'])}}.select{|x| !x.nil?}
     end
 
-    ##
-    # Get a specific comment
-    #
-    # ==Parameters:
-    # [user]  The login name of the organization
-    # [repo]  The repository containing the commit whose comment will be retrieved
-    # [id]  The comment id to retrieve
-    # [created_at]  The timestamp that the comment was made.
-    def ensure_commit_comment(user, repo, id)
-      stored_comment = @db[:commit_comments].first(:comment_id => id)
+
+    def ensure_commit_comment(owner, repo, sha, comment_id)
+      stored_comment = @db[:commit_comments].first(:comment_id => comment_id)
 
       if stored_comment.nil?
-        retrieved = retrieve_commit_comment(user, repo, id)
+        retrieved = retrieve_commit_comment(owner, repo, sha, comment_id)
 
         if retrieved.nil?
-          warn "GHTorrent: Commit comment #{id} deleted"
+          warn "GHTorrent: Commit comment #{sha}->#{id} deleted"
           return
         end
 
-        commit = ensure_commit(repo, retrieved['commit_id'], user, false)
-        user = ensure_user(user, false, false)
+        commit = ensure_commit(repo, sha, owner, false)
+        user = ensure_user(retrieved['user']['login'], false, false)
         @db[:commit_comments].insert(
             :commit_id => commit[:id],
             :user_id => user[:id],
@@ -832,11 +825,11 @@ module GHTorrent
             :ext_ref_id => retrieved[@ext_uniq],
             :created_at => date(retrieved['created_at'])
         )
-        info "GHTorrent: Added commit comment #{commit[:sha]} -> #{user[:login]}"
+        info "GHTorrent: Added commit comment #{sha} -> #{retrieved['id']} by #{user[:login]}"
       else
-        info "GHTorrent: Commit comment #{id} exists"
+        info "GHTorrent: Commit comment #{sha} -> #{id} exists"
       end
-      @db[:commit_comments].first(:comment_id => id)
+      @db[:commit_comments].first(:comment_id => comment_id)
     end
 
     ##

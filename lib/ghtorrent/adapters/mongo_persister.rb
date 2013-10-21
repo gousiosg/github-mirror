@@ -24,7 +24,7 @@ module GHTorrent
         :events                => %w(id),
         :users                 => %w(login),
         :commits               => %w(sha),
-        :commit_comments       => %w(repo user commit_id),
+        :commit_comments       => %w(commit_id id),
         :repos                 => %w(name owner.login),
         :repo_labels           => %w(repo owner),
         :repo_collaborators    => %w(repo owner login),

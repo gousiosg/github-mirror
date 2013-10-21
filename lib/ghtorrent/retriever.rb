@@ -216,16 +216,11 @@ module GHTorrent
     end
 
     # Retrieve all comments for a single commit
-    def retrieve_commit_comments(user, repo, sha)
-      retrieved_comments = paged_api_request(ghurl "repos/#{user}/#{repo}/commits/#{sha}/comments")
+    def retrieve_commit_comments(owner, repo, sha)
+      retrieved_comments = paged_api_request(ghurl "repos/#{owner}/#{repo}/commits/#{sha}/comments")
 
       retrieved_comments.each { |x|
-        x['repo'] = repo
-        x['user'] = user
-        x['commit_id'] = sha
-
-        if persister.find(:commit_comments, {'repo' => repo,
-                                              'user' => user,
+        if persister.find(:commit_comments, { 'commit_id' => x['commit_id'],
                                               'id' => x['id']}).empty?
           persister.store(:commit_comments, x)
         end
@@ -234,25 +229,21 @@ module GHTorrent
     end
 
     # Retrieve a single comment
-    def retrieve_commit_comment(user, repo, id)
+    def retrieve_commit_comment(owner, repo, sha, id)
 
-      comment = persister.find(:commit_comments, {'repo' => repo,
-                                                   'user' => user,
-                                                   'id' => id}).first
+      comment = persister.find(:commit_comments, {'commit_id' => sha,
+                                                  'id' => id}).first
       if comment.nil?
-        r = api_request(ghurl "repos/#{user}/#{repo}/comments/#{id}")
+        r = api_request(ghurl "repos/#{owner}/#{repo}/comments/#{id}")
 
         if r.empty?
           debug "Retriever: Commit comment #{id} deleted"
           return
         end
 
-        r['repo'] = repo
-        r['user'] = user
         persister.store(:commit_comments, r)
         info "Retriever: Added commit comment #{r['commit_id']} -> #{r['id']}"
-        persister.find(:commit_comments, {'repo' => repo, 'user' => user,
-                                          'id' => id}).first
+        persister.find(:commit_comments, {'commit_id' => sha, 'id' => id}).first
       else
         debug "Retriever: Commit comment #{comment['commit_id']} -> #{comment['id']} exists"
         comment
