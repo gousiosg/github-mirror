@@ -98,10 +98,10 @@ class TransactedGHTorrent < GHTorrent::Mirror
   end
 
   def ensure_pull_request(owner, repo, pullreq_id,
-      comments = true, commits = true,
-      state = nil, created_at = nil)
+      comments = false, commits = false, history = true,
+      state = nil, actor = nil, created_at = nil)
     check_transaction do
-      super(owner, repo, pullreq_id, comments, commits, state, created_at)
+      super(owner, repo, pullreq_id, comments, commits, history, state, actor, created_at)
     end
   end
 
