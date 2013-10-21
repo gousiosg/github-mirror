@@ -58,11 +58,12 @@ class GHTDataRetrieval < GHTorrent::Command
   end
 
   def CommitCommentEvent(data)
-    user = data['actor']['login']
+    user = data['repo']['name'].split(/\//)[0]
     repo = data['repo']['name'].split(/\//)[1]
     id = data['payload']['comment']['id']
+    sha = data['payload']['comment']['commit_id']
 
-    ghtorrent.get_commit_comment(user, repo, id)
+    ghtorrent.get_commit_comment(user, repo, sha, id)
   end
 
   def PullRequestEvent(data)
