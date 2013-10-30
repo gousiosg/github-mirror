@@ -60,7 +60,7 @@ Loads object ids from a collection to a queue for further processing.
 
   def go
     # Num events read
-    num_read = 0
+    total_read = 0
 
     puts "Loading items after #{Time.at(options[:earliest])}" if options[:verbose]
     puts "Loading items before #{Time.at(options[:latest])}" if options[:verbose]
@@ -107,9 +107,10 @@ Loads object ids from a collection to a queue for further processing.
 
       # Read next options[:batch] items and queue them
       read_and_publish = Proc.new {
-
+        num_read = 0
         persister.get_underlying_connection[:events].find(what.merge(from),
-                                        :skip => num_read,
+                                        :snapshot => true,
+                                        :skip => total_read,
                                         :limit => options[:batch]).each do |e|
           unq = read_value(e, 'type')
           if unq.class != String or unq.nil? then
@@ -120,10 +121,11 @@ Loads object ids from a collection to a queue for further processing.
                            :routing_key => "evt.#{e['type']}"
 
           num_read += 1
-          puts "Publish id = #{e['id']} (#{num_read} total)" if options.verbose
+          total_read += 1
+          puts "Publish id = #{e['id']} (#{num_read} read, #{total_read} total)" if options.verbose
         end
-
-        if num_read >= options[:number]
+                                
+        if total_read >= options[:number] or num_read == 0 
           puts 'Finished reading, exiting'
           show_stopper.call
         else
