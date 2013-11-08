@@ -42,7 +42,7 @@ An efficient way to get all data for a single user
       end
     end
 
-    functions = %w(ensure_user_followers ensure_orgs)
+    functions = %w(ensure_user_followers ensure_orgs ensure_org)
 
     if ARGV[2].nil?
       functions.each do |x|
