@@ -12,6 +12,10 @@ RSpec.configure do |config|
   end
 end
 
+def settings
+  YAML::load_file('config.yaml')
+end
+
 def logger
-  @logger ||= Logger.new(STDOUT)
+  Logger.new(STDERR)
 end
