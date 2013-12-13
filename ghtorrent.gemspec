@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
   s.files         = FileList['lib/**/*.rb',
                              'bin/*',
                              '[A-Z]*',
-                             'test/**/*'].to_a
+                             'spec/**/*'].to_a
 
   s.add_dependency "amqp", ['~> 1.0.0']
   s.add_dependency "mongo", ['~> 1.8.0']
