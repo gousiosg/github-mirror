@@ -54,29 +54,6 @@ module GHTorrent
                                                      command.options[:password])
         end
 
-        if command.options[:daemon]
-          if Process.uid == 0
-            # Daemonize as a proper system daemon
-            Daemons.daemonize(:app_name   => File.basename($0),
-                              :dir_mode   => :system,
-                              :log_dir    => "/var/log",
-                              :backtrace  => true,
-                              :log_output => true)
-            STDERR.puts "Became a daemon"
-            # Change effective user id for the process
-            unless command.options[:user].nil?
-              Process.euid = Etc.getpwnam(command.options[:user]).uid
-            end
-          else
-            # Daemonize, but output in current directory
-            Daemons.daemonize(:app_name   => File.basename($0),
-                              :dir_mode   => :normal,
-                              :dir        => Dir.getwd,
-                              :backtrace  => true,
-                              :log_output => true)
-          end
-        end
-
         begin
           command.go
         rescue => e
@@ -107,10 +84,7 @@ Standard options:
         opt :verbose, 'verbose mode', :short => 'v'
         opt :addr, 'ip address to use for performing requests', :short => 'a',
             :type => String
-        opt :daemon, 'run as daemon', :short => 'd'
-        opt :user, 'run as the specified user (only when started as root)',
-            :short => 'u', :type => String
-        opt :username, 'Username at Github', :type => String
+        opt :username, 'Username at Github', :short => 's', :type => String
         opt :password, 'Password at Github', :type => String
       end
     end
