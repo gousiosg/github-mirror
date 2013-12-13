@@ -202,6 +202,8 @@ module GHTorrent
       @username   ||= config(:github_username)
       @passwd     ||= config(:github_passwd)
       @user_agent ||= config(:user_agent)
+      @remaining  ||= 0
+      @reset      ||= Time.now.to_i + 3600
 
       open_func ||= if @username.nil?
         lambda {|url| open(url, 'User-Agent' => @user_agent)}
