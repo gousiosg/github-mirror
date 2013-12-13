@@ -190,9 +190,9 @@ module GHTorrent
         end
       ensure
         if not from_cache and config(:respect_api_ratelimit) and @remaining < 10
-          sleep = (@reset - Time.now.to_i) / 60
-          debug "APIClient: Request limit reached, sleeping for #{sleep} min"
-          sleep(@reset - Time.now.to_i)
+          to_sleep = @reset - Time.now.to_i + 2
+          debug "APIClient: Request limit reached, sleeping for #{to_sleep} secs"
+          sleep(to_sleep)
         end
       end
     end
@@ -202,7 +202,7 @@ module GHTorrent
       @username   ||= config(:github_username)
       @passwd     ||= config(:github_passwd)
       @user_agent ||= config(:user_agent)
-      @remaining  ||= 0
+      @remaining  ||= 10
       @reset      ||= Time.now.to_i + 3600
 
       open_func ||= if @username.nil?
