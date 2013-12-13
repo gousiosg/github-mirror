@@ -961,7 +961,7 @@ module GHTorrent
           info "GHTorrent: New pull request (#{id}) event (#{act}) by (#{actor}) timestamp #{ts}"
         else
           entry.update(:actor_id => user[:id])
-          info "GHTorrent: Pull request (#{id}) history entry (#{act}) timestamp #{ts} exists"
+          info "GHTorrent: Pull request (#{id}) history entry (#{act}) by (#{actor}) timestamp #{ts} exists"
         end
       end
 
