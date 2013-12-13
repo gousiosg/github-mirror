@@ -38,8 +38,9 @@ module GHTorrent
       end
     end
 
+    # Default logger
     def logger
-      raise Exception.new("Unimplemented")
+      @logger ||= Logger.new(STDOUT)
     end
   end
 end
