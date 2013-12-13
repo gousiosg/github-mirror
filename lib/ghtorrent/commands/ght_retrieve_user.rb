@@ -42,7 +42,7 @@ An efficient way to get all data for a single user
       end
     end
 
-    functions = %w(ensure_user_followers ensure_orgs)
+    functions = %w(ensure_user_followers ensure_orgs ensure_org)
 
     if ARGV[2].nil?
       functions.each do |x|
@@ -67,6 +67,12 @@ class TransactedGHTorrent < GHTorrent::Mirror
   def ensure_orgs(user)
     check_transaction do
       super(user)
+    end
+  end
+
+  def ensure_org(user, members = true)
+    check_transaction do
+      super(user, members)
     end
   end
 end

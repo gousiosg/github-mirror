@@ -737,6 +737,12 @@ module GHTorrent
     #
     def ensure_participation(user, organization, members = true)
       org = ensure_org(organization, members)
+
+      if org.nil?
+        warn "Organization #{organization} does not exit"
+        return
+      end
+
       usr = ensure_user(user, false, false)
 
       org_members = @db[:organization_members]
@@ -765,11 +771,18 @@ module GHTorrent
 
       if org.nil?
         org = ensure_user(organization, false, false)
+
+        # Not an organization, don't go ahead
+        if user_type(org['type']) != 'ORG'
+          warn "GHTorrent: Account #{organization} is not an organization"
+          return nil
+        end
+
         if members
-        retrieve_org_members(organization).map { |x|
-          ensure_participation(ensure_user(x['login'], false, false)[:login],
-                               organization, false)
-        }
+          retrieve_org_members(organization).map do |x|
+            ensure_participation(ensure_user(x['login'], false, false)[:login],
+                                 organization, false)
+          end
         end
         org
       else
