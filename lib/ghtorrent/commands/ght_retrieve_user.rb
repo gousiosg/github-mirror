@@ -75,4 +75,5 @@ class TransactedGHTorrent < GHTorrent::Mirror
       super(user, members)
     end
   end
+
 end

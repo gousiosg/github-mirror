@@ -766,14 +766,14 @@ module GHTorrent
     # ==Parameters:
     # [organization]  The login name of the organization
     #
-    def ensure_org(organization, members)
+    def ensure_org(organization, members = true)
       org = @db[:users].first(:login => organization, :type => 'org')
 
       if org.nil?
         org = ensure_user(organization, false, false)
 
         # Not an organization, don't go ahead
-        if user_type(org['type']) != 'ORG'
+        if org[:type] != 'ORG'
           warn "GHTorrent: Account #{organization} is not an organization"
           return nil
         end
@@ -784,11 +784,8 @@ module GHTorrent
                                  organization, false)
           end
         end
-        org
-      else
-        debug "GHTorrent: Organization #{organization} exists"
-        org
       end
+      org
     end
 
     ##
