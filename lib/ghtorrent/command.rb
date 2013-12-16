@@ -137,7 +137,7 @@ Standard options:
 
     def override_config(config_file, setting, new_value)
       puts "Overriding configuration #{setting}=#{config(setting)} with cmd line #{new_value}"
-      merge_config_values({setting => new_value})
+      merge_config_values(config_file, {setting => new_value})
     end
 
     private
