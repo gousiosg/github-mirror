@@ -48,6 +48,7 @@ require 'ghtorrent/retriever'
 
 # SQL database fillup methods
 require 'ghtorrent/ghtorrent'
+require 'ghtorrent/transacted_ghtorrent'
 
 # Commands
 require 'ghtorrent/commands/ght_data_retrieval'
