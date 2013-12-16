@@ -47,11 +47,13 @@ Values in the config.yaml file set with the -c command are overriden.
       next if line =~ /^#/
       ip,name,passwd,instances = line.strip.split(/ /)
       (1..instances.to_i).map do |i|
-        new_config = self.settings.clone
-        override_config(new_config, :attach_ip, ip)
-        override_config(new_config, :github_username, name)
-        override_config(new_config, :github_passwd, passwd)
-        new_config
+        newcfg = self.settings.clone
+        newcfg = override_config(newcfg, :attach_ip, ip)
+        newcfg = override_config(newcfg, :github_username, name)
+        newcfg = override_config(newcfg, :github_passwd, passwd)
+        newcfg = override_config(newcfg, :mirror_history_pages_back, 1000)
+        newcfg = override_config(newcfg, :mirror_commit_pages_new_repo, 1000)
+        newcfg
       end
     end.flatten.select{|x| !x.nil?}
 
@@ -120,17 +122,6 @@ class GHTRepoRetriever
     @config
   end
 
-  def run1
-    slp = rand(1..10)
-    puts "Child #{Process.pid} sleeping for #{slp} secs"
-
-    begin
-      sleep(slp)
-    rescue Interrupt
-      stop
-    end
-  end
-
   def run
     AMQP.start(:host => config(:amqp_host),
                :port => config(:amqp_port),
@@ -150,6 +141,7 @@ class GHTRepoRetriever
 
         if user_entry.nil?
           warn("Cannot find user #{owner}")
+          headers.ack
           next
         end
 
@@ -157,6 +149,7 @@ class GHTRepoRetriever
 
         if repo_entry.nil?
           warn("Cannot find repository #{owner}/#{repo}")
+          headers.ack
           next
         end
   
