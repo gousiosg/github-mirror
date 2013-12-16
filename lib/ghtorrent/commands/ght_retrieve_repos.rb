@@ -159,7 +159,8 @@ class GHTRepoRetriever
           warn("Cannot find repository #{owner}/#{repo}")
           next
         end
-
+  
+        debug("Retrieving repo #{owner}/#{repo}")
         def send_message(function, user, repo)
           ght.send(function, user, repo, refresh = false)
         end
@@ -183,6 +184,7 @@ class GHTRepoRetriever
           end
         end
 
+        headers.ack
         if @stop
           AMQP.stop { EM.stop }
         end
