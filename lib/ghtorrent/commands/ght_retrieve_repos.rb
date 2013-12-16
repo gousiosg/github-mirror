@@ -173,6 +173,9 @@ class GHTRepoRetriever
             send_message(x, owner, repo)
           rescue Interrupt
             stop
+          rescue Exception
+            warn("Error processing #{x} for #{owner}/#{repo}")
+            next
           end
 
           if @stop
