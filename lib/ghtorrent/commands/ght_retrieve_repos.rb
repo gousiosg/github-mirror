@@ -128,8 +128,20 @@ class GHTRepoRetriever
                :username => config(:amqp_username),
                :password => config(:amqp_password)) do |connection|
 
+      connection.on_tcp_connection_loss do |conn, settings|
+        warn 'AMQP: Network failure. Trying to reconnect...'
+        conn.reconnect(false, 2)
+      end
+
       channel = AMQP::Channel.new(connection)
+      channel.auto_recovery = true
       channel.prefetch(1)
+
+      channel.on_error do |ch, channel_close|
+        warn 'AMQP: Channel closed. Should reconnect by itself'
+        raise channel_close.reply_text
+      end
+
       exchange = channel.topic(config(:amqp_exchange), :durable => true,
                                :auto_delete => false)
 
@@ -178,8 +190,9 @@ class GHTRepoRetriever
         end
 
         headers.ack
+        debug("Finished processing #{owner}/#{repo}")
         if @stop
-          AMQP.stop { EM.stop }
+          connection.disconnect{AMQP.stop { EM.stop }}
         end
       end
     end
