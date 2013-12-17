@@ -2,11 +2,11 @@ require 'rake'
 require 'rake/testtask'
 require 'rake/rdoctask'
 
-task :default => [:test, :rdoc]
+task :default => [:spec, :rdoc]
 
 desc "Run basic tests"
-Rake::TestTask.new(:test) do |t|
-  t.pattern = 'test/*_test.rb'
+Rake::TestTask.new(:spec) do |t|
+  t.pattern = 'spec/*_test.rb'
   t.verbose = true
   t.warning = true
 end
