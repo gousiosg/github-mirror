@@ -798,7 +798,7 @@ module GHTorrent
     def ensure_commit_comments(user, repo, sha)
       commit_id = @db[:commits].first(:sha => sha)[:id]
       stored_comments = @db[:commit_comments].filter(:commit_id => commit_id)
-      commit_comments = retrieve_commit_comments(sha)
+      commit_comments = retrieve_commit_comments(user, repo, sha)
 
       not_saved = commit_comments.reduce([]) do |acc, x|
         if stored_comments.find{|y| y[:comment_id] == x['id']}.nil?
