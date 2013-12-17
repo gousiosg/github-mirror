@@ -1,3 +1,12 @@
+= Version 0.8.1
+	* New tool to retrieve specific entities and their dependencies
+	* New tool to retrieve repositories en masse
+	* Support for resuming when exception occurs while processing items in loops
+	* Support for finer grained transactions when processing large entities
+	* Commit comments are now indexed per owner/repo (was just by comment id)
+	* Remove the unused daemon mode
+    * Various exception fixes and more detailed logging
+
 = Version 0.8
 	* Retrieve and process issue labels
 	* Retrive and process actors for pull request events
