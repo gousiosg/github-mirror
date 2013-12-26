@@ -1,7 +1,5 @@
 require 'rubygems'
 require 'yaml'
-require 'amqp'
-require 'eventmachine'
 require 'json'
 require 'logger'
 
@@ -53,11 +51,10 @@ class GHTMirrorEvents < GHTorrent::Command
         (new1, dupl1, stored1) = store_count events
         stored = stored | stored1
         new = new + new1
-        new
       end
 
       stored.each do |e|
-        key = "evt.%s" % e['type']
+        key = "evt.#{e['type']}"
         exchange.publish e['id'], :persistent => true, :routing_key => key
       end
       return new, dupl
@@ -71,46 +68,37 @@ class GHTMirrorEvents < GHTorrent::Command
     @persister = connect(:mongo, @settings)
     @logger = Logger.new(STDOUT)
 
-    # Graceful exit
-    Signal.trap('INT') {
-      info "Received SIGINT, exiting"
-      AMQP.stop { EM.stop }
-    }
-    Signal.trap('TERM') {
-      info "Received SIGTERM, exiting"
-      AMQP.stop { EM.stop }
-    }
+    conn = Bunny.new(:host => config(:amqp_host),
+                     :port => config(:amqp_port),
+                     :username => config(:amqp_username),
+                     :password => config(:amqp_password))
+    conn.start
 
-    # The event loop
-    AMQP.start(:host => config(:amqp_host),
-               :port => config(:amqp_port),
-               :username => config(:amqp_username),
-               :password => config(:amqp_password)) do |connection|
+    ch  = conn.create_channel
+    @logger.debug "Connection to #{config(:amqp_host)} succeded"
 
-      # Statistics used to recalibrate event delays
-      dupl_msgs = new_msgs = 1
+    exchange = ch.topic(config(:amqp_exchange), :durable => true,
+                 :auto_delete => false)
 
-      debug "connected to rabbit"
-
-      channel = AMQP::Channel.new(connection)
-      exchange = channel.topic(config(:amqp_exchange), :durable => true,
-                               :auto_delete => false)
-
-      # Retrieve events
-      EventMachine.add_periodic_timer(5) do
+    dupl_msgs = new_msgs = loops = 0
+    stopped = false
+    while not stopped
+      begin
         (new, dupl) = retrieve exchange
         dupl_msgs += dupl
         new_msgs += new
-      end
+        loops += 1
+        sleep(5)
 
-      # Adjust event retrieval delay time to reduce load to Github
-      EventMachine.add_periodic_timer(12) do
-        ratio = (dupl_msgs.to_f / (dupl_msgs + new_msgs).to_f)
-
-        info("Stats: #{new_msgs} new, #{dupl_msgs} duplicate, ratio: #{ratio}")
-
-        # Reset counters for new loop
-        dupl_msgs = new_msgs = 0
+        if loops >= 12 # One minute
+          ratio = (dupl_msgs.to_f / (dupl_msgs + new_msgs).to_f)
+          info("Stats: #{new_msgs} new, #{dupl_msgs} duplicate, ratio: #{ratio}")
+          dupl_msgs = new_msgs = loops = 0
+        end
+      rescue Interrupt
+        stopped = true
+      rescue Exception => e
+        @logger.error e
       end
     end
   end

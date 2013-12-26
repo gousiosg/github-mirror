@@ -1,5 +1,4 @@
 require 'rubygems'
-require 'amqp'
 require 'json'
 require 'pp'
 

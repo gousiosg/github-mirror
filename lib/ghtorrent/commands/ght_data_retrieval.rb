@@ -1,7 +1,6 @@
 require 'rubygems'
-require 'amqp'
+require 'bunny'
 require 'json'
-require 'pp'
 
 require 'ghtorrent/ghtorrent'
 require 'ghtorrent/settings'
@@ -158,67 +157,75 @@ Retrieves events from queues and processes them through GHTorrent
       }
     end
 
-    # Graceful exit
-    Signal.trap('INT') {
-      info "GHTDataRetrieval: Received SIGINT, exiting"
-      AMQP.stop { EM.stop }
-    }
 
-    Signal.trap('TERM') {
-      info "GHTDataRetrieval: Received SIGTERM, exiting"
-      AMQP.stop { EM.stop }
-    }
+    conn = Bunny.new(:host => config(:amqp_host),
+                     :port => config(:amqp_port),
+                     :username => config(:amqp_username),
+                     :password => config(:amqp_password))
+    conn.start
 
-    AMQP.start(:host => config(:amqp_host),
-               :port => config(:amqp_port),
-               :username => config(:amqp_username),
-               :password => config(:amqp_password)) do |connection|
+    channel = conn.create_channel
+    debug "Setting prefetch to #{config(:amqp_prefetch)}"
+    channel.prefetch(config(:amqp_prefetch))
+    debug "Connection to #{config(:amqp_host)} succeded"
 
-      channel = AMQP::Channel.new(connection)
-      channel.prefetch(config(:amqp_prefetch))
-      exchange = channel.topic(config(:amqp_exchange), :durable => true,
-                               :auto_delete => false)
+    exchange = channel.topic(config(:amqp_exchange), :durable => true,
+                             :auto_delete => false)
 
-      handlers.each { |h|
-        queue = channel.queue("#{h}s", {:durable => true})\
-                       .bind(exchange, :routing_key => "evt.#{h}")
+    handlers.each do |h|
+      queue = channel.queue("#{h}s", {:durable => true})\
+                         .bind(exchange, :routing_key => "evt.#{h}")
 
-        info "GHTDataRetrieval: Binding handler #{h} to routing key evt.#{h}"
+      info "GHTDataRetrieval: Binding handler #{h} to routing key evt.#{h}"
 
-        queue.subscribe(:ack => true) do |headers, msg|
-          begin
+      queue.subscribe(:ack => true) do |headers, properties, msg|
+        begin
 
-            event = persister.get_underlying_connection[:events].find_one('id' => msg)
-            event.delete '_id'
-            data = parse(event.to_json)
-            info "GHTDataRetrieval: Processing event: #{data['type']}-#{data['id']}"
+          event = persister.get_underlying_connection[:events].find_one('id' => msg)
+          event.delete '_id'
+          data = parse(event.to_json)
+          info "GHTDataRetrieval: Processing event: #{data['type']}-#{data['id']}"
 
-            unless options[:filter].nil?
-              if filter.include?(data['repo']['name'])
-                send(h, data)
-              else
-                info "GHTDataRetrieval: Repo #{data['repo']['name']} not in process list. Ignoring event #{data['type']}-#{data['id']}"
-              end
-            else
+          unless options[:filter].nil?
+            if filter.include?(data['repo']['name'])
               send(h, data)
-            end
-            headers.ack
-            info "GHTDataRetrieval: Processed event: #{data['type']}-#{data['id']}"
-          rescue Exception => e
-            # Give a message a chance to be reprocessed
-            if headers.redelivered?
-              warn "GHTDataRetrieval: Could not process event: #{msg}"
-              headers.reject(:requeue => false)
             else
-              headers.reject(:requeue => true)
+              info "GHTDataRetrieval: Repo #{data['repo']['name']} not in process list. Ignoring event #{data['type']}-#{data['id']}"
             end
-
-            STDERR.puts e
-            STDERR.puts e.backtrace.join("\n")
+          else
+            send(h, data)
           end
+          channel.acknowledge(headers.delivery_tag, false)
+          info "GHTDataRetrieval: Processed event: #{data['type']}-#{data['id']}"
+        rescue Exception => e
+          # Give a message a chance to be reprocessed
+          if headers.redelivered?
+            warn "GHTDataRetrieval: Could not process event: #{msg}"
+            channel.reject(headers.delivery_tag, false)
+          else
+            channel.reject(headers.delivery_tag, true)
+          end
+
+          STDERR.puts e
+          STDERR.puts e.backtrace.join("\n")
         end
-      }
+      end
     end
+
+    stopped = false
+    while not stopped
+      begin
+        sleep(1)
+      rescue Interrupt => _
+        debug 'Exit requested'
+        stopped = true
+      end
+    end
+
+    debug 'Closing AMQP connection'
+    channel.close unless channel.nil?
+    conn.close unless conn.nil?
+
   end
 end
 
