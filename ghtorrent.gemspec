@@ -26,6 +26,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'bson_ext', ['~> 1.9.0']
   s.add_dependency 'trollop', ['~> 2.0.0']
   s.add_dependency 'sequel', ['~> 4.5.0']
+  s.add_dependency 'bunny', ['~> 1.0.0']
 
   s.add_development_dependency 'rspec', ['~> 2.14.0']
   s.add_development_dependency 'webmock', ['~> 1.16']

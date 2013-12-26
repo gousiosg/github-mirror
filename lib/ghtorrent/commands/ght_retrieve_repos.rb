@@ -3,6 +3,8 @@ require 'ghtorrent/settings'
 require 'ghtorrent/logging'
 require 'ghtorrent/command'
 require 'ghtorrent/retriever'
+require "bunny"
+
 
 class GHTRetrieveRepos < GHTorrent::Command
 
@@ -123,79 +125,79 @@ class GHTRepoRetriever
   end
 
   def run
-    AMQP.start(:host => config(:amqp_host),
-               :port => config(:amqp_port),
-               :username => config(:amqp_username),
-               :password => config(:amqp_password)) do |connection|
+    stopped = false
+    while not stopped
+      begin
+        conn = Bunny.new(:host => config(:amqp_host),
+                         :port => config(:amqp_port),
+                         :username => config(:amqp_username),
+                         :password => config(:amqp_password))
+        conn.start
 
-      connection.on_tcp_connection_loss do |conn, settings|
-        warn 'AMQP: Network failure. Trying to reconnect...'
-        conn.reconnect(false, 2)
-      end
+        ch  = conn.create_channel
+        ch.prefetch(1)
+        info "Connection to #{config(:amqp_host)} succeded"
 
-      channel = AMQP::Channel.new(connection)
-      channel.auto_recovery = true
-      channel.prefetch(1)
+        x = ch.topic(config(:amqp_exchange), :durable => true,
+                     :auto_delete => false)
+        q   = ch.queue(@queue, :durable => true)
+        q.bind(x)
 
-      channel.on_error do |ch, channel_close|
-        warn 'AMQP: Channel closed. Should reconnect by itself'
-        raise channel_close.reply_text
-      end
+        q.subscribe(:block => true, :ack => true) do |delivery_info, properties, msg|
+          info " [x] #{delivery_info.routing_key}:#{msg}"
+          ch.acknowledge(delivery_info.delivery_tag, false)
 
-      exchange = channel.topic(config(:amqp_exchange), :durable => true,
-                               :auto_delete => false)
+          owner,repo = msg.split(/ /)
+          user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
 
-      queue = channel.queue(@queue, {:durable => true}).bind(exchange)
-
-      queue.subscribe(:ack => true) do |headers, msg|
-        owner,repo = msg.split(/ /)
-        user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
-
-        if user_entry.nil?
-          warn("Cannot find user #{owner}")
-          headers.ack
-          next
-        end
-
-        repo_entry = ght.transaction { ght.ensure_repo(owner, repo) }
-
-        if repo_entry.nil?
-          warn("Cannot find repository #{owner}/#{repo}")
-          headers.ack
-          next
-        end
-  
-        debug("Retrieving repo #{owner}/#{repo}")
-        def send_message(function, user, repo)
-          ght.send(function, user, repo, refresh = false)
-        end
-
-        functions = %w(ensure_commits ensure_forks ensure_pull_requests
-          ensure_issues ensure_project_members ensure_watchers ensure_labels)
-
-        functions.each do |x|
-
-          begin
-            send_message(x, owner, repo)
-          rescue Interrupt
-            stop
-          rescue Exception
-            warn("Error processing #{x} for #{owner}/#{repo}")
+          if user_entry.nil?
+            warn("Cannot find user #{owner}")
             next
           end
 
-          if @stop
-            break
+          repo_entry = ght.transaction { ght.ensure_repo(owner, repo) }
+
+          if repo_entry.nil?
+            warn("Cannot find repository #{owner}/#{repo}")
+            next
+          end
+
+          debug("Retrieving repo #{owner}/#{repo}")
+          def send_message(function, user, repo)
+            ght.send(function, user, repo, refresh = false)
+          end
+
+          functions = %w(ensure_commits ensure_forks ensure_pull_requests
+            ensure_issues ensure_project_members ensure_watchers ensure_labels)
+
+          functions.each do |x|
+
+            begin
+              send_message(x, owner, repo)
+            rescue Exception
+              warn("Error processing #{x} for #{owner}/#{repo}")
+              next
+            end
           end
         end
-
-        headers.ack
-        debug("Finished processing #{owner}/#{repo}")
-        if @stop
-          connection.disconnect{AMQP.stop { EM.stop }}
-        end
+      rescue Bunny::TCPConnectionFailed => e
+        warn "Connection to #{config(:amqp_host)} failed. Retrying in 1 sec"
+        sleep(1)
+      rescue Bunny::PossibleAuthenticationFailureError => e
+        puts "Could not authenticate as #{conn.username}"
+      rescue Bunny::NotFound, Bunny::AccessRefused, Bunny::PreconditionFailed => e
+        warn "Channel error: #{e}. Retrying in 1 sec"
+        sleep(1)
+      rescue Interrupt => _
+        stopped = true
+      rescue Exception => e
+        error e
       end
     end
+
+    ch.close
+    conn.close
+
   end
 
   def stop
