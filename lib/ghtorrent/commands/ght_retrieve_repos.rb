@@ -69,7 +69,7 @@ Values in the config.yaml file set with the -c command are overriden.
           retriever.stop
         }
 
-        retriever.run
+        retriever.run(self)
         exit
       else
         debug "Parent #{Process.pid} forked child #{pid}"
@@ -124,80 +124,45 @@ class GHTRepoRetriever
     @config
   end
 
-  def run
-    stopped = false
-    while not stopped
-      begin
-        conn = Bunny.new(:host => config(:amqp_host),
-                         :port => config(:amqp_port),
-                         :username => config(:amqp_username),
-                         :password => config(:amqp_password))
-        conn.start
+  def run(command)
 
-        ch  = conn.create_channel
-        ch.prefetch(1)
-        info "Connection to #{config(:amqp_host)} succeded"
+    processor = Proc.new do |msg|
+      owner, repo = msg.split(/ /)
+      user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
 
-        x = ch.topic(config(:amqp_exchange), :durable => true,
-                     :auto_delete => false)
-        q   = ch.queue(@queue, :durable => true)
-        q.bind(x)
+      if user_entry.nil?
+        warn("Cannot find user #{owner}")
+        next
+      end
 
-        q.subscribe(:block => true, :ack => true) do |delivery_info, properties, msg|
-          info " [x] #{delivery_info.routing_key}:#{msg}"
-          ch.acknowledge(delivery_info.delivery_tag, false)
+      repo_entry = ght.transaction { ght.ensure_repo(owner, repo) }
 
-          owner,repo = msg.split(/ /)
-          user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
+      if repo_entry.nil?
+        warn("Cannot find repository #{owner}/#{repo}")
+        next
+      end
 
-          if user_entry.nil?
-            warn("Cannot find user #{owner}")
-            next
-          end
+      debug("Retrieving repo #{owner}/#{repo}")
 
-          repo_entry = ght.transaction { ght.ensure_repo(owner, repo) }
+      def send_message(function, user, repo)
+        ght.send(function, user, repo, refresh = false)
+      end
 
-          if repo_entry.nil?
-            warn("Cannot find repository #{owner}/#{repo}")
-            next
-          end
-
-          debug("Retrieving repo #{owner}/#{repo}")
-          def send_message(function, user, repo)
-            ght.send(function, user, repo, refresh = false)
-          end
-
-          functions = %w(ensure_commits ensure_forks ensure_pull_requests
+      functions = %w(ensure_commits ensure_forks ensure_pull_requests
             ensure_issues ensure_project_members ensure_watchers ensure_labels)
 
-          functions.each do |x|
+      functions.each do |x|
 
-            begin
-              send_message(x, owner, repo)
-            rescue Exception
-              warn("Error processing #{x} for #{owner}/#{repo}")
-              next
-            end
-          end
+        begin
+          send_message(x, owner, repo)
+        rescue Exception
+          warn("Error processing #{x} for #{owner}/#{repo}")
+          next
         end
-      rescue Bunny::TCPConnectionFailed => e
-        warn "Connection to #{config(:amqp_host)} failed. Retrying in 1 sec"
-        sleep(1)
-      rescue Bunny::PossibleAuthenticationFailureError => e
-        puts "Could not authenticate as #{conn.username}"
-      rescue Bunny::NotFound, Bunny::AccessRefused, Bunny::PreconditionFailed => e
-        warn "Channel error: #{e}. Retrying in 1 sec"
-        sleep(1)
-      rescue Interrupt => _
-        stopped = true
-      rescue Exception => e
-        error e
       end
     end
 
-    ch.close
-    conn.close
-
+    command.queue_client(@queue, :before, processor)
   end
 
   def stop

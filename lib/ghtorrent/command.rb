@@ -1,6 +1,6 @@
 require 'rubygems'
 require 'trollop'
-require 'daemons'
+require 'bunny'
 require 'etc'
 
 require 'ghtorrent/settings'
@@ -133,6 +133,67 @@ Standard options:
 
     # The actual command code.
     def go
+    end
+
+    # Specify a handler to incoming messages from a connection to
+    # a queue.
+    # [queue]: The queue name to bind to
+    # [ack]: :before or :after when should acks be send, before or after
+    #        the block returns
+    # [block]: A block with one argument (the message)
+    def queue_client(queue, ack = :after, block)
+
+      stopped = false
+      while not stopped
+        begin
+          conn = Bunny.new(:host => config(:amqp_host),
+                           :port => config(:amqp_port),
+                           :username => config(:amqp_username),
+                           :password => config(:amqp_password))
+          conn.start
+
+          ch  = conn.create_channel
+          debug "Setting prefetch to #{config(:amqp_prefetch)}"
+          ch.prefetch(config(:amqp_prefetch))
+          debug "Connection to #{config(:amqp_host)} succeded"
+
+          x = ch.topic(config(:amqp_exchange), :durable => true,
+                       :auto_delete => false)
+          q   = ch.queue(queue, :durable => true)
+          q.bind(x)
+
+          q.subscribe(:block => true,
+                      :ack => true) do |delivery_info, properties, msg|
+
+            if ack == :before
+              ch.acknowledge(delivery_info.delivery_tag, false)
+            end
+
+            begin
+              block.call(msg)
+            ensure
+              ch.acknowledge(delivery_info.delivery_tag, false)
+            end
+          end
+
+        rescue Bunny::TCPConnectionFailed => e
+          warn "Connection to #{config(:amqp_host)} failed. Retrying in 1 sec"
+          sleep(1)
+        rescue Bunny::PossibleAuthenticationFailureError => e
+          warn "Could not authenticate as #{conn.username}"
+        rescue Bunny::NotFound, Bunny::AccessRefused, Bunny::PreconditionFailed => e
+          warn "Channel error: #{e}. Retrying in 1 sec"
+          sleep(1)
+        rescue Interrupt => _
+          stopped = true
+        rescue Exception => e
+          raise e
+        end
+      end
+
+      ch.close unless ch.nil?
+      conn.close unless conn.nil?
+
     end
 
     def override_config(config_file, setting, new_value)
