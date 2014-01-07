@@ -8,7 +8,7 @@ checking out this repository.
 GHTorrent can be used for a variety of purposes, such as:
 
 * Mirror the Github API event stream and follow links from events to actual data
- to gradually build a [Github index](http://ghtorrent.org/dblite/)
+ to gradually build a [Github index](http://ghtorrent.org/)
 * Create a queriable metadata index for a specific repository
 * Query the Github API using intelligent caching to avoid duplicate queries
 
