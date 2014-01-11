@@ -1,3 +1,6 @@
+= Version 0.9
+    * Remove dependency to EventMachine-based AMQP client. We now use bunny.
+
 = Version 0.8.1
 	* New tool to retrieve specific entities and their dependencies
 	* New tool to retrieve repositories en masse
