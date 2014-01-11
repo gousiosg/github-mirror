@@ -21,7 +21,6 @@ Gem::Specification.new do |s|
                              '[A-Z]*',
                              'spec/**/*'].to_a
 
-  s.add_dependency 'amqp', ['~> 1.1.0']
   s.add_dependency 'mongo', ['~> 1.9.0']
   s.add_dependency 'bson_ext', ['~> 1.9.0']
   s.add_dependency 'trollop', ['~> 2.0.0']

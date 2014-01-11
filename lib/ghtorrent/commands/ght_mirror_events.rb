@@ -1,7 +1,7 @@
-require 'rubygems'
 require 'yaml'
 require 'json'
 require 'logger'
+require 'bunny'
 
 require 'ghtorrent/api_client'
 require 'ghtorrent/settings'
