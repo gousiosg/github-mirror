@@ -944,7 +944,9 @@ module GHTorrent
 
     # Adds a pull request history event
     def ensure_pull_request_history(id, ts, unq, act, actor)
-      user = ensure_user(actor, false, false)
+      user = unless actor.nil?
+               ensure_user(actor, false, false)
+             end
       pull_req_history = @db[:pull_request_history]
       entry = pull_req_history.first(:pull_request_id => id,
                                      :created_at => (ts - 3)..(ts + 3),
