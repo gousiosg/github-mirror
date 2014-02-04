@@ -50,6 +50,9 @@ require 'ghtorrent/retriever'
 require 'ghtorrent/ghtorrent'
 require 'ghtorrent/transacted_ghtorrent'
 
+# Multi-process queue clients
+require 'ghtorrent/multiprocess_queue_client'
+
 # Commands
 require 'ghtorrent/commands/ght_data_retrieval'
 require 'ghtorrent/commands/ght_mirror_events'
