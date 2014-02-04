@@ -1701,8 +1701,6 @@ module GHTorrent
       end
     end
 
-    private
-
     # Store a commit contained in a hash. First check whether the commit exists.
     def store_commit(c, repo, user)
       commits = @db[:commits]

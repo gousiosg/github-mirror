@@ -10,7 +10,7 @@ Sequel.migration do
       add_foreign_key :actor_id, :users
     end
 
-    puts 'Remember to run the fixes/update_pull_request_history_actor.rb
+    puts 'Remember to run the fixes/update_pullreq_entries_from_events.rb
  script to mark deleted projects'
   end
 
