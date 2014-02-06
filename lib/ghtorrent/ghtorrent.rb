@@ -948,9 +948,16 @@ module GHTorrent
                ensure_user(actor, false, false)
              end
       pull_req_history = @db[:pull_request_history]
-      entry = pull_req_history.first(:pull_request_id => id,
-                                     :created_at => (ts - 3)..(ts + 3),
-                                     :action => act)
+
+      entry =  if ['opened', 'merged'].include? act
+                  pull_req_history.first(:pull_request_id => id,
+                                         :action => act)
+               else
+                 pull_req_history.first(:pull_request_id => id,
+                                        :created_at => (ts - 3)..(ts + 3),
+                                        :action => act)
+               end
+
       if entry.nil?
         pull_req_history.insert(:pull_request_id => id,
                                 :created_at => ts,
@@ -959,8 +966,14 @@ module GHTorrent
                                 :actor_id => unless user.nil? then user[:id] end)
         info "GHTorrent: New pull request (#{id}) event (#{act}) by (#{actor}) timestamp #{ts}"
       else
-        entry.update(:actor_id => user[:id])
-        info "GHTorrent: Pull request (#{id}) history entry (#{act}) by (#{actor}) timestamp #{ts} exists"
+        info "GHTorrent: Pull request (#{id}) event (#{act}) by (#{actor}) timestamp #{ts} exists"
+        if entry[:actor_id].nil?
+          pull_req_history.where(:pull_request_id => id,
+                               :created_at => (ts - 3)..(ts + 3),
+                               :action => act)\
+                          .update(:actor_id => user[:id])
+          debug "Pull request (#{id}) event (#{act}) timestamp #{ts} set actor -> #{user[:login]}"
+        end
       end
     end
 

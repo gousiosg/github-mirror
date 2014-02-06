@@ -68,9 +68,9 @@ class UpdatePullRequestHistoryEvents
         @ght.ensure_pull_request_history(pullreq_entry[:id], created_at,
                                          '', action, actor)
 
-        logger.debug "Processed pull req #{owner}/#{repo} -> #{pullreq_id}\n"
+        logger.debug "Processed PullRequest #{owner}/#{repo} -> #{pullreq_id} (event #{event_id})"
       rescue Exception => e
-        logger.warn "Could not process pull req #{owner}/#{repo} -> #{pullreq_id}"
+        logger.warn "Could not process pull req #{owner}/#{repo} -> #{pullreq_id} (event #{event_id})"
         logger.warn "Reason: #{e}"
       end
     end
