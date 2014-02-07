@@ -9,7 +9,7 @@ require "bunny"
 class GHTRetrieveRepos < MultiprocessQueueClient
 
   def clazz
-    GHTRepoRetriever.class
+    GHTRepoRetriever
   end
 
 end
