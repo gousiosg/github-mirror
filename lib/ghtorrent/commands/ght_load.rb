@@ -107,13 +107,14 @@ Loads object ids from a collection to a queue for further processing.
                            :routing_key => "evt.#{e['type']}"
 
           total_read += 1
-          puts "Publish id = #{e['id']} (#{total_read} read)" if options.verbose
+          puts "Publish id = #{e['id']} #{e['created_at']} (#{total_read} read)" if options.verbose
 
           if total_read >= options[:number]
             puts 'Finished reading, exiting'
-            break
+            return 
           end
         end
+        stopped = true
       rescue Interrupt
         puts 'Interrupted'
         stopped = true
