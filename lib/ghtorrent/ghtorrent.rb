@@ -23,6 +23,11 @@ module GHTorrent
       debug "GHTorrent: Using cache dir #{config(:cache_dir)}"
     end
 
+    def dispose
+      @db.disconnect unless @db.nil?
+      @persister.close unless @persister.nil?
+    end
+
     # Get a connection to the database
     def get_db
       return @db unless @db.nil?

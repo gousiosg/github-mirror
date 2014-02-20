@@ -19,5 +19,8 @@ module GHTorrent
       driver.new(settings)
     end
 
+    def disconnect
+      driver.close
+    end
   end
 end
