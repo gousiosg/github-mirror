@@ -1075,10 +1075,8 @@ module GHTorrent
             :base_repo_id => base_repo[:id],
             :head_commit_id => if not head_commit.nil? then head_commit[:id] end,
             :base_commit_id => base_commit[:id],
-            :user_id => pull_req_user[:id],
             :pullreq_id => pullreq_id,
-            :intra_branch => is_intra_branch(retrieved),
-            :merged => merged
+            :intra_branch => is_intra_branch(retrieved)
         )
         info log_msg(retrieved) + ' was added'
       else
