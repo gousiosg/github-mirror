@@ -85,3 +85,5 @@ Values in the config.yaml file set with the -c command are overriden.
     end
   end
 end
+
+# vim: ft=ruby:

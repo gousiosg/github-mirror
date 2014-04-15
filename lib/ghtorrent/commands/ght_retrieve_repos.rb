@@ -52,7 +52,22 @@ class GHTRepoRetriever
 
     processor = Proc.new do |msg|
       owner, repo = msg.split(/ /)
-      user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
+
+      # On rare occasions, 2 instances might try to add the same user
+      # at the same time, which might lead to transaction conflicts
+      # Give the script one more opportunity before bailing out
+      user_entry = nil
+      i = 0
+
+      while user_entry.nil? and i < 10 do
+        i += 1
+        warn("Trying to get user #{owner}, attempt #{i}")
+        begin
+          user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
+        rescue Exception => e
+          warn e.message
+        end
+      end
 
       if user_entry.nil?
         warn("Cannot find user #{owner}")
@@ -68,25 +83,34 @@ class GHTRepoRetriever
 
       debug("Retrieving repo #{owner}/#{repo}")
 
-      def send_message(function, user, repo)
-        ght.send(function, user, repo, refresh = false)
-      end
-
-      functions = %w(ensure_commits ensure_forks ensure_pull_requests
+      retrieval_stages = %w(ensure_commits ensure_forks ensure_pull_requests
             ensure_issues ensure_project_members ensure_watchers ensure_labels)
 
-      functions.each do |x|
+      retrieval_stages.each do |x|
+        run_retrieval_stage(ght, owner, repo, x)
+      end
 
-        begin
-          send_message(x, owner, repo)
-        rescue Exception
-          warn("Error processing #{x} for #{owner}/#{repo}")
-          next
-        end
+      # Repository owner bound data retrieval
+      run_retrieval_stage(ght, owner, repo, 'ensure_user_followers', onlyuser = true)
+
+      if user_entry[:type] == 'ORG'
+        run_retrieval_stage(ght, owner, repo, 'ensure_org', onlyuser = true)
       end
     end
 
     command.queue_client(@queue, :before, processor)
+  end
+
+  def run_retrieval_stage(ght, owner, repo, function, only_user = false)
+    begin
+      if only_user
+        ght.send(function, owner)
+      else
+        ght.send(function, owner, repo, refresh = false)
+      end
+    rescue Exception
+      warn("Error processing #{function} for #{owner}/#{repo}")
+    end
   end
 
   def stop
@@ -95,3 +119,4 @@ class GHTRepoRetriever
   end
 end
 
+# vim: ft=ruby:
