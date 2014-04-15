@@ -108,8 +108,10 @@ class GHTRepoRetriever
       else
         ght.send(function, owner, repo, refresh = false)
       end
-    rescue Exception
+    rescue Exception => e
       warn("Error processing #{function} for #{owner}/#{repo}")
+      warn("Exception message #{$!}")
+      warn("Exception trace #{e.backtrace.join("\n")}")
     end
   end
 
