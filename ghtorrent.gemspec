@@ -11,6 +11,7 @@ Gem::Specification.new do |s|
   s.authors       = ['Georgios Gousios', 'Diomidis Spinellis']
   s.email         = 'gousiosg@gmail.com'
   s.homepage      = 'https://github.com/gousiosg/github-mirror'
+  s.licenses      = ['BSD-2-Clause']
   s.require_paths = ['lib']
   s.rdoc_options  = ['--charset=UTF-8']
   s.executables   = ['ght-data-retrieval', 'ght-mirror-events', 'ght-load',
@@ -21,13 +22,13 @@ Gem::Specification.new do |s|
                              '[A-Z]*',
                              'spec/**/*'].to_a
 
-  s.add_dependency 'mongo', ['~> 1.9.0']
-  s.add_dependency 'bson_ext', ['~> 1.9.0']
-  s.add_dependency 'trollop', ['~> 2.0.0']
-  s.add_dependency 'sequel', ['~> 4.5.0']
-  s.add_dependency 'bunny', ['~> 1.0.0']
+  s.add_runtime_dependency 'mongo', '~> 1.9', '>= 1.9.0'
+  s.add_runtime_dependency 'bson_ext', '~> 1.9', '>= 1.9.0'
+  s.add_runtime_dependency 'trollop', '~> 2.0', '>= 2.0.0'
+  s.add_runtime_dependency 'sequel', '~> 4.5', '>= 4.5.0'
+  s.add_runtime_dependency 'bunny', '~> 1.0', '>= 1.0.0'
 
-  s.add_development_dependency 'rspec', ['~> 2.14.0']
+  s.add_development_dependency 'rspec', '~> 2.14', '>= 2.14.0'
   s.add_development_dependency 'webmock', ['~> 1.16']
 
   begin
