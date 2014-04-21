@@ -44,7 +44,7 @@ Retrieve just one item
   end
 
   def ght
-    @ght ||= TransactedGHTorrent.new(settings)
+    @ght ||= TransactedGhtorrent.new(settings)
     @ght
   end
 

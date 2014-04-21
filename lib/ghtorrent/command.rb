@@ -166,13 +166,13 @@ Standard options:
                       :ack => true) do |delivery_info, properties, msg|
 
             if ack == :before
-              ch.acknowledge(delivery_info.delivery_tag, false)
+              ch.acknowledge(delivery_info.delivery_tag)
             end
 
             begin
               block.call(msg)
             ensure
-              ch.acknowledge(delivery_info.delivery_tag, false)
+              ch.acknowledge(delivery_info.delivery_tag)
             end
           end
 

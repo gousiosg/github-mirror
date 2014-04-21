@@ -41,7 +41,7 @@ An efficient way to get all data for a single repo
   end
 
   def ght
-    @ght ||= TransactedGHTorrent.new(settings)
+    @ght ||= TransactedGhtorrent.new(settings)
     @ght
   end
 
