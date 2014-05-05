@@ -61,7 +61,7 @@ Updates the deleted field in the project table with current data
 
     parent = unless retrieved['parent'].nil?
                @ght.ensure_repo(retrieved['parent']['owner']['login'],
-                                retrieved['parent']['name'], false, false, false)
+                                retrieved['parent']['name'])
              end
 
     db.from(:projects, :users).\

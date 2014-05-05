@@ -38,8 +38,8 @@ class GHTFixForks < GHTorrent::Command
 
         begin
           @ght.transaction do
-            forked = @ght.ensure_repo(owner, repo, false, false, false)
-            parent = @ght.ensure_repo(parent_owner, parent_repo, false, false, false)
+            forked = @ght.ensure_repo(owner, repo)
+            parent = @ght.ensure_repo(parent_owner, parent_repo)
 
             if parent.nil?
               puts("parent repo #{parent_owner}/#{parent_repo} does not exist")

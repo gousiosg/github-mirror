@@ -601,8 +601,7 @@ module GHTorrent
     # == Returns:
     #  If the repo can be retrieved, it is returned as a Hash. Otherwise,
     #  the result is nil
-    def ensure_repo(user, repo, commits = false, project_members = false,
-                    watchers = false, forks = false, labels = false)
+    def ensure_repo(user, repo)
 
       repos = @db[:projects]
       curuser = ensure_user(user, false, false)
@@ -642,11 +641,20 @@ module GHTorrent
         end
 
         info "GHTorrent: New repo #{user}/#{repo}"
-        ensure_commits(user, repo) if commits
-        ensure_project_members(user, repo) if project_members
-        ensure_watchers(user, repo) if watchers
-        ensure_forks(user, repo) if forks
-        ensure_labels(user, repo) if labels
+
+        # Temporarily override configuration to retrieve all pages in case
+        # a new repo is added to the database
+        pages = config(:mirror_history_pages_back)
+        begin
+          @settings = override_config(@settings, :mirror_history_pages_back, 100000)
+          ensure_commits(user, repo)
+          ensure_project_members(user, repo)
+          ensure_watchers(user, repo)
+          ensure_forks(user, repo)
+          ensure_labels(user, repo)
+        ensure
+          @settings = override_config(@settings, :mirror_history_pages_back, pages)
+        end
         repos.first(:owner_id => curuser[:id], :name => repo)
       else
         debug "GHTorrent: Repo #{user}/#{repo} exists"

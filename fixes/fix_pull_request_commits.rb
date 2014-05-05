@@ -59,8 +59,7 @@ in the provided project.
                  Trollop::die "Cannot find user #{ARGV[0]}"
                end
 
-               repo_entry = ght.transaction { ght.ensure_repo(ARGV[0], ARGV[1], false, false,
-                                                              false) }
+               repo_entry = ght.transaction{ ght.ensure_repo(ARGV[0], ARGV[1]) }
 
                if repo_entry.nil?
                  Trollop::die "Cannot find repository #{ARGV[0]}/#{ARGV[1]}"

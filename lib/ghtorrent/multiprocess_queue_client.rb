@@ -49,8 +49,7 @@ Values in the config.yaml file set with the -c command are overriden.
         newcfg = override_config(newcfg, :attach_ip, ip)
         newcfg = override_config(newcfg, :github_username, name)
         newcfg = override_config(newcfg, :github_passwd, passwd)
-        newcfg = override_config(newcfg, :mirror_history_pages_back, 1000)
-        newcfg = override_config(newcfg, :mirror_commit_pages_new_repo, 1000)
+        newcfg = override_config(newcfg, :mirror_history_pages_back, 10000)
         newcfg
       end
     end.flatten.select { |x| !x.nil? }
