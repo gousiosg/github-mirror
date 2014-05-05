@@ -145,19 +145,17 @@ module GHTorrent
       end
     end
 
-    # Retrieve up to 30 * +:mirror_commit_pages_new_repo+ commits
-    # starting from the provided +sha+
-    def retrieve_commits(repo, sha, user, num_pages = config(:mirror_commit_pages_new_repo))
+    # Retrieve commits starting from the provided +sha+
+    def retrieve_commits(repo, sha, user)
       last_sha = if sha == "head" then "master" else sha end
 
       url = ghurl "repos/#{user}/#{repo}/commits?sha=#{last_sha}"
-      commits = paged_api_request(url, num_pages)
+      commits = paged_api_request(url)
 
       commits.map do |c|
         retrieve_commit(repo, c['sha'], user)
       end
     end
-
 
     def retrieve_repo(user, repo)
       stored_repo = persister.find(:repos, {'owner.login' => user,

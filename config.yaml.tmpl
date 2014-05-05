@@ -28,13 +28,8 @@ mirror:
   persister: mongo #or noop
   uniq_id: 'ext_ref_id' # Field that links persister entries to SQL entries
 
-  # Number of commit pages to retrieve when a new repo is added. Each page
-  # contains 30 commits. Increasing this number much will slow down browsing
-  # significantly in new installations.
-  commit_pages_new_repo: 3
-
   # How many pages of historical content to retrieve when doing multi-page
-  # API calls. Set to -1 to retrieve all pages.
+  # API calls.
   history_pages_back: 5
 
   # Location of request cache

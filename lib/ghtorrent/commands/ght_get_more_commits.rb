@@ -61,7 +61,7 @@ Retrieves more commits for the provided repository
 
     user = user_entry[:login]
 
-    repo_entry = @ght.transaction{@ght.ensure_repo(ARGV[0], ARGV[1], false, false, false)}
+    repo_entry = @ght.transaction{@ght.ensure_repo(ARGV[0], ARGV[1])}
 
     if repo_entry.nil?
       Trollop::die "Cannot find repository #{owner}/#{ARGV[1]}"
@@ -84,7 +84,8 @@ Retrieves more commits for the provided repository
       begin
         logger.debug("Retrieving more commits for #{user}/#{repo} from head: #{head}")
 
-        commits = retrieve_commits(repo, head, user, 1)
+        @settings = override_config(@settings, :mirror_history_pages_back, 1)
+        commits = retrieve_commits(repo, head, user)
 
         if commits.nil? or commits.empty? or commits.size == 1
           break
