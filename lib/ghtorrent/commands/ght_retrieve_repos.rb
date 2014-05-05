@@ -18,7 +18,6 @@ class GHTRepoRetriever
 
   include GHTorrent::Settings
   include GHTorrent::Retriever
-  include GHTorrent::Persister
 
   def initialize(config, queue)
     @config = config
@@ -27,11 +26,6 @@ class GHTRepoRetriever
 
   def logger
     ght.logger
-  end
-
-  def persister
-    @persister ||= connect(:mongo, settings)
-    @persister
   end
 
   def ext_uniq
@@ -96,6 +90,11 @@ class GHTRepoRetriever
       if user_entry[:type] == 'ORG'
         run_retrieval_stage(ght, owner, repo, 'ensure_org', onlyuser = true)
       end
+
+      # Cleanup
+      ght.dispose
+      ght = nil
+      GC.start
     end
 
     command.queue_client(@queue, :before, processor)
