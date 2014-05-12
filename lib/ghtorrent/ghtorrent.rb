@@ -642,12 +642,65 @@ module GHTorrent
 
         info "GHTorrent: New repo #{user}/#{repo}"
 
-        # Temporarily override configuration to retrieve all pages in case
-        # a new repo is added to the database
         pages = config(:mirror_history_pages_back)
         begin
-          @settings = override_config(@settings, :mirror_history_pages_back, 100000)
-          ensure_commits(user, repo)
+          unless parent.nil?
+            # Fast path to project forking. Retrieve all commits page by page
+            # until we reach a commit that has been registered with the parent
+            # repository. Then, copy all remaining parent commits to this repo.
+            debug "GHTorrent: Retrieving commits for #{user}/#{repo} until we reach a commit shared with the parent"
+
+            sha = nil
+            10.times do |i|
+              retrieve_commits(parent_repo, sha, parent_owner, 1).each do |c|
+                sha = c['sha']
+                ensure_commit(parent_repo, sha, parent_owner, true)
+              end
+            end
+
+            sha = nil
+            found = false
+            while not found
+              retrieve_commits(repo, sha, user, 1).each do |c|
+                exists_in_parent =
+                    !@db.from(:project_commits, :commits).\
+                    where(:project_commits__commit_id => :commits__id).\
+                    where(:project_commits__project_id => parent[:id]).\
+                    where(:commits__sha => c['sha']).first.nil?
+
+                sha = c['sha']
+                if not exists_in_parent
+                  ensure_commit(repo, sha, user, true)
+                else
+                  found = true
+                  debug "GHTorrent: Found commit #{sha} shared with parent, switching to copying commits"
+                  break
+                end
+              end
+            end
+
+            shared_commit = @db[:commits].first(:sha => sha)
+            forked_repo = repos.first(:owner_id => curuser[:id], :name => repo)
+
+            @db.from(:project_commits, :commits).\
+                where(:project_commits__commit_id => :commits__id).\
+                where(:project_commits__project_id => parent[:id]).\
+                where('commits.created_at < ?', shared_commit[:created_at]).\
+                select(:commits__id, :commits__sha).\
+                each do |c|
+                  @db[:project_commits].insert(
+                      :project_id => forked_repo[:id],
+                      :commit_id => c[:id]
+                  )
+                debug "GHTorrent: Copied commit #{c[:sha]} from #{parent_owner}/#{parent_repo} -> #{user}/#{repo}"
+            end
+          else
+            # If the project is not a fork, make sure everything is retrieved.
+            # Temporarily override configuration to retrieve all pages in case
+            # a new repo is added to the database
+            @settings = override_config(@settings, :mirror_history_pages_back, 100000)
+            ensure_commits(user, repo)
+          end
           ensure_project_members(user, repo)
           ensure_watchers(user, repo)
           ensure_forks(user, repo)
