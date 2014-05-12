@@ -75,7 +75,7 @@ Retrieves more commits for the provided repository
                       order(:created_at).\
                       first[:sha]
            else
-             "master"
+             nil
            end
 
     total_commits = 0

@@ -222,7 +222,7 @@ module GHTorrent
                end
 
       commits = if latest.nil?
-                  retrieve_commits(repo, "head", user)
+                  retrieve_commits(repo, nil, user)
                 else
                   retrieve_commits(repo, latest[:sha], user)
                 end

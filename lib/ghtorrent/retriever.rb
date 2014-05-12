@@ -146,11 +146,19 @@ module GHTorrent
     end
 
     # Retrieve commits starting from the provided +sha+
-    def retrieve_commits(repo, sha, user)
-      last_sha = if sha == "head" then "master" else sha end
+    def retrieve_commits(repo, sha, user, pages = -1)
 
-      url = ghurl "repos/#{user}/#{repo}/commits?sha=#{last_sha}"
-      commits = paged_api_request(url)
+      url = if sha.nil?
+              ghurl "repos/#{user}/#{repo}/commits"
+            else
+              ghurl "repos/#{user}/#{repo}/commits?sha=#{sha}"
+            end
+
+      commits = if pages == -1
+                  paged_api_request(url)
+                else
+                  paged_api_request(url, pages)
+                end
 
       commits.map do |c|
         retrieve_commit(repo, c['sha'], user)
