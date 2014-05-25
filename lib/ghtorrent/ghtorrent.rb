@@ -644,14 +644,24 @@ module GHTorrent
 
         pages = config(:mirror_history_pages_back)
         begin
+          watchdog = nil
           unless parent.nil?
+            watchdog = Thread.new do
+              slept = 0
+              while true do
+                debug "GHTorrent: In ensure_repo_fork for #{slept} seconds"
+                sleep 1
+                slept += 1
+              end
+            end
             # Fast path to project forking. Retrieve all commits page by page
             # until we reach a commit that has been registered with the parent
             # repository. Then, copy all remaining parent commits to this repo.
             debug "GHTorrent: Retrieving commits for #{user}/#{repo} until we reach a commit shared with the parent"
 
             sha = nil
-            10.times do |i|
+            # Refresh the latest commits we have for the 
+            1.times do |i|
               retrieve_commits(parent_repo, sha, parent_owner, 1).each do |c|
                 sha = c['sha']
                 ensure_commit(parent_repo, sha, parent_owner, true)
@@ -661,12 +671,14 @@ module GHTorrent
             sha = nil
             found = false
             while not found
+              processed = 0
               retrieve_commits(repo, sha, user, 1).each do |c|
+                processed += 1
                 exists_in_parent =
                     !@db.from(:project_commits, :commits).\
-                    where(:project_commits__commit_id => :commits__id).\
-                    where(:project_commits__project_id => parent[:id]).\
-                    where(:commits__sha => c['sha']).first.nil?
+                         where(:project_commits__commit_id => :commits__id).\
+                         where(:project_commits__project_id => parent[:id]).\
+                         where(:commits__sha => c['sha']).first.nil?
 
                 sha = c['sha']
                 if not exists_in_parent
@@ -676,6 +688,10 @@ module GHTorrent
                   debug "GHTorrent: Found commit #{sha} shared with parent, switching to copying commits"
                   break
                 end
+              end
+              if processed == 0
+                warn "No commits found for #{user}/#{repo}, repo deleted?"
+                found = true
               end
             end
 
@@ -706,6 +722,9 @@ module GHTorrent
           ensure_forks(user, repo)
           ensure_labels(user, repo)
         ensure
+          unless watchdog.nil?
+            watchdog.exit
+          end
           @settings = override_config(@settings, :mirror_history_pages_back, pages)
         end
         repos.first(:owner_id => curuser[:id], :name => repo)

@@ -192,7 +192,16 @@ module GHTorrent
         if not from_cache and config(:respect_api_ratelimit) and @remaining < 10
           to_sleep = @reset - Time.now.to_i + 2
           debug "APIClient: Request limit reached, sleeping for #{to_sleep} secs"
+          t = Thread.new do
+            slept = 0
+            while true do
+              debug "APIClient: sleeping for #{to_sleep - slept} seconds"
+              sleep 1
+              slept += 1
+            end
+          end
           sleep(to_sleep)
+          t.exit
         end
       end
     end
