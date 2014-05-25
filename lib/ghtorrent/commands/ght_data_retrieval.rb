@@ -119,20 +119,15 @@ class GHTDataRetrieval < GHTorrent::Command
 
   def prepare_options(options)
     options.banner <<-BANNER
-Retrieves events from queues and processes them through GHTorrent
-#{command_name} [options]
-
-#{command_name} options:
+Retrieves events from queues and processes them through GHTorrent.
+If event_id is provided, only this event is processed.
+#{command_name} [event_id]
     BANNER
 
-    options.opt :filter,
-                'Only process messages for repos in the provided file',
-                :short => 'f', :type => String
   end
 
   def validate
     super
-    Trollop::die "Filter file does not exist" if options[:filter] and not File.exist?(options[:filter])
   end
 
   def logger
@@ -144,19 +139,26 @@ Retrieves events from queues and processes them through GHTorrent
     @gh
   end
 
+  def retrieve_event(evt_id)
+    event = persister.get_underlying_connection[:events].find_one('id' => evt_id)
+    event.delete '_id'
+    data = parse(event.to_json)
+    info "GHTDataRetrieval: Processing event: #{data['type']}-#{data['id']}"
+    data
+  end
+
   def go
-    filter = Array.new
 
-    if options[:filter]
-      File.open(options[:filter]).each { |l|
-        next if l.match(/^ *#/)
-        parts = l.split(/ /)
-        next if parts.size < 2
-        debug "GHTDataRetrieval: Filtering events by #{parts[0] + "/" + parts[1]}"
-        filter << parts[0] + "/" + parts[1]
-      }
+    unless ARGV[0].nil?
+      event = retrieve_event(ARGV[0])
+
+      if event.nil?
+        warn "GHTDataRetrieval: No event with id: #{ARGV[0]}"
+      else
+        send(event['type'], event)
+      end
+      return
     end
-
 
     conn = Bunny.new(:host => config(:amqp_host),
                      :port => config(:amqp_port),
@@ -181,20 +183,9 @@ Retrieves events from queues and processes them through GHTorrent
       queue.subscribe(:ack => true) do |headers, properties, msg|
         begin
 
-          event = persister.get_underlying_connection[:events].find_one('id' => msg)
-          event.delete '_id'
-          data = parse(event.to_json)
-          info "GHTDataRetrieval: Processing event: #{data['type']}-#{data['id']}"
+          data = retrieve_event(msg)
+          send(h, data)
 
-          unless options[:filter].nil?
-            if filter.include?(data['repo']['name'])
-              send(h, data)
-            else
-              info "GHTDataRetrieval: Repo #{data['repo']['name']} not in process list. Ignoring event #{data['type']}-#{data['id']}"
-            end
-          else
-            send(h, data)
-          end
           channel.acknowledge(headers.delivery_tag, false)
           info "GHTDataRetrieval: Processed event: #{data['type']}-#{data['id']}"
         rescue Exception => e
@@ -227,6 +218,7 @@ Retrieves events from queues and processes them through GHTorrent
     conn.close unless conn.nil?
 
   end
+
 end
 
 # vim: set sta sts=2 shiftwidth=2 sw=2 et ai :
