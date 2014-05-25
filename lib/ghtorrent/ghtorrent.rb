@@ -295,7 +295,7 @@ module GHTorrent
             :project_id => project[:id],
             :commit_id => commitid
         )
-        info "GHTorrent: Associating commit  #{sha} with #{user}/#{repo}"
+        debug "GHTorrent: Associating commit  #{sha} with #{user}/#{repo}"
         @db[:project_commits].first(:project_id => project[:id],
                                     :commit_id => commitid)
       else
@@ -660,19 +660,27 @@ module GHTorrent
             debug "GHTorrent: Retrieving commits for #{user}/#{repo} until we reach a commit shared with the parent"
 
             sha = nil
-            # Refresh the latest commits we have for the 
-            1.times do |i|
-              retrieve_commits(parent_repo, sha, parent_owner, 1).each do |c|
-                sha = c['sha']
-                ensure_commit(parent_repo, sha, parent_owner, true)
-              end
+            # Refresh the latest commits for the parent.
+            retrieve_commits(parent_repo, sha, parent_owner, 1).each do |c|
+              sha = c['sha']
+              ensure_commit(parent_repo, sha, parent_owner, true)
             end
 
             sha = nil
             found = false
             while not found
               processed = 0
-              retrieve_commits(repo, sha, user, 1).each do |c|
+              commits = retrieve_commits(repo, sha, user, 1)
+
+              # If only one commit has been retrieved (and this is the same as
+              # the commit since which we query commits from) this mean that
+              # there are no more commits.
+              if commits.size == 1 and commits[0]['sha'] == sha
+                debug "GHTorrent: No shared commit found and no more commits for #{user}/#{repo}"
+                break
+              end
+
+              for c in commits
                 processed += 1
                 exists_in_parent =
                     !@db.from(:project_commits, :commits).\
@@ -695,20 +703,22 @@ module GHTorrent
               end
             end
 
-            shared_commit = @db[:commits].first(:sha => sha)
-            forked_repo = repos.first(:owner_id => curuser[:id], :name => repo)
+            if found
+              shared_commit = @db[:commits].first(:sha => sha)
+              forked_repo = repos.first(:owner_id => curuser[:id], :name => repo)
 
-            @db.from(:project_commits, :commits).\
-                where(:project_commits__commit_id => :commits__id).\
-                where(:project_commits__project_id => parent[:id]).\
-                where('commits.created_at < ?', shared_commit[:created_at]).\
-                select(:commits__id, :commits__sha).\
-                each do |c|
-                  @db[:project_commits].insert(
-                      :project_id => forked_repo[:id],
-                      :commit_id => c[:id]
-                  )
-                debug "GHTorrent: Copied commit #{c[:sha]} from #{parent_owner}/#{parent_repo} -> #{user}/#{repo}"
+              @db.from(:project_commits, :commits).\
+                  where(:project_commits__commit_id => :commits__id).\
+                  where(:project_commits__project_id => parent[:id]).\
+                  where('commits.created_at < ?', shared_commit[:created_at]).\
+                  select(:commits__id, :commits__sha).\
+                  each do |c|
+                    @db[:project_commits].insert(
+                        :project_id => forked_repo[:id],
+                        :commit_id => c[:id]
+                    )
+                  debug "GHTorrent: Copied commit #{c[:sha]} from #{parent_owner}/#{parent_repo} -> #{user}/#{repo}"
+              end
             end
           else
             # If the project is not a fork, make sure everything is retrieved.
