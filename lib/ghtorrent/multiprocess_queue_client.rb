@@ -10,16 +10,20 @@ class MultiprocessQueueClient < GHTorrent::Command
   def prepare_options(options)
     options.banner <<-BANNER
 Retrieve data for multiple repos in parallel. To work, it requires
-a mapping file formatted as follows:
+a mapping file formatted as either of the follow formats:
 
-IP UNAME PASSWD NUM_PROCS where
+U IP UNAME PASSWD NUM_PROCS
+T IP TOKEN NUM_PROCS
 
-IP = address to use for outgoing requests (use 0.0.0.0 on non-multihomed hosts)
-UNAME = Github user name to use for outgoing requests
-PASSWD = Github password to use for outgoing requests
-NUM_PROCS = Number of processes to spawn for this IP/UNAME combination
+{U,T}: U signifies that a username/password pair is provided, T that an OAuth
+       token is specified instead
+IP: address to use for outgoing requests (use 0.0.0.0 on non-multihomed hosts)
+UNAME: Github user name to use for outgoing requests
+PASSWD: Github password to use for outgoing requests
+TOKEN: Github OAuth token
+NUM_PROCS: Number of processes to spawn for this IP/UNAME combination
 
-Values in the config.yaml file set with the -c command are overriden.
+Values in the config.yaml file set with the -c command are overridden.
 
 #{command_name} [options] mapping-file
 
@@ -43,13 +47,26 @@ Values in the config.yaml file set with the -c command are overriden.
 
     configs = File.open(ARGV[0]).readlines.map do |line|
       next if line =~ /^#/
-      ip, name, passwd, instances = line.strip.split(/ /)
+      case line.strip.split(/ /)[0]
+        when 'U'
+          type, ip, name, passwd, instances = line.strip.split(/ /)
+        when 'T'
+          type, ip, token, instances = line.strip.split(/ /)
+      end
+
       (1..instances.to_i).map do |i|
         newcfg = self.settings.clone
         newcfg = override_config(newcfg, :attach_ip, ip)
-        newcfg = override_config(newcfg, :github_username, name)
-        newcfg = override_config(newcfg, :github_passwd, passwd)
-        newcfg = override_config(newcfg, :mirror_history_pages_back, 10000)
+
+        case type
+          when 'U'
+            newcfg = override_config(newcfg, :github_username, name)
+            newcfg = override_config(newcfg, :github_passwd, passwd)
+          when 'T'
+            newcfg = override_config(newcfg, :github_token, token)
+        end
+
+        newcfg = override_config(newcfg, :mirror_history_pages_back, 100000)
         newcfg
       end
     end.flatten.select { |x| !x.nil? }
