@@ -54,6 +54,12 @@ module GHTorrent
                                                      command.options[:password])
         end
 
+        unless command.options[:token].nil?
+          command.settings = command.override_config(command.settings,
+                                                     :github_token,
+                                                     command.options[:token])
+        end
+
         begin
           command.go
         rescue => e
