@@ -30,6 +30,7 @@ module GHTorrent
 
         :github_username => 'mirror.username',
         :github_passwd => 'mirror.passwd',
+        :github_token => 'mirror.token',
 
         :respect_api_ratelimit => 'mirror.respect_api_ratelimit',
 
@@ -60,6 +61,7 @@ module GHTorrent
 
         :github_username => 'foo',
         :github_passwd => 'bar',
+        :github_token => '',
 
         :respect_api_ratelimit => 'true',
 

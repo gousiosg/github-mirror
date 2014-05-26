@@ -206,21 +206,40 @@ module GHTorrent
       end
     end
 
+    def auth_method(username, token)
+      if token.nil? or token.empty?
+        if username.nil? or username.empty?
+          :none
+        else
+          :username
+        end
+      else
+        :token
+      end
+    end
+
     def do_request(url)
       @attach_ip  ||= config(:attach_ip)
+      @token      ||= config(:github_token)
       @username   ||= config(:github_username)
       @passwd     ||= config(:github_passwd)
       @user_agent ||= config(:user_agent)
       @remaining  ||= 10
       @reset      ||= Time.now.to_i + 3600
+      @auth_type  ||= auth_method(@username, @token)
 
-      open_func ||= if @username.nil?
-        lambda {|url| open(url, 'User-Agent' => @user_agent)}
-      else
-        lambda {|url| open(url,
-                           'User-Agent' => @user_agent,
-                           :http_basic_authentication => [@username, @passwd])}
-      end
+      open_func ||=
+          case @auth_type
+            when :none
+              lambda {|url| open(url, 'User-Agent' => @user_agent)}
+            when :username
+              lambda {|url| open(url, 'User-Agent' => @user_agent,
+                                 :http_basic_authentication => [@username, @passwd])}
+            when :token
+              # As per: https://developer.github.com/v3/auth/#via-oauth-tokens
+              lambda {|url| open(url, 'User-Agent' => @user_agent,
+                                 :http_basic_authentication => [@token, 'x-oauth-basic'])}
+          end
 
       result = if @attach_ip.nil? or @attach_ip.eql? '0.0.0.0'
           open_func.call(url)

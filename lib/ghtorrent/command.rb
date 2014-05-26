@@ -86,6 +86,8 @@ Standard options:
             :type => String
         opt :username, 'Username at Github', :short => 's', :type => String
         opt :password, 'Password at Github', :type => String
+        opt :token, 'OAuth Github token (use instead of username/password)',
+            :type => String, :short => 't'
       end
     end
 
