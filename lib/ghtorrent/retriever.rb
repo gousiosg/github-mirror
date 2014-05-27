@@ -273,7 +273,7 @@ module GHTorrent
       repo_bound_items(user, repo, :watchers,
                        ["repos/#{user}/#{repo}/stargazers"],
                        {'repo' => repo, 'owner' => user},
-                       'login')
+                       'login', item = nil, refresh = false, order = :desc)
     end
 
     # Retrieve a single watcher for a repository
@@ -281,7 +281,7 @@ module GHTorrent
       repo_bound_item(user, repo, watcher, :watchers,
                       ["repos/#{user}/#{repo}/stargazers"],
                       {'repo' => repo, 'owner' => user},
-                      'login')
+                      'login', order = :desc)
     end
 
     def retrieve_pull_requests(user, repo, refr = false)
@@ -552,12 +552,18 @@ module GHTorrent
     end
 
     def repo_bound_items(user, repo, entity, urls, selector, discriminator,
-        item_id = nil, refresh = false)
+        item_id = nil, refresh = false, order = :asc)
 
        urls.each do |url|
         total_pages = num_pages(ghurl url)
 
-        (1..total_pages).each do |page|
+        page_range = if order == :asc
+                       (1..total_pages)
+                     else
+                       total_pages.downto(1)
+                     end
+
+        page_range.each do |page|
           items = api_request(ghurl(url, page))
 
           items.each do |x|
@@ -614,12 +620,13 @@ module GHTorrent
       end
     end
 
-    def repo_bound_item(user, repo, item_id, entity, url, selector, discriminator)
+    def repo_bound_item(user, repo, item_id, entity, url, selector,
+        discriminator, order = :asc)
       stored_item = repo_bound_instance(entity, selector, discriminator, item_id)
 
       if stored_item.empty?
         repo_bound_items(user, repo, entity, url, selector, discriminator,
-                         item_id).first
+                         item_id, false, order).first
       else
         stored_item.first
       end
@@ -646,15 +653,20 @@ module GHTorrent
       end
     end
 
-    def ghurl(path, page = -1)
+    def ghurl(path, page = -1, per_page = 100)
       if page > 0
         if path.include?('?')
-          path = path + "&page=#{page}"
+          path = path + "&page=#{page}&per_page=#{per_page}"
         else
-          path = path + "?page=#{page}"
+          path = path + "?page=#{page}&per_page=#{per_page}"
         end
         config(:mirror_urlbase) + path
       else
+        if path.include?('?')
+          path = path + "&per_page=#{per_page}"
+        else
+          path = path + "?per_page=#{per_page}"
+        end
         config(:mirror_urlbase) + path
       end
     end
