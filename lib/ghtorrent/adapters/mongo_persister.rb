@@ -86,7 +86,7 @@ module GHTorrent
 
     def del(entity, query)
       super
-      raise Exception 'No filter was specifed. Cowardily refusing to remove all entries' if query == {}
+      raise Exception 'No filter was specified. Cowardily refusing to remove all entries' if query == {}
       get_entity(entity).remove(query)
     end
 

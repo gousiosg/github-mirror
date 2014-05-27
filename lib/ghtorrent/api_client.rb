@@ -28,26 +28,8 @@ module GHTorrent
     def paged_api_request(url, pages = config(:mirror_history_pages_back),
         cache = true, last = nil)
 
-      url = if not url.include?('per_page')
-              if url.include?('?')
-                url + '&per_page=100'
-              else
-                url + '?per_page=100'
-              end
-            else
-              url
-            end
-
-      params = CGI::parse(URI::parse(url).query)
-      data = if params.has_key?('page') or (params.has_key?('last_sha'))
-               api_request_raw(url, use_cache?(cache, method = :paged))
-             else
-               if @cache_mode == :all
-                 api_request_raw(url, true)
-               else
-                 api_request_raw(url, false)
-              end
-             end
+      url = ensure_max_per_page(url)
+      data = determine_cache_and_do_request(cache, url)
 
       return [] if data.nil?
 
@@ -80,13 +62,67 @@ module GHTorrent
       end
     end
 
+
     # A normal request. Returns a hash or an array of hashes representing the
     # parsed JSON result.
     def api_request(url, cache = true)
-      parse_request_result api_request_raw(url, use_cache?(cache))
+      parse_request_result api_request_raw(ensure_max_per_page(url), use_cache?(cache))
+    end
+
+    # Determine the number of pages contained in a multi-page API response
+    def num_pages(url)
+      url = ensure_max_per_page(url)
+      data = determine_cache_and_do_request(true, url)
+
+      if data.meta.nil? or data.meta['link'].nil?
+        return 1
+      end
+
+      links = parse_links(data.meta['link'])
+
+      if links.nil? or links['last'].nil?
+        return 1
+      end
+
+      params = CGI::parse(URI::parse(links['last']).query)
+      params['page'][0].to_i
     end
 
     private
+
+    def ensure_max_per_page(url)
+      if url.include?('page')
+        if not url.include?('per_page')
+          if url.include?('?')
+            url + '&per_page=100'
+          else
+            url + '?per_page=100'
+          end
+        else
+          url
+        end
+      else
+        url
+      end
+    end
+
+    def determine_cache_and_do_request(cache, url)
+      query = URI::parse(url).query
+      params = unless query.nil?
+                 CGI::parse(query)
+               else
+                 {}
+               end
+      if params.has_key?('page') or (params.has_key?('last_sha'))
+        api_request_raw(url, use_cache?(cache, method = :paged))
+      else
+        if @cache_mode == :all
+          api_request_raw(url, true)
+        else
+          api_request_raw(url, false)
+        end
+      end
+    end
 
     # Determine whether to use cache or not, depending on the type of the
     # request
