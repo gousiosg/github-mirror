@@ -257,7 +257,7 @@ module GHTorrent
       repo_bound_items(user, repo, :repo_collaborators,
                        ["repos/#{user}/#{repo}/collaborators"],
                        {'repo' => repo, 'owner' => user},
-                       'login')
+                       'login', item = nil, refresh = false, order = :asc)
     end
 
     # Retrieve a single repository collaborator
@@ -290,7 +290,7 @@ module GHTorrent
       repo_bound_items(user, repo, :pull_requests,
                        [open, closed],
                        {'repo' => repo, 'owner' => user},
-                       'number', item = nil, refresh = refr)
+                       'number', item = nil, refresh = refr, order = :asc)
     end
 
     def retrieve_pull_request(user, repo, pullreq_id)
@@ -307,7 +307,7 @@ module GHTorrent
       repo_bound_items(user, repo, :forks,
                        ["repos/#{user}/#{repo}/forks"],
                        {'repo' => repo, 'owner' => user},
-                       'id')
+                       'id', item = nil, refresh = false, order = :asc)
     end
 
     def retrieve_fork(user, repo, fork_id)
@@ -384,7 +384,7 @@ module GHTorrent
       repo_bound_items(user, repo, :issues,
                        [open, closed],
                        {'repo' => repo, 'owner' => user},
-                       'number', item = nil, refresh = refr)
+                       'number', item = nil, refresh = refr, order = :asc)
     end
 
     def retrieve_issue(user, repo, issue_id)
@@ -501,7 +501,7 @@ module GHTorrent
       repo_bound_items(owner, repo, :repo_labels,
                        ["repos/#{owner}/#{repo}/labels"],
                        {'repo' => repo, 'owner' => owner},
-                       'name', item = nil, refresh = refr)
+                       'name', item = nil, refresh = refr, order = :asc)
     end
 
     def retrieve_repo_label(owner, repo, name)
