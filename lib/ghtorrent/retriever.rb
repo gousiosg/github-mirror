@@ -154,11 +154,7 @@ module GHTorrent
               ghurl "repos/#{user}/#{repo}/commits?sha=#{sha}"
             end
 
-      commits = if pages == -1
-                  paged_api_request(url)
-                else
-                  paged_api_request(url, pages)
-                end
+      commits = restricted_page_request(url, pages)
 
       commits.map do |c|
         retrieve_commit(repo, c['sha'], user)
@@ -259,7 +255,7 @@ module GHTorrent
     # Retrieve all collaborators for a repository
     def retrieve_repo_collaborators(user, repo)
       repo_bound_items(user, repo, :repo_collaborators,
-                       "repos/#{user}/#{repo}/collaborators",
+                       ["repos/#{user}/#{repo}/collaborators"],
                        {'repo' => repo, 'owner' => user},
                        'login')
     end
@@ -267,7 +263,7 @@ module GHTorrent
     # Retrieve a single repository collaborator
     def retrieve_repo_collaborator(user, repo, new_member)
       repo_bound_item(user, repo, new_member, :repo_collaborators,
-                      "repos/#{user}/#{repo}/collaborators",
+                      ["repos/#{user}/#{repo}/collaborators"],
                       {'repo' => repo, 'owner' => user},
                       'login')
     end
@@ -275,15 +271,15 @@ module GHTorrent
     # Retrieve all watchers for a repository
     def retrieve_watchers(user, repo)
       repo_bound_items(user, repo, :watchers,
-                       "repos/#{user}/#{repo}/stargazers",
+                       ["repos/#{user}/#{repo}/stargazers"],
                        {'repo' => repo, 'owner' => user},
                        'login')
     end
 
-    # Retrieve a single watcher for a repositry
+    # Retrieve a single watcher for a repository
     def retrieve_watcher(user, repo, watcher)
       repo_bound_item(user, repo, watcher, :watchers,
-                      "repos/#{user}/#{repo}/stargazers",
+                      ["repos/#{user}/#{repo}/stargazers"],
                       {'repo' => repo, 'owner' => user},
                       'login')
     end
@@ -309,14 +305,14 @@ module GHTorrent
 
     def retrieve_forks(user, repo)
       repo_bound_items(user, repo, :forks,
-                       "repos/#{user}/#{repo}/forks",
+                       ["repos/#{user}/#{repo}/forks"],
                        {'repo' => repo, 'owner' => user},
                        'id')
     end
 
     def retrieve_fork(user, repo, fork_id)
       repo_bound_item(user, repo, fork_id, :forks,
-                       "repos/#{user}/#{repo}/forks",
+                       ["repos/#{user}/#{repo}/forks"],
                        {'repo' => repo, 'owner' => user},
                        'id')
     end
@@ -501,20 +497,16 @@ module GHTorrent
       end
     end
 
-    def retrieve_issue_labels(owner, repo, issue_id)
-
-    end
-
     def retrieve_repo_labels(owner, repo, refr = false)
       repo_bound_items(owner, repo, :repo_labels,
-                       "repos/#{owner}/#{repo}/labels",
+                       ["repos/#{owner}/#{repo}/labels"],
                        {'repo' => repo, 'owner' => owner},
                        'name', item = nil, refresh = refr)
     end
 
     def retrieve_repo_label(owner, repo, name)
       repo_bound_item(owner, repo, name, :repo_labels,
-                       "repos/#{owner}/#{repo}/labels",
+                       ["repos/#{owner}/#{repo}/labels"],
                        {'repo' => repo, 'owner' => owner},
                        'name')
     end
@@ -551,74 +543,89 @@ module GHTorrent
 
     private
 
-    def repo_bound_items(user, repo, entity, urls, selector, descriminator,
-                         item_id = nil, refresh = false)
-
-      items = if urls.class == Array
-                urls.map { |url| paged_api_request(ghurl url) }.flatten
-              else
-                paged_api_request(ghurl urls)
-              end
-
-      items = items.map do |x|
-        x['repo'] = repo
-        x['owner'] = user
-
-        instances = repo_bound_instance(entity, selector,
-                                        descriminator, x[descriminator])
-        exists = !instances.empty?
-
-        unless exists
-          persister.store(entity, x)
-          info "Retriever: Added #{entity} #{user}/#{repo} -> #{x[descriminator]}"
-        else
-          if refresh
-            instances.each do |i|
-
-              id = if i[descriminator].to_i.to_s != i[descriminator]
-                i[descriminator] # item_id is int
-              else
-                i[descriminator].to_i # convert to int
-              end
-
-              instance_selector = selector.merge({descriminator => id})
-              persister.del(entity, instance_selector)
-              persister.store(entity, x)
-              debug "Retriever: Refreshing #{entity} #{user}/#{repo} -> #{x[descriminator]}"
-            end
-          else
-            debug "Retriever: #{entity} #{user}/#{repo} -> #{x[descriminator]} exists"
-          end
-        end
-        # If the persistence driver does not set an ext_ref_id key, set a dummy
-        # one here
-        unless x.has_key? ext_uniq
-          x[ext_uniq] = '0'
-        end
-        x
-      end
-
-      if item_id.nil?
-        a = persister.find(entity, selector)
-        if a.empty? then items else a end
+    def restricted_page_request(url, pages)
+      if pages != -1
+        paged_api_request(url, pages)
       else
-        a = repo_bound_instance(entity, selector, descriminator, item_id)
-        if a.empty? then [items.find{|x| x[descriminator] == item_id}] else a end
+        paged_api_request(url)
       end
     end
 
-    def repo_bound_item(user, repo, item_id, entity, url, selector, descriminator)
-      stored_item = repo_bound_instance(entity, selector, descriminator, item_id)
+    def repo_bound_items(user, repo, entity, urls, selector, discriminator,
+        item_id = nil, refresh = false)
+
+       urls.each do |url|
+        total_pages = num_pages(ghurl url)
+
+        (1..total_pages).each do |page|
+          items = api_request(ghurl(url, page))
+
+          items.each do |x|
+            x['repo'] = repo
+            x['owner'] = user
+
+            instances = repo_bound_instance(entity, selector,
+                                            discriminator, x[discriminator])
+            exists = !instances.empty?
+
+            unless exists
+              persister.store(entity, x)
+              info "Retriever: Added #{entity} #{user}/#{repo} -> #{x[discriminator]}"
+            else
+              if refresh
+                instances.each do |i|
+
+                  id = if i[discriminator].to_i.to_s != i[discriminator]
+                         i[discriminator] # item_id is int
+                       else
+                         i[discriminator].to_i # convert to int
+                       end
+
+                  instance_selector = selector.merge({discriminator => id})
+                  persister.del(entity, instance_selector)
+                  persister.store(entity, x)
+                  debug "Retriever: Refreshing #{entity} #{user}/#{repo} -> #{x[discriminator]}"
+                end
+              else
+                debug "Retriever: #{entity} #{user}/#{repo} -> #{x[discriminator]} exists"
+              end
+            end
+
+            # If we are just looking for a single item, give the method a chance
+            # to return as soon as we find it. This is to avoid loading all
+            # items before we actually search for what we are looking for.
+            unless item_id.nil?
+              a = repo_bound_instance(entity, selector, discriminator, item_id)
+              unless a.empty?
+                return a
+              end
+            end
+          end
+        end
+      end
+
+      if item_id.nil?
+        persister.find(entity, selector)
+      else
+        # If the item we are looking for has been found, the method should
+        # have returned earlier. So just return an empty result to indicate
+        # that the item has not been found.
+        []
+      end
+    end
+
+    def repo_bound_item(user, repo, item_id, entity, url, selector, discriminator)
+      stored_item = repo_bound_instance(entity, selector, discriminator, item_id)
 
       if stored_item.empty?
-        repo_bound_items(user, repo, entity, url, selector, descriminator,
+        repo_bound_items(user, repo, entity, url, selector, discriminator,
                          item_id).first
       else
         stored_item.first
       end
     end
 
-    def repo_bound_instance(entity, selector, descriminator, item_id)
+    def repo_bound_instance(entity, selector, discriminator, item_id)
 
       id = if item_id.to_i.to_s != item_id
              item_id # item_id is int
@@ -626,21 +633,30 @@ module GHTorrent
              item_id.to_i # convert to int
            end
 
-      instance_selector = selector.merge({descriminator => id})
+      instance_selector = selector.merge({discriminator => id})
       result = persister.find(entity, instance_selector)
       if result.empty?
-        # Try without type conversions. Useful when the descriminator type
+        # Try without type conversions. Useful when the discriminator type
         # is string and an item_id that can be converted to int is passed.
         # Having no types sucks occasionaly...
-        instance_selector = selector.merge({descriminator => item_id})
+        instance_selector = selector.merge({discriminator => item_id})
         persister.find(entity, instance_selector)
       else
         result
       end
     end
 
-    def ghurl(path)
-      config(:mirror_urlbase) + path
+    def ghurl(path, page = -1)
+      if page > 0
+        if path.include?('?')
+          path = path + "&page=#{page}"
+        else
+          path = path + "?page=#{page}"
+        end
+        config(:mirror_urlbase) + path
+      else
+        config(:mirror_urlbase) + path
+      end
     end
 
   end

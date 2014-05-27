@@ -204,7 +204,6 @@ module GHTorrent
 
     ##
     # Retrieve commits for a repository, starting from +sha+
-    # and going back to 30 * +num_pages+ commit log entries.
     # ==Parameters:
     # [user]  The user to whom the repo belongs.
     # [repo]  The repo to look for commits into.
