@@ -1775,7 +1775,7 @@ module GHTorrent
       result = nil
       start_time = Time.now
       begin
-        @db.transaction(:rollback => :reraise, :isolation => :committed) do
+        @db.transaction(:rollback => :reraise, :isolation => :uncommitted) do
           result = yield block
         end
         total = Time.now.to_ms - start_time.to_ms

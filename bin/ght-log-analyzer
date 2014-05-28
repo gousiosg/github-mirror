@@ -5,11 +5,17 @@ require 'time'
 
 stats = Hash.new { |hash, key| hash[key] = Hash.new }
 
-t = Thread.new do
+Thread.new do
   puts "Collecting data..."
   while (true) do
     sleep(1)
     system "clear" or system "cls"
+
+    stats.each do |k,v|
+      unless v[:time_in].nil?
+        v[:time_in] += 1
+      end
+    end
 
     puts ' '
     puts "ACTIVE"
@@ -26,7 +32,7 @@ t = Thread.new do
     fmt = "%-#{ml[:pid]}s %-#{ml[:ip]}s %-#{ml[:repo]}s %-#{ml[:stage]}s %-#{ml[:time_in]}s %-#{ml[:not_found]}s %-#{ml[:remaining]}s"
 
     puts sprintf(fmt, 'pid', 'ip', 'repo', 'stage', 'time_in', 'not_found', 'remaining')
-    data.sort { |a, b| a[1][:remaining].to_i <=> b[1][:remaining].to_i }.each do |x|
+    data.sort { |a, b| b[1][:time_in].to_i <=> a[1][:time_in].to_i }.each do |x|
       k, v = x[0], x[1]
       puts sprintf(fmt, k, v[:ip], v[:repo], v[:stage], v[:time_in], v[:not_found], v[:remaining])
     end
@@ -44,7 +50,7 @@ t = Thread.new do
         else
           v[x].size
         end }.max, x.to_s.length].max
-      acc.merge({x => max})
+        acc.merge({x => max})
     end
 
     ml[:pid] = data.keys.map { |x| x.length }.max
@@ -79,12 +85,16 @@ ARGF.each do |x|
     pid = x.match(/.*#([0-9]+).*APIClient.*/).captures[0]
     if stats[pid][:not_found].nil?
       stats[pid][:not_found] = 0
-    end
-    stats[pid][:not_found] += 1
+  end
+  stats[pid][:not_found] += 1
   else
-    ts, pid, ip, url, remaining, time =
+    begin
+      ts, pid, ip, url, remaining, time =
         x.match(/.*\[([^.]+).*#([0-9]+)\].*APIClient\[(.*)\].*(https:\/\/.*) \(([0-9]+) remaining\).* ([0-9]+) ms$/).captures
-
+    rescue
+      puts x
+      next
+    end
     ts = Time.parse(ts).to_i
     url_chunks = url.split(/\//)
     owner = url_chunks[4]
