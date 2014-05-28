@@ -207,28 +207,35 @@ module GHTorrent
     # ==Parameters:
     # [user]  The user to whom the repo belongs.
     # [repo]  The repo to look for commits into.
-    # [sha]   The first commit to start retrieving from. If nil, then the
-    #         earliest stored commit will be used instead.
-    def ensure_commits(user, repo, refresh = false, sha = nil)
-      userid = @db[:users].filter(:login => user).first[:id]
-      repoid = @db[:projects].filter(:owner_id => userid,
-                                     :name => repo).first[:id]
+    # [sha]   The first commit to start retrieving from. If nil, then retrieval
+    #         starts from what the project considers as master branch.
+    # [return_retrieved] Should retrieved commits be returned? If not, memory is
+    #                    saved while processing them if this is false
+    def ensure_commits(user, repo, sha = nil, return_retrieved = false)
 
-      latest = if sha.nil?
-                 @db[:commits].filter(:project_id => repoid).order(:created_at).last
-               else
-                 sha
-               end
+      commits = ['foo'] # Dummy entry for simplifying the loop below
+      commit_acc = []
+      until commits.empty?
+        commits = retrieve_commits(repo, sha, user, 1)
 
-      commits = if latest.nil?
-                  retrieve_commits(repo, nil, user)
-                else
-                  retrieve_commits(repo, latest[:sha], user)
-                end
+        # This means that we retrieved the last commit page again
+        if commits.size == 1 and commits[0]['sha'] == sha
+          commits = []
+        end
 
-      commits.map do |c|
-        save{ensure_commit(repo, c['sha'], user)}
-      end.select{|x| !x.nil?}
+        retrieved = commits.map do |c|
+          sha = c['sha']
+          save{ensure_commit(repo, c['sha'], user)}
+        end
+
+        # Store retrieved commits to return, if client requested so
+        if return_retrieved
+          commit_acc = commit_acc << retrieved
+        end
+
+      end
+
+      commit_acc.select{|x| !x.nil?}
     end
 
     ##
@@ -641,7 +648,6 @@ module GHTorrent
 
         info "GHTorrent: New repo #{user}/#{repo}"
 
-        pages = config(:mirror_history_pages_back)
         begin
           watchdog = nil
           unless parent.nil?
@@ -720,10 +726,6 @@ module GHTorrent
               end
             end
           else
-            # If the project is not a fork, make sure everything is retrieved.
-            # Temporarily override configuration to retrieve all pages in case
-            # a new repo is added to the database
-            @settings = override_config(@settings, :mirror_history_pages_back, 100000)
             ensure_commits(user, repo)
           end
           ensure_project_members(user, repo)
@@ -734,7 +736,6 @@ module GHTorrent
           unless watchdog.nil?
             watchdog.exit
           end
-          @settings = override_config(@settings, :mirror_history_pages_back, pages)
         end
         repos.first(:owner_id => curuser[:id], :name => repo)
       else

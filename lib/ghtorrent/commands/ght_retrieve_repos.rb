@@ -105,7 +105,7 @@ class GHTRepoRetriever
       if only_user
         ght.send(function, owner)
       else
-        ght.send(function, owner, repo, refresh = false)
+        ght.send(function, owner, repo)
       end
     rescue Exception => e
       warn("Error processing #{function} for #{owner}/#{repo}")

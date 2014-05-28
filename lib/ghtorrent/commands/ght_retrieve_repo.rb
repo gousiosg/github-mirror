@@ -64,7 +64,7 @@ An efficient way to get all data for a single repo
     repo = repo_entry[:name]
 
     def send_message(function, user, repo)
-      ght.send(function, user, repo, refresh = true)
+      ght.send(function, user, repo)
     end
 
     functions = %w(ensure_commits ensure_forks ensure_pull_requests

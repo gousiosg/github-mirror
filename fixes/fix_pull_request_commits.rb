@@ -86,7 +86,7 @@ in the provided project.
         end
       end
     end
-    ght.ensure_commits(@owner, @repo, nil, 100)
+    ght.ensure_commits(@owner, @repo, pages = 100)
   end
 
   def db
