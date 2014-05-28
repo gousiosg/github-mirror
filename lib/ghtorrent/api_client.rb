@@ -116,11 +116,7 @@ module GHTorrent
       if params.has_key?('page') or (params.has_key?('last_sha'))
         api_request_raw(url, use_cache?(cache, method = :paged))
       else
-        if @cache_mode == :all
-          api_request_raw(url, true)
-        else
-          api_request_raw(url, false)
-        end
+        api_request_raw(url, use_cache?(cache, method = :non_paged))
       end
     end
 
@@ -134,10 +130,15 @@ module GHTorrent
                           :prod
                         when 'all'
                           :all
+                        when 'off'
+                        when false
+                          :off
                         else
-                          raise GHTorrentException.new("Don't know cache configuration #{@cache_mode}")
+                          raise GHTorrentException.new("Don't know cache configuration #{config(:cache_mode)}")
                       end
       case @cache_mode
+        when :off
+          return false
         when :all
           return true
         when :dev
