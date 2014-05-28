@@ -1,0 +1,116 @@
+#!/usr/bin/env ruby
+
+require 'pp'
+require 'time'
+
+stats = Hash.new { |hash, key| hash[key] = Hash.new }
+
+Thread.new do
+
+end
+
+
+ARGF.each do |x|
+
+  next unless x =~ /APIClient/
+
+  if x =~ /sleeping/
+    ts, pid, remaining = x.match(/\[([^.]+).*#([0-9]+)\].*for ([0-9]+).*/).captures
+
+    ts = Time.parse(ts).to_i
+    stats[pid][:status] = 'S'
+    stats[pid][:sleep_remaining] = remaining
+
+    unless stats[pid][:repo].nil?
+      stats[pid][:time_in] = ts - stats[pid][:start_pr_ts]
+    end
+
+  elsif x =~ /Not Found|Gone|Conflict/
+    pid = x.match(/.*#([0-9]+).*APIClient.*/).captures[0]
+    if stats[pid][:not_found].nil?
+      stats[pid][:not_found] = 0
+    end
+    stats[pid][:not_found] += 1
+  else
+    ts, pid, ip, url, remaining, time =
+        x.match(/.*\[([^.]+).*#([0-9]+)\].*APIClient\[(.*)\].*(https:\/\/.*) \(([0-9]+) remaining\).* ([0-9]+) ms$/).captures
+
+    ts = Time.parse(ts).to_i
+    url_chunks = url.split(/\//)
+    owner = url_chunks[4]
+    repo = url_chunks[5]
+    begin
+      stage = url_chunks[6].split(/\?/)[0]
+    rescue
+      stage = 'repo'
+    end
+
+    stats[pid][:status] = 'A'
+    stats[pid][:ip] = ip
+
+    unless stats[pid][:repo] == "#{owner}/#{repo}"
+      stats[pid][:repo] = "#{owner}/#{repo}"
+      stats[pid][:not_found] = 0
+      stats[pid][:start_pr_ts] = ts
+      stats[pid][:time_in] = 0
+    end
+
+    stats[pid][:time_in] = ts - stats[pid][:start_pr_ts]
+    stats[pid][:stage] = stage
+    stats[pid][:remaining] = remaining
+
+    if stats[pid][:time].nil?
+      stats[pid][:time] = Queue.new
+    end
+
+    if stats[pid][:time].length > 100
+      stats[pid][:time].pop
+    end
+
+    stats[pid][:time].push(time)
+  end
+end
+
+system "clear" or system "cls"
+
+puts ' '
+puts "ACTIVE"
+puts ' '
+
+data = stats.select { |k, v| v[:status] == 'A' }
+ml = [:ip, :repo, :stage, :remaining, :not_found, :time_in].reduce({}) do |acc, x|
+  max = [data.map { |k, v| v[x].size }.max, x.to_s.length].max
+  acc.merge({x => max})
+end
+
+ml[:pid] = data.keys.map { |x| x.length }.max
+
+fmt = "%-#{ml[:pid]}s %-#{ml[:ip]}s %-#{ml[:repo]}s %-#{ml[:stage]}s %-#{ml[:time_in]}s %-#{ml[:not_found]}s %-#{ml[:remaining]}s"
+
+puts sprintf(fmt, 'pid', 'ip', 'repo', 'stage', 'time_in', 'not_found', 'remaining')
+data.sort { |a, b| a[1][:remaining].to_i <=> b[1][:remaining].to_i }.each do |x|
+  k, v = x[0], x[1]
+  puts sprintf(fmt, k, v[:ip], v[:repo], v[:stage], v[:time_in], v[:not_found], v[:remaining])
+end
+
+
+puts ' '
+puts "SLEEPING"
+puts ' '
+
+data = stats.select { |k, v| v[:status] == 'S' }
+ml = [:ip, :repo, :stage, :sleep_remaining, :time_in].reduce({}) do |acc, x|
+  max = [data.map { |k, v| if v[x].nil? then 1 else v[x].size end }.max, x.to_s.length].max
+  acc.merge({x => max})
+end
+
+ml[:pid] = data.keys.map { |x| x.length }.max
+
+fmt = "%-#{ml[:pid]}s %-#{ml[:ip]}s %-#{ml[:repo]}s %-#{ml[:stage]}s %-#{ml[:time_in]}s %-#{ml[:sleep_remaining]}s"
+
+puts sprintf(fmt, 'pid', 'ip', 'repo', 'stage', 'time_in', 'remaining_sleep')
+data.sort { |a, b| a[1][:sleep_remaining].to_i <=> b[1][:sleep_remaining].to_i }.each do |x|
+  k, v = x[0], x[1]
+  puts sprintf(fmt, k, v[:ip], v[:repo], v[:stage], v[:time_in], v[:sleep_remaining])
+end
+
