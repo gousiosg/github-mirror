@@ -5,8 +5,58 @@ require 'time'
 
 stats = Hash.new { |hash, key| hash[key] = Hash.new }
 
-Thread.new do
+t = Thread.new do
+  puts "Collecting data..."
+  while (true) do
+    sleep(1)
+    system "clear" or system "cls"
 
+    puts ' '
+    puts "ACTIVE"
+    puts ' '
+
+    data = stats.select { |k, v| v[:status] == 'A' }
+    ml = [:ip, :repo, :stage, :remaining, :not_found, :time_in].reduce({}) do |acc, x|
+      max = [data.map { |k, v| v[x].size }.max, x.to_s.length].max
+      acc.merge({x => max})
+    end
+
+    ml[:pid] = data.keys.map { |x| x.length }.max
+
+    fmt = "%-#{ml[:pid]}s %-#{ml[:ip]}s %-#{ml[:repo]}s %-#{ml[:stage]}s %-#{ml[:time_in]}s %-#{ml[:not_found]}s %-#{ml[:remaining]}s"
+
+    puts sprintf(fmt, 'pid', 'ip', 'repo', 'stage', 'time_in', 'not_found', 'remaining')
+    data.sort { |a, b| a[1][:remaining].to_i <=> b[1][:remaining].to_i }.each do |x|
+      k, v = x[0], x[1]
+      puts sprintf(fmt, k, v[:ip], v[:repo], v[:stage], v[:time_in], v[:not_found], v[:remaining])
+    end
+
+
+    puts ' '
+    puts "SLEEPING"
+    puts ' '
+
+    data = stats.select { |k, v| v[:status] == 'S' }
+    ml = [:ip, :repo, :stage, :sleep_remaining, :time_in].reduce({}) do |acc, x|
+      max = [data.map { |k, v|
+        if v[x].nil? then
+          1
+        else
+          v[x].size
+        end }.max, x.to_s.length].max
+      acc.merge({x => max})
+    end
+
+    ml[:pid] = data.keys.map { |x| x.length }.max
+
+    fmt = "%-#{ml[:pid]}s %-#{ml[:ip]}s %-#{ml[:repo]}s %-#{ml[:stage]}s %-#{ml[:time_in]}s %-#{ml[:sleep_remaining]}s"
+
+    puts sprintf(fmt, 'pid', 'ip', 'repo', 'stage', 'time_in', 'remaining_sleep')
+    data.sort { |a, b| a[1][:sleep_remaining].to_i <=> b[1][:sleep_remaining].to_i }.each do |x|
+      k, v = x[0], x[1]
+      puts sprintf(fmt, k, v[:ip], v[:repo], v[:stage], v[:time_in], v[:sleep_remaining])
+    end
+  end
 end
 
 
@@ -69,48 +119,5 @@ ARGF.each do |x|
 
     stats[pid][:time].push(time)
   end
-end
-
-system "clear" or system "cls"
-
-puts ' '
-puts "ACTIVE"
-puts ' '
-
-data = stats.select { |k, v| v[:status] == 'A' }
-ml = [:ip, :repo, :stage, :remaining, :not_found, :time_in].reduce({}) do |acc, x|
-  max = [data.map { |k, v| v[x].size }.max, x.to_s.length].max
-  acc.merge({x => max})
-end
-
-ml[:pid] = data.keys.map { |x| x.length }.max
-
-fmt = "%-#{ml[:pid]}s %-#{ml[:ip]}s %-#{ml[:repo]}s %-#{ml[:stage]}s %-#{ml[:time_in]}s %-#{ml[:not_found]}s %-#{ml[:remaining]}s"
-
-puts sprintf(fmt, 'pid', 'ip', 'repo', 'stage', 'time_in', 'not_found', 'remaining')
-data.sort { |a, b| a[1][:remaining].to_i <=> b[1][:remaining].to_i }.each do |x|
-  k, v = x[0], x[1]
-  puts sprintf(fmt, k, v[:ip], v[:repo], v[:stage], v[:time_in], v[:not_found], v[:remaining])
-end
-
-
-puts ' '
-puts "SLEEPING"
-puts ' '
-
-data = stats.select { |k, v| v[:status] == 'S' }
-ml = [:ip, :repo, :stage, :sleep_remaining, :time_in].reduce({}) do |acc, x|
-  max = [data.map { |k, v| if v[x].nil? then 1 else v[x].size end }.max, x.to_s.length].max
-  acc.merge({x => max})
-end
-
-ml[:pid] = data.keys.map { |x| x.length }.max
-
-fmt = "%-#{ml[:pid]}s %-#{ml[:ip]}s %-#{ml[:repo]}s %-#{ml[:stage]}s %-#{ml[:time_in]}s %-#{ml[:sleep_remaining]}s"
-
-puts sprintf(fmt, 'pid', 'ip', 'repo', 'stage', 'time_in', 'remaining_sleep')
-data.sort { |a, b| a[1][:sleep_remaining].to_i <=> b[1][:sleep_remaining].to_i }.each do |x|
-  k, v = x[0], x[1]
-  puts sprintf(fmt, k, v[:ip], v[:repo], v[:stage], v[:time_in], v[:sleep_remaining])
 end
 
