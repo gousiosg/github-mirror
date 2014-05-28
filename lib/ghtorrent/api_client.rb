@@ -217,7 +217,7 @@ module GHTorrent
               403, # Forbidden
               404, # Not found
               422 then # Unprocessable entity
-            warn "APIClient: #{url}: #{e.io.status[1]}"
+            warn "APIClient[#{@attach_ip}]: #{url}: #{e.io.status[1]}"
             @remaining = e.io.meta['x-ratelimit-remaining'].to_i
             @reset = e.io.meta['x-ratelimit-reset'].to_i
             return nil
@@ -228,11 +228,11 @@ module GHTorrent
       ensure
         if not from_cache and config(:respect_api_ratelimit) and @remaining < 10
           to_sleep = @reset - Time.now.to_i + 2
-          debug "APIClient: Request limit reached, sleeping for #{to_sleep} secs"
+          debug "APIClient[#{@attach_ip}]: Request limit reached, sleeping for #{to_sleep} secs"
           t = Thread.new do
             slept = 0
             while true do
-              debug "APIClient: sleeping for #{to_sleep - slept} seconds"
+              debug "APIClient[#{@attach_ip}]: sleeping for #{to_sleep - slept} seconds"
               sleep 1
               slept += 1
             end
