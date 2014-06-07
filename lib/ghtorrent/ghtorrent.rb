@@ -458,6 +458,7 @@ module GHTorrent
                      :company => u['company'],
                      :email => email,
                      :location => u['location'],
+                     :fake => false,
                      :type => user_type(u['type']),
                      :created_at => date(u['created_at']),
                      :ext_ref_id => u[@ext_uniq])
@@ -565,6 +566,7 @@ module GHTorrent
           users.insert(:email => email,
                        :name => name,
                        :login => login,
+                       :fake => true,
                        :created_at => Time.now,
                        :ext_ref_id => "")
           info "GHTorrent: Added fake user #{login} -> #{email}"
@@ -577,6 +579,7 @@ module GHTorrent
                          :company => u['company'],
                          :email => u['email'],
                          :location => u['location'],
+                         :fake => false,
                          :created_at => date(u['created_at']),
                          :ext_ref_id => u[@ext_uniq])
             info "GHTorrent: Found #{email} through search API query"
@@ -585,6 +588,7 @@ module GHTorrent
                          :company => u['company'],
                          :email => u['email'],
                          :location => u['location'],
+                         :fake => false,
                          :created_at => date(u['created_at']),
                          :ext_ref_id => u[@ext_uniq])
             info "GHTorrent: User with email #{email} exists with username #{u['login']}"
