@@ -464,6 +464,12 @@ module GHTorrent
                      :ext_ref_id => u[@ext_uniq])
 
         info "GHTorrent: New user #{user}"
+
+        if user_type(u['type']) == 'ORG'
+          info "GHTorrent: User #{user} is an organization. Retrieving members"
+          ensure_org(u['login'], true)
+        end
+
         users.first(:login => user)
       else
         debug "GHTorrent: User #{user} exists"
@@ -873,12 +879,11 @@ module GHTorrent
           warn "GHTorrent: Account #{organization} is not an organization"
           return nil
         end
-
-        if members
-          retrieve_org_members(organization).map do |x|
-            ensure_participation(ensure_user(x['login'], false, false)[:login],
-                                 organization, false)
-          end
+      end
+      if members
+        retrieve_org_members(organization).map do |x|
+          ensure_participation(ensure_user(x['login'], false, false)[:login],
+                               organization, false)
         end
       end
       org

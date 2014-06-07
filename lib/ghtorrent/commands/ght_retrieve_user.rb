@@ -45,13 +45,13 @@ An efficient way to get all data for a single user
 
     functions = %w(ensure_user_followers ensure_orgs ensure_org)
 
-    if ARGV[2].nil?
+    if ARGV[1].nil?
       functions.each do |x|
         send_message(x, user)
       end
     else
-      Trollop::die("Not a valid function: #{ARGV[2]}") unless functions.include? ARGV[2]
-      send_message(ARGV[2], user)
+      Trollop::die("Not a valid function: #{ARGV[1]}") unless functions.include? ARGV[1]
+      send_message(ARGV[1], user)
     end
 
   end
