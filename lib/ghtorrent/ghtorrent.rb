@@ -1068,7 +1068,7 @@ module GHTorrent
         info "GHTorrent: New pull request (#{id}) event (#{act}) by (#{actor}) timestamp #{ts}"
       else
         info "GHTorrent: Pull request (#{id}) event (#{act}) by (#{actor}) timestamp #{ts} exists"
-        if entry[:actor_id].nil?
+        if entry[:actor_id].nil? and not user.nil?
           pull_req_history.where(:pull_request_id => id,
                                :created_at => (ts - 3)..(ts + 3),
                                :action => act)\

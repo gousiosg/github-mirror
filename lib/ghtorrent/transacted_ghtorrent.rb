@@ -7,7 +7,7 @@ class TransactedGhtorrent < GHTorrent::Mirror
 
   def ensure_repo(owner, repo, forks = false)
     check_transaction do
-      super(repo, sha, user, comments)
+      super(owner, repo, forks)
     end
   end
 
