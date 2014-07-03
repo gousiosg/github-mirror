@@ -617,7 +617,8 @@ module GHTorrent
     # == Returns:
     #  If the repo can be retrieved, it is returned as a Hash. Otherwise,
     #  the result is nil
-    def ensure_repo(user, repo, forks = true)
+    def ensure_repo(user, repo, commits = true, project_members = true, 
+                    watchers = true, forks = true, labels = true)
 
       repos = @db[:projects]
       curuser = ensure_user(user, false, false)
@@ -736,12 +737,12 @@ module GHTorrent
               end
             end
           else
-            ensure_commits(user, repo)
+            ensure_commits(user, repo) if commits
           end
-          ensure_project_members(user, repo)
-          ensure_watchers(user, repo)
+          ensure_project_members(user, repo) if project_members
+          ensure_watchers(user, repo) if watchers
           ensure_forks(user, repo) if forks
-          ensure_labels(user, repo)
+          ensure_labels(user, repo) if labels
         ensure
           unless watchdog.nil?
             watchdog.exit

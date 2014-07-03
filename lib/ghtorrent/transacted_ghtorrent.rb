@@ -5,9 +5,10 @@ require 'ghtorrent/ghtorrent'
 # item
 class TransactedGhtorrent < GHTorrent::Mirror
 
-  def ensure_repo(owner, repo, forks = false)
+  def ensure_repo(owner, repo, commits = false, project_members = false,
+                  watchers = false, forks = false, labels = false)
     check_transaction do
-      super(owner, repo, forks)
+      super(owner, repo, commits, project_members, watchers, forks, labels)
     end
   end
 
