@@ -617,7 +617,7 @@ module GHTorrent
     # == Returns:
     #  If the repo can be retrieved, it is returned as a Hash. Otherwise,
     #  the result is nil
-    def ensure_repo(user, repo)
+    def ensure_repo(user, repo, forks = true)
 
       repos = @db[:projects]
       curuser = ensure_user(user, false, false)
@@ -740,7 +740,7 @@ module GHTorrent
           end
           ensure_project_members(user, repo)
           ensure_watchers(user, repo)
-          ensure_forks(user, repo)
+          ensure_forks(user, repo) if forks
           ensure_labels(user, repo)
         ensure
           unless watchdog.nil?
@@ -1354,11 +1354,11 @@ module GHTorrent
           where(:projects__forked_from => currepo[:id]).select(:projects__name, :login).all
 
       retrieve_forks(owner, repo).reduce([]) do |acc, x|
-        if existing_forks.find {|y|
+        if existing_forks.find do |y|
           forked_repo_owner = x['full_name'].split(/\//)[0]
           forked_repo_name = x['full_name'].split(/\//)[1]
           y[:login] == forked_repo_owner && y[:name] == forked_repo_name
-        }.nil?
+        end.nil?
           acc << x
         else
           acc
