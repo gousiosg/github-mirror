@@ -68,7 +68,12 @@ class GHTRepoRetriever
         next
       end
 
-      repo_entry = ght.transaction { ght.ensure_repo(owner, repo) }
+      repo_entry = ght.transaction { ght.ensure_repo(owner, repo,
+                                                     commits = false,
+                                                     project_members = false,
+                                                     watchers = false,
+                                                     forks = false,
+                                                     labels = false) }
 
       if repo_entry.nil?
         warn("Cannot find repository #{owner}/#{repo}")
@@ -78,14 +83,16 @@ class GHTRepoRetriever
       debug("Retrieving repo #{owner}/#{repo}")
 
       retrieval_stages = %w(ensure_commits ensure_forks ensure_pull_requests
-            ensure_issues ensure_project_members ensure_watchers ensure_labels)
+                            ensure_issues ensure_project_members
+                            ensure_watchers ensure_labels)
 
       retrieval_stages.each do |x|
         run_retrieval_stage(ght, owner, repo, x)
       end
 
       # Repository owner bound data retrieval
-      run_retrieval_stage(ght, owner, repo, 'ensure_user_followers', onlyuser = true)
+      run_retrieval_stage(ght, owner, repo, 'ensure_user_followers', 
+                          onlyuser = true)
 
       if user_entry[:type] == 'ORG'
         run_retrieval_stage(ght, owner, repo, 'ensure_org', onlyuser = true)
