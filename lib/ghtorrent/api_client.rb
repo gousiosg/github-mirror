@@ -217,7 +217,8 @@ module GHTorrent
               403, # Forbidden
               404, # Not found
               422 then # Unprocessable entity
-            warn "APIClient[#{@attach_ip}]: #{url}: #{e.io.status[1]}"
+            total = Time.now.to_ms - start_time.to_ms
+            warn "APIClient[#{@attach_ip}]: Request: #{url} (#{@remaining} remaining), Total: #{total} ms, Status: #{e.io.status[1]}"
             @remaining = e.io.meta['x-ratelimit-remaining'].to_i
             @reset = e.io.meta['x-ratelimit-reset'].to_i
             return nil
