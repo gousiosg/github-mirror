@@ -154,7 +154,7 @@ module GHTorrent
         @mongo = if replicas.nil?
                    Mongo::Connection.new(config(:mongo_host),
                                          config(:mongo_port))\
-                                    .db(config(:mongo_db))
+                                    .db(config(:mongo_db))\
                  else
                    repl_arr = replicas.strip.split(/ /).map{|x| "#{x}:#{config(:mongo_port)}"}
                    repl_arr << "#{config(:mongo_host)}:#{config(:mongo_port)}"
@@ -162,6 +162,7 @@ module GHTorrent
                                            .db(config(:mongo_db))
                  end
 
+        @mongo.authenticate(config(:mongo_username), config(:mongo_passwd))
         stats = @mongo.stats
         init_db(@mongo) if stats['collections'] < ENTITIES.size + 2
         init_db(@mongo) if stats['indexes'] < IDXS.keys.size + ENTITIES.size
