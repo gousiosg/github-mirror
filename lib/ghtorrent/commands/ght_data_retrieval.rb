@@ -81,7 +81,7 @@ class GHTDataRetrieval < GHTorrent::Command
     repo = data['repo']['name'].split(/\//)[1]
     fork_id = data['payload']['forkee']['id']
 
-    ghtorrent.get_fork(owner, repo, fork_id)
+    #ghtorrent.get_fork(owner, repo, fork_id)
   end
 
   def PullRequestReviewCommentEvent(data)

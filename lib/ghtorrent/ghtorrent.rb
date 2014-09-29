@@ -921,7 +921,7 @@ module GHTorrent
         retrieved = retrieve_commit_comment(owner, repo, sha, comment_id)
 
         if retrieved.nil?
-          warn "GHTorrent: Commit comment #{sha}->#{id} deleted"
+          warn "GHTorrent: Commit comment #{sha}->#{comment_id} deleted"
           return
         end
 
@@ -939,7 +939,7 @@ module GHTorrent
         )
         info "GHTorrent: Added commit comment #{sha} -> #{retrieved['id']} by #{user[:login]}"
       else
-        info "GHTorrent: Commit comment #{sha} -> #{id} exists"
+        info "GHTorrent: Commit comment #{sha} -> #{comment_id} exists"
       end
       @db[:commit_comments].first(:comment_id => comment_id)
     end
