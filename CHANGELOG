@@ -1,5 +1,20 @@
+= Version 0.10
+	* Base class for multiprocess queue clients
+	* Make retrieval of pull request commits faster
+	* Drop table forks
+	* Remove merged and user_id fields from pull_request
+	* Ruby 2.0.0 support
+	* Fast(er) path to project forking. Copy commits from base repo instead of getting them from Github.
+	* Github API tokens for authentication
+	* Support for disabling the cache
+	* A new real-time log analyzer
+	* Mark fake users as such
+	* Organization members are now retrieved
+	* Authenticated MongoDB connections
+	* General bug fixes and cleanups
+
 = Version 0.9
-    * Remove dependency to EventMachine-based AMQP client. We now use bunny.
+	* Remove dependency to EventMachine-based AMQP client. We now use bunny.
 
 = Version 0.8.1
 	* New tool to retrieve specific entities and their dependencies
@@ -8,7 +23,7 @@
 	* Support for finer grained transactions when processing large entities
 	* Commit comments are now indexed per owner/repo (was just by comment id)
 	* Remove the unused daemon mode
-    * Various exception fixes and more detailed logging
+	* Various exception fixes and more detailed logging
 
 = Version 0.8
 	* Retrieve and process issue labels

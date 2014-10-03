@@ -24,7 +24,6 @@ sql:
 
 mirror:
   urlbase: "https://api.github.com/"
-  pollevery: 5 #sec
   persister: mongo #or noop
   uniq_id: 'ext_ref_id' # Field that links persister entries to SQL entries
 
@@ -40,7 +39,7 @@ mirror:
 
   # Choose whether to cache all requests, or only
   # requests that make sense (prod(uction) mode).
-  cache_mode: prod #or all
+  cache_mode: prod #or dev, all, off
 
   # On a machine with multiple IP addresses, select the one to send the
   # HTTP requests from.
@@ -50,6 +49,9 @@ mirror:
   # no authentication information will be sent as part of the request.
   username: user
   passwd: password
+
+  # Use either a user name/password or an API key
+  #token: a valid github API key
 
   # Setting true here will force the client to sleep up to the next hour
   # if the request limit has been reached (less than 20 requests remain)
@@ -64,4 +66,3 @@ mongo:
   db: github           # DB name to store commits to
   username: github     # User name to connect to Mongo
   password: github     # Password for mongo
-  #replicas: host      # Identicaly configured MongoDB replica hostnames
