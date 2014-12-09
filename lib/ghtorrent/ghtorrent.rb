@@ -741,7 +741,7 @@ module GHTorrent
               end
               if processed == 0
                 warn "No commits found for #{user}/#{repo}, repo deleted?"
-                found = true
+                break
               end
             end
 
@@ -760,7 +760,7 @@ module GHTorrent
                         :commit_id => c[:id]
                     )
                   debug "GHTorrent: Copied commit #{c[:sha]} from #{parent_owner}/#{parent_repo} -> #{user}/#{repo}"
-              end
+                end
             end
           else
             ensure_commits(user, repo) if commits
