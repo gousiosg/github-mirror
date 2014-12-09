@@ -70,7 +70,7 @@ class GHTRepoRetriever
 
       repo_entry = ght.transaction { ght.ensure_repo(owner, repo,
                                                      commits = false,
-                                                     project_members = false,
+                                                     #project_members = false,
                                                      watchers = false,
                                                      forks = false,
                                                      labels = false) }
@@ -83,8 +83,7 @@ class GHTRepoRetriever
       debug("Retrieving repo #{owner}/#{repo}")
 
       retrieval_stages = %w(ensure_commits ensure_forks ensure_pull_requests
-                            ensure_issues ensure_project_members
-                            ensure_watchers ensure_labels)
+                            ensure_issues ensure_watchers ensure_labels) # ensure_project_members
 
       retrieval_stages.each do |x|
         run_retrieval_stage(ght, owner, repo, x)

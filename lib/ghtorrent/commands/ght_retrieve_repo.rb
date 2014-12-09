@@ -68,7 +68,7 @@ An efficient way to get all data for a single repo
     end
 
     functions = %w(ensure_commits ensure_forks ensure_pull_requests
-       ensure_issues ensure_project_members ensure_watchers ensure_labels)
+       ensure_issues ensure_watchers ensure_labels) #ensure_project_members
 
     if ARGV[2].nil?
       functions.each do |x|
