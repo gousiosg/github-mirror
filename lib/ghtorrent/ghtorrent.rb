@@ -1811,7 +1811,8 @@ module GHTorrent
       result = nil
       start_time = Time.now
       begin
-        @db.transaction(:rollback => :reraise, :isolation => :uncommitted) do
+        @db.transaction(:rollback => :reraise, :isolation => :repeatable,
+                        :retry_on => [Mysql2::Error], :num_retries => 3) do
           result = yield block
         end
         total = Time.now.to_ms - start_time.to_ms
