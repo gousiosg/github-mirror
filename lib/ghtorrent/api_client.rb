@@ -74,7 +74,7 @@ module GHTorrent
       url = ensure_max_per_page(url)
       data = determine_cache_and_do_request(true, url)
 
-      if data.meta.nil? or data.meta['link'].nil?
+      if data.nil? or data.meta.nil? or data.meta['link'].nil?
         return 1
       end
 

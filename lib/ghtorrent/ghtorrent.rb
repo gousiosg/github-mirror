@@ -75,7 +75,33 @@ module GHTorrent
     #  [date_added] The timestamp that the add event took place
     def get_project_member(owner, repo, new_member, date_added)
       transaction do
-        ensure_project_member(owner, repo, new_member, date_added)
+        pr_members = @db[:project_members]
+        project = ensure_repo(owner, repo)
+        new_user = ensure_user(new_member, false, false)
+
+        if project.nil? or new_user.nil?
+          return
+        end
+
+        memb_exist = pr_members.first(:user_id => new_user[:id],
+                                      :repo_id => project[:id])
+
+        if memb_exist.nil?
+          added = if date_added.nil?
+                    max(project[:created_at], new_user[:created_at])
+                  else
+                    date_added
+                  end
+
+          pr_members.insert(
+              :user_id => new_user[:id],
+              :repo_id => project[:id],
+              :created_at => date(added)
+          )
+          info "GHTorrent: Added project member #{repo} -> #{new_member}"
+        else
+          debug "GHTorrent: Project member #{repo} -> #{new_member} exists"
+        end
       end
     end
 
