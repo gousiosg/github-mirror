@@ -7,14 +7,12 @@ require 'json'
 require 'ghtorrent/logging'
 require 'ghtorrent/settings'
 require 'ghtorrent/time'
-require 'ghtorrent/cache'
 require 'version'
 
 module GHTorrent
   module APIClient
     include GHTorrent::Logging
     include GHTorrent::Settings
-    include GHTorrent::Cache
     include GHTorrent::Logging
 
     # This is to fix an annoying bug in JRuby's SSL not being able to
@@ -26,10 +24,10 @@ module GHTorrent
     # A paged request. Used when the result can expand to more than one
     # result pages.
     def paged_api_request(url, pages = config(:mirror_history_pages_back),
-        cache = true, last = nil)
+                          last = nil)
 
       url = ensure_max_per_page(url)
-      data = determine_cache_and_do_request(cache, url)
+      data = api_request_raw(url)
 
       return [] if data.nil?
 
@@ -49,12 +47,9 @@ module GHTorrent
         else
           parse_request_result(data) |
               if links['next'] == last
-                if last != links['last']
-                  warn "APIClient: Last header mismatch: method=#{last}, cache=#{links['last']}"
-                end
-                paged_api_request(links['next'], pages, false, last)
+                paged_api_request(links['next'], pages, last)
               else
-                paged_api_request(links['next'], pages, cache, last)
+                paged_api_request(links['next'], pages, last)
               end
         end
       else
@@ -65,14 +60,14 @@ module GHTorrent
 
     # A normal request. Returns a hash or an array of hashes representing the
     # parsed JSON result.
-    def api_request(url, cache = true)
-      parse_request_result api_request_raw(ensure_max_per_page(url), use_cache?(cache))
+    def api_request(url)
+      parse_request_result api_request_raw(ensure_max_per_page(url))
     end
 
     # Determine the number of pages contained in a multi-page API response
     def num_pages(url)
       url = ensure_max_per_page(url)
-      data = determine_cache_and_do_request(true, url)
+      data = api_request_raw(url)
 
       if data.nil? or data.meta.nil? or data.meta['link'].nil?
         return 1
@@ -106,60 +101,6 @@ module GHTorrent
       end
     end
 
-    def determine_cache_and_do_request(cache, url)
-      query = URI::parse(url).query
-      params = unless query.nil?
-                 CGI::parse(query)
-               else
-                 {}
-               end
-      if params.has_key?('page') or (params.has_key?('last_sha'))
-        api_request_raw(url, use_cache?(cache, method = :paged))
-      else
-        api_request_raw(url, use_cache?(cache, method = :non_paged))
-      end
-    end
-
-    # Determine whether to use cache or not, depending on the type of the
-    # request
-    def use_cache?(client_request, method = :non_paged)
-      @cache_mode ||= case config(:cache_mode)
-                        when 'dev'
-                          :dev
-                        when 'prod'
-                          :prod
-                        when 'all'
-                          :all
-                        when 'off'
-                        when false
-                          :off
-                        else
-                          raise GHTorrentException.new("Don't know cache configuration #{config(:cache_mode)}")
-                      end
-      case @cache_mode
-        when :off
-          return false
-        when :all
-          return true
-        when :dev
-          unless client_request
-            return false
-          end
-          return true
-        when :prod
-          if client_request
-            return true
-          else
-            case method
-              when :non_paged
-                return false
-              when :paged
-                return true
-            end
-          end
-      end
-    end
-
     # Parse a Github link header
     def parse_links(links)
       links.split(/,/).reduce({}) do |acc, x|
@@ -185,28 +126,14 @@ module GHTorrent
     end
 
     # Do the actual request and return the result object
-    def api_request_raw(url, use_cache = false)
+    def api_request_raw(url)
 
       begin
         start_time = Time.now
-        from_cache = false
 
-        contents =
-            if use_cache
-              if not (cached = cache_get(url)).nil?
-                from_cache = true
-                cached
-              else
-                tocache = Cachable.new(do_request(url))
-                cache_put(url, tocache)
-                tocache
-              end
-            else
-              do_request(url)
-            end
-
+        contents = do_request(url)
         total = Time.now.to_ms - start_time.to_ms
-        debug "APIClient[#{@attach_ip}]: Request: #{url} #{if from_cache then "from cache," else "(#{@remaining} remaining)," end} Total: #{total} ms"
+        debug "APIClient[#{@attach_ip}]: Request: #{url} (#{@remaining} remaining), Total: #{total} ms"
 
         contents
       rescue OpenURI::HTTPError => e
@@ -227,7 +154,7 @@ module GHTorrent
             raise e
         end
       ensure
-        if not from_cache and @remaining < 10
+        if @remaining < 10
           to_sleep = @reset - Time.now.to_i + 2
           debug "APIClient[#{@attach_ip}]: Request limit reached, sleeping for #{to_sleep} secs"
           t = Thread.new do
@@ -327,23 +254,4 @@ module GHTorrent
     end
 
   end
-end
-
-class Cachable
-
-  include OpenURI::Meta
-
-  attr_reader :base_uri, :meta, :status
-
-  def initialize(response)
-    @data = response.read
-    @base_uri = response.base_uri
-    @meta = response.meta
-    @status = response.status
-  end
-
-  def read
-    @data
-  end
-
 end

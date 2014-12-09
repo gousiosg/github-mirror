@@ -31,7 +31,6 @@ require 'ghtorrent/gh_torrent_exception'
 require 'ghtorrent/utils'
 require 'ghtorrent/logging'
 require 'ghtorrent/settings'
-require 'ghtorrent/cache'
 require 'ghtorrent/api_client'
 
 # Support for command line utilities offered by this gem

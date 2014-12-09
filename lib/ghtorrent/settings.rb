@@ -24,10 +24,6 @@ module GHTorrent
         :uniq_id => 'mirror.uniq_id',
         :user_agent => 'mirror.user_agent',
 
-        :cache_mode      => 'mirror.cache_mode',
-        :cache_dir       => 'mirror.cache_dir',
-        :cache_stale_age => 'mirror.cache_stale_age',
-
         :github_username => 'mirror.username',
         :github_passwd => 'mirror.passwd',
         :github_token => 'mirror.token',
@@ -52,10 +48,6 @@ module GHTorrent
         :mirror_history_pages_back => 1,
         :uniq_id => 'ext_ref_id',
         :user_agent => 'ghtorrent',
-
-        :cache_mode      => 'dev',
-        :cache_dir       => Dir::tmpdir + File::SEPARATOR + 'ghtorrent',
-        :cache_stale_age => 604800,
 
         :github_username => 'foo',
         :github_passwd => 'bar',
