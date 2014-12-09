@@ -32,8 +32,6 @@ module GHTorrent
         :github_passwd => 'mirror.passwd',
         :github_token => 'mirror.token',
 
-        :respect_api_ratelimit => 'mirror.respect_api_ratelimit',
-
         :attach_ip => 'mirror.attach_ip',
 
         :rescue_loops => 'mirror.rescue_loops'
@@ -62,8 +60,6 @@ module GHTorrent
         :github_username => 'foo',
         :github_passwd => 'bar',
         :github_token => '',
-
-        :respect_api_ratelimit => 'true',
 
         :attach_ip => '0.0.0.0',
 
