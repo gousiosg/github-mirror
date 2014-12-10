@@ -30,7 +30,8 @@ module GHTorrent
 
         :attach_ip => 'mirror.attach_ip',
 
-        :rescue_loops => 'mirror.rescue_loops'
+        :rescue_loops => 'mirror.rescue_loops',
+        :req_limit => 'mirror.req_limit'
     }
 
     DEFAULTS = {
@@ -55,7 +56,8 @@ module GHTorrent
 
         :attach_ip => '0.0.0.0',
 
-        :rescue_loops => 'true'
+        :rescue_loops => 'true',
+        :req_limit => 5000
     }
 
     def config(key, use_default = true)

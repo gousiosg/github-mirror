@@ -45,12 +45,7 @@ module GHTorrent
         if links['next'].nil?
           parse_request_result(data)
         else
-          parse_request_result(data) |
-              if links['next'] == last
-                paged_api_request(links['next'], pages, last)
-              else
-                paged_api_request(links['next'], pages, last)
-              end
+          parse_request_result(data) | paged_api_request(links['next'], pages, last)
         end
       else
         parse_request_result(data)
@@ -154,7 +149,8 @@ module GHTorrent
             raise e
         end
       ensure
-        if @remaining < 10
+        # The exact limit is only enforced upon the first @reset
+        if 5000 - @remaining > @req_limit
           to_sleep = @reset - Time.now.to_i + 2
           debug "APIClient[#{@attach_ip}]: Request limit reached, sleeping for #{to_sleep} secs"
           t = Thread.new do
@@ -189,9 +185,10 @@ module GHTorrent
       @username   ||= config(:github_username)
       @passwd     ||= config(:github_passwd)
       @user_agent ||= config(:user_agent)
-      @remaining  ||= 10
+      @remaining  ||= 5000
       @reset      ||= Time.now.to_i + 3600
       @auth_type  ||= auth_method(@username, @token)
+      @req_limit  ||= config(:req_limit)
 
       open_func ||=
           case @auth_type

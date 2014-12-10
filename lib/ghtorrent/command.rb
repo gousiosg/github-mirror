@@ -60,6 +60,13 @@ module GHTorrent
                                                      command.options[:token])
         end
 
+        unless command.options[:req_limit].nil?
+          command.settings = command.override_config(command.settings,
+                                                     :req_limit,
+                                                     command.options[:req_limit])
+        end
+
+
         begin
           command.go
         rescue => e
@@ -94,6 +101,8 @@ Standard options:
         opt :password, 'Password at Github', :type => String
         opt :token, 'OAuth Github token (use instead of username/password)',
             :type => String, :short => 't'
+        opt :req_limit, 'Request limit for provided account (in reqs/hour)',
+            :type => Integer, :short => 'l'
       end
     end
 
