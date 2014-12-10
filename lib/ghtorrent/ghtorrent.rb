@@ -236,7 +236,7 @@ module GHTorrent
     # [sha]   The first commit to start retrieving from. If nil, then retrieval
     #         starts from what the project considers as master branch.
     # [return_retrieved] Should retrieved commits be returned? If not, memory is
-    #                    saved while processing them if this is false
+    #                    saved while processing them.
     def ensure_commits(user, repo, sha = nil, return_retrieved = false)
 
       commits = ['foo'] # Dummy entry for simplifying the loop below
@@ -656,129 +656,148 @@ module GHTorrent
 
       currepo = repos.first(:owner_id => curuser[:id], :name => repo)
 
-      if currepo.nil?
-        r = retrieve_repo(user, repo)
-
-        if r.nil?
-          warn "Repo #{user}/#{repo} does not exist"
-          return
-        end
-
-        repos.insert(:url => r['url'],
-                     :owner_id => curuser[:id],
-                     :name => r['name'],
-                     :description => r['description'],
-                     :language => r['language'],
-                     :created_at => date(r['created_at']),
-                     :ext_ref_id => r[@ext_uniq])
-
-        unless r['parent'].nil?
-          parent_owner = r['parent']['owner']['login']
-          parent_repo = r['parent']['name']
-
-          parent = ensure_repo(parent_owner, parent_repo)
-
-          repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => parent[:id])
-
-          info "Repo #{user}/#{repo} is a fork from #{parent_owner}/#{parent_repo}"
-        end
-
-        info "GHTorrent: New repo #{user}/#{repo}"
-
-        begin
-          watchdog = nil
-          unless parent.nil?
-            watchdog = Thread.new do
-              slept = 0
-              while true do
-                debug "GHTorrent: In ensure_repo_fork for #{slept} seconds"
-                sleep 1
-                slept += 1
-              end
-            end
-            # Fast path to project forking. Retrieve all commits page by page
-            # until we reach a commit that has been registered with the parent
-            # repository. Then, copy all remaining parent commits to this repo.
-            debug "GHTorrent: Retrieving commits for #{user}/#{repo} until we reach a commit shared with the parent"
-
-            sha = nil
-            # Refresh the latest commits for the parent.
-            retrieve_commits(parent_repo, sha, parent_owner, 1).each do |c|
-              sha = c['sha']
-              ensure_commit(parent_repo, sha, parent_owner, true)
-            end
-
-            sha = nil
-            found = false
-            while not found
-              processed = 0
-              commits = retrieve_commits(repo, sha, user, 1)
-
-              # If only one commit has been retrieved (and this is the same as
-              # the commit since which we query commits from) this mean that
-              # there are no more commits.
-              if commits.size == 1 and commits[0]['sha'] == sha
-                debug "GHTorrent: No shared commit found and no more commits for #{user}/#{repo}"
-                break
-              end
-
-              for c in commits
-                processed += 1
-                exists_in_parent =
-                    !@db.from(:project_commits, :commits).\
-                         where(:project_commits__commit_id => :commits__id).\
-                         where(:project_commits__project_id => parent[:id]).\
-                         where(:commits__sha => c['sha']).first.nil?
-
-                sha = c['sha']
-                if not exists_in_parent
-                  ensure_commit(repo, sha, user, true)
-                else
-                  found = true
-                  debug "GHTorrent: Found commit #{sha} shared with parent, switching to copying commits"
-                  break
-                end
-              end
-              if processed == 0
-                warn "No commits found for #{user}/#{repo}, repo deleted?"
-                break
-              end
-            end
-
-            if found
-              shared_commit = @db[:commits].first(:sha => sha)
-              forked_repo = repos.first(:owner_id => curuser[:id], :name => repo)
-
-              @db.from(:project_commits, :commits).\
-                  where(:project_commits__commit_id => :commits__id).\
-                  where(:project_commits__project_id => parent[:id]).\
-                  where('commits.created_at < ?', shared_commit[:created_at]).\
-                  select(:commits__id, :commits__sha).\
-                  each do |c|
-                    @db[:project_commits].insert(
-                        :project_id => forked_repo[:id],
-                        :commit_id => c[:id]
-                    )
-                  debug "GHTorrent: Copied commit #{c[:sha]} from #{parent_owner}/#{parent_repo} -> #{user}/#{repo}"
-                end
-            end
-          else
-            ensure_commits(user, repo) if commits
-          end
-          #ensure_project_members(user, repo) if project_members
-          ensure_watchers(user, repo) if watchers
-          ensure_forks(user, repo) if forks
-          ensure_labels(user, repo) if labels
-        ensure
-          unless watchdog.nil?
-            watchdog.exit
-          end
-        end
-        repos.first(:owner_id => curuser[:id], :name => repo)
-      else
+      unless currepo.nil?
         debug "GHTorrent: Repo #{user}/#{repo} exists"
-        currepo
+        return currepo
       end
+
+      r = retrieve_repo(user, repo)
+
+      if r.nil?
+        warn "Repo #{user}/#{repo} does not exist"
+        return
+      end
+
+      repos.insert(:url => r['url'],
+                   :owner_id => curuser[:id],
+                   :name => r['name'],
+                   :description => r['description'],
+                   :language => r['language'],
+                   :created_at => date(r['created_at']),
+                   :ext_ref_id => r[@ext_uniq])
+
+      unless r['parent'].nil?
+        parent_owner = r['parent']['owner']['login']
+        parent_repo = r['parent']['name']
+
+        parent = ensure_repo(parent_owner, parent_repo)
+
+        repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => parent[:id])
+
+        info "GHTorrent: Repo #{user}/#{repo} is a fork from #{parent_owner}/#{parent_repo}"
+      end
+
+      info "GHTorrent: New repo #{user}/#{repo}"
+
+
+      unless parent.nil?
+        ensure_fork_commits(user, repo, parent_owner, parent_repo)
+      else
+        ensure_commits(user, repo) if commits
+      end
+      #ensure_project_members(user, repo) if project_members
+      ensure_watchers(user, repo) if watchers
+      ensure_forks(user, repo) if forks
+      ensure_labels(user, repo) if labels
+
+      repos.first(:owner_id => curuser[:id], :name => repo)
+    end
+
+
+    # Fast path to project forking. Retrieve all commits page by page
+    # until we reach a commit that has been registered with the parent
+    # repository. Then, copy all remaining parent commits to this repo.
+    def ensure_fork_commits(owner, repo, parent_owner, parent_repo)
+
+      currepo = ensure_repo(owner, repo, commits = false, watchers = false,
+                            forks = false, labels = false)
+
+      if currepo.nil?
+        warn "GHTorrent: Cannot find repo #{owner}/#{repo}"
+        return
+      end
+
+      parent = ensure_repo(parent_owner, parent_repo, commits = false,
+                           watchers = false, forks = false, labels = false)
+
+      if parent.nil?
+        warn "GHTorrent: Cannot find parent repo #{owner}/#{repo}"
+        return
+      end
+
+      watchdog = Thread.new do
+        slept = 0
+        while true do
+          debug "GHTorrent: In ensure_fork_commits (#{owner}/#{repo} fork from #{parent_owner}/#{parent_repo}) for #{slept} seconds"
+          sleep 1
+          slept += 1
+        end
+      end
+      debug "GHTorrent: Retrieving commits for #{owner}/#{repo} until we reach a commit shared with the parent"
+
+      sha = nil
+      # Refresh the latest commits for the parent.
+      retrieve_commits(parent_repo, sha, parent_owner, 1).each do |c|
+        sha = c['sha']
+        ensure_commit(parent_repo, sha, parent_owner, true)
+      end
+
+      sha = nil
+      found = false
+      while not found
+        processed = 0
+        commits = retrieve_commits(repo, sha, owner, 1)
+
+        # If only one commit has been retrieved (and this is the same as
+        # the commit since which we query commits from) this mean that
+        # there are no more commits.
+        if commits.size == 1 and commits[0]['sha'] == sha
+          debug "GHTorrent: No shared commit found and no more commits for #{owner}/#{repo}"
+          break
+        end
+
+        for c in commits
+          processed += 1
+          exists_in_parent =
+              !@db.from(:project_commits, :commits).\
+                       where(:project_commits__commit_id => :commits__id).\
+                       where(:project_commits__project_id => parent[:id]).\
+                       where(:commits__sha => c['sha']).first.nil?
+
+          sha = c['sha']
+          if exists_in_parent
+            found = true
+            debug "GHTorrent: Found commit #{sha} shared with parent, switching to copying commits"
+            break
+          else
+            ensure_commit(repo, sha, owner, true)
+          end
+        end
+
+        if processed == 0
+          warn "No commits found for #{owner}/#{repo}, repo deleted?"
+          break
+        end
+      end
+
+      if found
+        shared_commit = @db[:commits].first(:sha => sha)
+        copied = 0
+        @db.from(:project_commits, :commits).\
+                where(:project_commits__commit_id => :commits__id).\
+                where(:project_commits__project_id => parent[:id]).\
+                where('commits.created_at < ?', shared_commit[:created_at]).\
+                select(:commits__id, :commits__sha).\
+            each do |c|
+              copied += 1
+              @db[:project_commits].insert(
+                  :project_id => currepo[:id],
+                  :commit_id => c[:id]
+              )
+              debug "GHTorrent: Copied commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} (#{copied} total)"
+            end
+      end
+      watchdog.exit
     end
 
     ##
