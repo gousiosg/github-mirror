@@ -530,21 +530,30 @@ module GHTorrent
 
       info "New repo #{user}/#{repo}"
 
-      if recursive
-        unless parent.nil?
-          ensure_fork_commits(user, repo, parent_owner, parent_repo)
-        else
-          ensure_commits(user, repo)
-        end
-        #ensure_project_members(user, repo) if project_members
-        ensure_watchers(user, repo)
-        ensure_forks(user, repo)
-        ensure_labels(user, repo)
-      end
+      ensure_repo_recursive(owner, repo, !r['parent'].nil?) if recursive
 
       repos.first(:owner_id => curuser[:id], :name => repo)
     end
 
+    def ensure_repo_recursive(owner, repo, is_fork)
+
+      if is_fork
+        r = retrieve_repo(owner, repo)
+        parent_owner = r['parent']['owner']['login']
+        parent_repo = r['parent']['name']
+        ensure_fork_commits(owner, repo, parent_owner, parent_repo)
+      else
+        ensure_commits(owner, repo)
+      end
+
+      functions = %w(ensure_labels ensure_pull_requests
+       ensure_issues ensure_watchers ensure_forks)
+
+      functions.each do |x|
+        send(x, owner, repo)
+      end
+
+    end
 
     # Fast path to project forking. Retrieve all commits page by page
     # until we reach a commit that has been registered with the parent
@@ -1272,6 +1281,7 @@ module GHTorrent
       else
         info "Added #{fork_owner}/#{fork_name} as fork of  #{owner}/#{repo}"
       end
+      r
     end
 
     ##

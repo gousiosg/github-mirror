@@ -116,9 +116,11 @@ class GHTDataRetrieval < GHTorrent::Command
     repo = data['repo']['name'].split(/\//)[1]
     fork_id = data['payload']['forkee']['id']
 
-    ghtorrent.transaction do
-      ghtorrent.ensure_fork(owner, repo, fork_id)
-    end
+    forkee_owner = data['payload']['forkee']['owner']['login']
+    forkee_repo = data['payload']['forkee']['name']
+
+    ghtorrent.ensure_fork(owner, repo, fork_id)
+    ghtorrent.ensure_repo_recursive(forkee_owner, forkee_repo, true)
   end
 
   def PullRequestReviewCommentEvent(data)
@@ -147,13 +149,20 @@ class GHTDataRetrieval < GHTorrent::Command
     ghtorrent.ensure_issue_comment(owner, repo, issue_id, comment_id)
   end
 
+  def CreateEvent(data)
+    owner = data['repo']['name'].split(/\//)[0]
+    repo = data['repo']['name'].split(/\//)[1]
+    return unless data['payload']['ref_type'] == 'repository'
 
+    ghtorrent.ensure_repo(owner, repo)
+    ghtorrent.ensure_repo_recursive(owner, repo, false)
+  end
 
   def handlers
     %w(PushEvent WatchEvent FollowEvent MemberEvent CreateEvent
         CommitCommentEvent PullRequestEvent ForkEvent
         PullRequestReviewCommentEvent IssuesEvent IssueCommentEvent)
-    #%w(PullRequestEvent)
+    #%w(ForkEvent)
   end
 
   def prepare_options(options)

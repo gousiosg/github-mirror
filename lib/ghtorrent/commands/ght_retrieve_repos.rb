@@ -69,11 +69,7 @@ class GHTRepoRetriever
       end
 
       repo_entry = ght.transaction { ght.ensure_repo(owner, repo,
-                                                     commits = false,
-                                                     #project_members = false,
-                                                     watchers = false,
-                                                     forks = false,
-                                                     labels = false) }
+                                                     recursive = false) }
 
       if repo_entry.nil?
         warn("Cannot find repository #{owner}/#{repo}")
