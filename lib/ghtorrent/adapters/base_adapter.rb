@@ -11,7 +11,7 @@ module GHTorrent
     # Stores +data+ into +entity+. Returns a unique key for the stored entry.
     def store(entity, data = {})
       unless ENTITIES.include?(entity)
-        raise GHTorrentException.new("Perister: Entity #{entity} not known")
+        raise "Perister: Entity #{entity} not known"
       end
     end
 
@@ -52,14 +52,14 @@ module GHTorrent
     # matching JSON object.
     def find(entity, query = {})
       unless ENTITIES.include?(entity)
-        raise GHTorrentException.new("Perister: Entity #{entity} not known")
+        raise "Perister: Entity #{entity} not known"
       end
     end
 
     # Find the record identified by +id+ in +entity+
     def find_by_ext_ref_id(entity, id)
       unless ENTITIES.include?(entity)
-        raise GHTorrentException.new("Perister: Entity #{entity} not known")
+        raise "Perister: Entity #{entity} not known"
       end
     end
 
@@ -67,13 +67,13 @@ module GHTorrent
     # The +query+ can be any query supported by +find+.
     def count(entity, query = {})
       unless ENTITIES.include?(entity)
-        raise GHTorrentException.new("Perister: Entity #{entity} not known")
+        raise "Perister: Entity #{entity} not known"
       end
     end
 
     def del(entity, query = {})
       unless ENTITIES.include?(entity)
-        raise GHTorrentException.new("Perister: Entity #{entity} not known")
+        raise "Perister: Entity #{entity} not known"
       end
     end
 

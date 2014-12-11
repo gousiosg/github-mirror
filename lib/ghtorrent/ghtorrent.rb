@@ -193,8 +193,6 @@ module GHTorrent
     # The (added/modified) user entry as a Hash.
     def commit_user(githubuser, commituser)
 
-      raise GHTorrentException.new "git user is null" if commituser.nil?
-
       users = @db[:users]
 
       name = commituser['name']
@@ -279,7 +277,8 @@ module GHTorrent
           name = name.strip unless name.nil?
           email = email.strip unless email.nil?
         rescue Exception
-          raise new GHTorrentException.new("Not a valid email address: #{user}")
+          error("Not a valid email address: #{user}")
+          return
         end
 
         unless is_valid_email(email)

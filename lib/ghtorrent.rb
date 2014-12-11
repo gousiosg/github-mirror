@@ -27,7 +27,6 @@ require 'ghtorrent/bson_orderedhash'
 
 # Basic utility modules
 require 'version'
-require 'ghtorrent/gh_torrent_exception'
 require 'ghtorrent/utils'
 require 'ghtorrent/logging'
 require 'ghtorrent/settings'
