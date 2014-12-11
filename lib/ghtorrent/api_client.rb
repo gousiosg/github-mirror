@@ -128,7 +128,7 @@ module GHTorrent
 
         contents = do_request(url)
         total = Time.now.to_ms - start_time.to_ms
-        debug "APIClient[#{@attach_ip}]: Request: #{url} (#{@remaining} remaining), Total: #{total} ms"
+        debug "[#{@attach_ip}]: Request: #{url} (#{@remaining} remaining), Total: #{total} ms"
 
         contents
       rescue OpenURI::HTTPError => e
@@ -140,23 +140,23 @@ module GHTorrent
               404, # Not found
               422 then # Unprocessable entity
             total = Time.now.to_ms - start_time.to_ms
-            warn "APIClient[#{@attach_ip}]: Request: #{url} (#{@remaining} remaining), Total: #{total} ms, Status: #{e.io.status[1]}"
+            warn "[#{@attach_ip}]: Request: #{url} (#{@remaining} remaining), Total: #{total} ms, Status: #{e.io.status[1]}"
             @remaining = e.io.meta['x-ratelimit-remaining'].to_i
             @reset = e.io.meta['x-ratelimit-reset'].to_i
             return nil
           else # Server error or HTTP conditions that Github does not report
-            warn "APIClient: #{url}: #{e.io.status[1]}"
+            warn ": #{url}: #{e.io.status[1]}"
             raise e
         end
       ensure
         # The exact limit is only enforced upon the first @reset
         if 5000 - @remaining > @req_limit
           to_sleep = @reset - Time.now.to_i + 2
-          debug "APIClient[#{@attach_ip}]: Request limit reached, sleeping for #{to_sleep} secs"
+          debug "[#{@attach_ip}]: Request limit reached, sleeping for #{to_sleep} secs"
           t = Thread.new do
             slept = 0
             while true do
-              debug "APIClient[#{@attach_ip}]: sleeping for #{to_sleep - slept} seconds"
+              debug "[#{@attach_ip}]: sleeping for #{to_sleep - slept} seconds"
               sleep 1
               slept += 1
             end

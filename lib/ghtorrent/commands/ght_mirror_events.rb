@@ -15,10 +15,7 @@ class GHTMirrorEvents < GHTorrent::Command
   include GHTorrent::Logging
   include GHTorrent::Persister
   include GHTorrent::APIClient
-
-  def logger
-    @logger
-  end
+  include GHTorrent::Logging
 
   def store_count(events)
     stored = Array.new
@@ -41,7 +38,7 @@ class GHTMirrorEvents < GHTorrent::Command
   def retrieve(exchange)
     begin
       new = dupl = 0
-      events = api_request "https://api.github.com/events", false
+      events = api_request "https://api.github.com/events"
       (new, dupl, stored) = store_count events
 
       # This means that first page cannot contain all new events. Go
@@ -66,7 +63,6 @@ class GHTMirrorEvents < GHTorrent::Command
 
   def go
     @persister = connect(:mongo, @settings)
-    @logger = Logger.new(STDOUT)
 
     conn = Bunny.new(:host => config(:amqp_host),
                      :port => config(:amqp_port),
@@ -75,7 +71,7 @@ class GHTMirrorEvents < GHTorrent::Command
     conn.start
 
     ch  = conn.create_channel
-    @logger.debug "Connection to #{config(:amqp_host)} succeded"
+    debug "Connection to #{config(:amqp_host)} succeded"
 
     exchange = ch.topic(config(:amqp_exchange), :durable => true,
                  :auto_delete => false)

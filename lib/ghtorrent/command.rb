@@ -17,6 +17,7 @@ module GHTorrent
   class Command
 
     include GHTorrent::Settings
+    include GHTorrent::Logging
 
     # Specify the run method for subclasses.
     class << self

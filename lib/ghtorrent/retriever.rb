@@ -4,6 +4,7 @@ require 'cgi'
 require 'ghtorrent/api_client'
 require 'ghtorrent/settings'
 require 'ghtorrent/utils'
+require 'ghtorrent/logging'
 require 'ghtorrent/gh_torrent_exception'
 
 module GHTorrent
@@ -12,6 +13,7 @@ module GHTorrent
     include GHTorrent::Settings
     include GHTorrent::Utils
     include GHTorrent::APIClient
+    include GHTorrent::Logging
 
     def ext_uniq
       raise Exception.new("Unimplemented")
@@ -34,11 +36,11 @@ module GHTorrent
         unq = persister.store(:users, u)
         u[ext_uniq] = unq
         what = user_type(u['type'])
-        info "Retriever: New #{what} #{user}"
+        info "New #{what} #{user}"
         u
       else
         what = user_type(stored_user.first['type'])
-        debug "Retriever: Already got #{what} #{user}"
+        debug "Already got #{what} #{user}"
         stored_user.first
       end
     end
@@ -80,14 +82,14 @@ module GHTorrent
         end
       else
         unless byemail['user']['login'].nil?
-          info "Retriever: User #{byemail['user']['login']} retrieved by email #{email}"
+          info "User #{byemail['user']['login']} retrieved by email #{email}"
           retrieve_user_byusername(byemail['user']['login'])
         else
           u = byemail['user']
           unq = persister.store(:users, u)
           u[ext_uniq] = unq
           what = user_type(u['type'])
-          info "Retriever: New #{what} #{user}"
+          info "New #{what} #{user}"
           u
         end
       end
@@ -114,9 +116,9 @@ module GHTorrent
 
         if not exists
           persister.store(:followers, x)
-          info "Retriever: Added follower #{user} -> #{x['login']}"
+          info "Added follower #{user} -> #{x['login']}"
         else
-          debug "Retriever: Follower #{user} -> #{x['login']} exists"
+          debug "Follower #{user} -> #{x['login']} exists"
         end
       end
 
@@ -136,11 +138,11 @@ module GHTorrent
         end
 
         unq = persister.store(:commits, c)
-        info "Retriever: New commit #{user}/#{repo} -> #{sha}"
+        info "New commit #{user}/#{repo} -> #{sha}"
         c[ext_uniq] = unq
         c
       else
-        debug "Retriever: Already got commit #{user}/#{repo} -> #{sha}"
+        debug "Already got commit #{user}/#{repo} -> #{sha}"
         commit.first
       end
     end
@@ -173,11 +175,11 @@ module GHTorrent
         end
 
         unq = persister.store(:repos, r)
-        info "Retriever: New repo #{user} -> #{repo}"
+        info "New repo #{user} -> #{repo}"
         r[ext_uniq] = unq
         r
       else
-        debug "Retriever: Already got repo #{user} -> #{repo}"
+        debug "Already got repo #{user} -> #{repo}"
         stored_repo.first
       end
     end
@@ -208,9 +210,9 @@ module GHTorrent
 
         if not exists
           persister.store(:org_members, x)
-          info "Retriever: Added org member #{org} -> #{x['login']}"
+          info "Added org member #{org} -> #{x['login']}"
         else
-          debug "Retriever: Org Member #{org} -> #{x['login']} exists"
+          debug "Org Member #{org} -> #{x['login']} exists"
         end
       end
 
@@ -239,15 +241,15 @@ module GHTorrent
         r = api_request(ghurl "repos/#{owner}/#{repo}/comments/#{id}")
 
         if r.empty?
-          debug "Retriever: Commit comment #{id} deleted"
+          debug "Commit comment #{id} deleted"
           return
         end
 
         persister.store(:commit_comments, r)
-        info "Retriever: Added commit comment #{r['commit_id']} -> #{r['id']}"
+        info "Added commit comment #{r['commit_id']} -> #{r['id']}"
         persister.find(:commit_comments, {'commit_id' => sha, 'id' => id}).first
       else
-        debug "Retriever: Commit comment #{comment['commit_id']} -> #{comment['id']} exists"
+        debug "Commit comment #{comment['commit_id']} -> #{comment['id']} exists"
         comment
       end
     end
@@ -360,7 +362,7 @@ module GHTorrent
         r = api_request(ghurl "repos/#{owner}/#{repo}/pulls/comments/#{comment_id}")
 
         if r.empty?
-          debug "Retriever: Pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id} deleted"
+          debug "Pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id} deleted"
           return
         end
 
@@ -368,12 +370,12 @@ module GHTorrent
         r['owner'] = owner
         r['pullreq_id'] = pullreq_id.to_i
         persister.store(:pull_request_comments, r)
-        info "Retriever: Added pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id}"
+        info "Added pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id}"
         persister.find(:pull_request_comments, {'repo' => repo, 'owner' => owner,
                                          'pullreq_id' => pullreq_id,
                                          'id' => comment_id}).first
       else
-        debug "Retriever: Pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id} exists"
+        debug "Pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id} exists"
         comment
       end
     end
@@ -409,7 +411,7 @@ module GHTorrent
                                           'repo' => repo,
                                           'issue_id' => issue_id,
                                           'id' => x['id']}).empty?
-          info "Retriever: Added issue event #{owner}/#{repo} #{issue_id}->#{x['id']}"
+          info "Added issue event #{owner}/#{repo} #{issue_id}->#{x['id']}"
           persister.store(:issue_events, x)
         end
         x
@@ -428,7 +430,7 @@ module GHTorrent
         r = api_request(ghurl "repos/#{owner}/#{repo}/issues/events/#{event_id}")
 
         if r.empty?
-          warn "Retriever: Issue event #{owner}/#{repo} #{issue_id}->#{event_id} deleted"
+          warn "Issue event #{owner}/#{repo} #{issue_id}->#{event_id} deleted"
           return
         end
 
@@ -436,13 +438,13 @@ module GHTorrent
         r['owner'] = owner
         r['issue_id'] = issue_id
         persister.store(:issue_events, r)
-        info "Retriever: Added issue event #{owner}/#{repo} #{issue_id}->#{event_id}"
+        info "Added issue event #{owner}/#{repo} #{issue_id}->#{event_id}"
         a = persister.find(:issue_events, {'repo' => repo, 'owner' => owner,
                                        'issue_id' => issue_id,
                                        'id' => event_id}).first
         if a.nil? then r[ext_uniq] = '0'; r else a end
       else
-        debug "Retriever: Issue event #{owner}/#{repo} #{issue_id}->#{event_id} exists"
+        debug "Issue event #{owner}/#{repo} #{issue_id}->#{event_id} exists"
         event
       end
     end
@@ -478,7 +480,7 @@ module GHTorrent
         r = api_request(ghurl "repos/#{owner}/#{repo}/issues/comments/#{comment_id}")
 
         if r.empty?
-          warn "Retriever: Issue comment #{owner}/#{repo} #{issue_id}->#{comment_id} deleted"
+          warn "Issue comment #{owner}/#{repo} #{issue_id}->#{comment_id} deleted"
           return
         end
 
@@ -486,13 +488,13 @@ module GHTorrent
         r['owner'] = owner
         r['issue_id'] = issue_id
         persister.store(:issue_comments, r)
-        info "Retriever: Added issue comment #{owner}/#{repo} #{issue_id}->#{comment_id}"
+        info "Added issue comment #{owner}/#{repo} #{issue_id}->#{comment_id}"
         a = persister.find(:issue_comments, {'repo' => repo, 'owner' => owner,
                                          'issue_id' => issue_id,
                                          'id' => comment_id}).first
         if a.nil? then r[ext_uniq] = '0'; r else a end
       else
-        debug "Retriever: Issue comment #{owner}/#{repo} #{issue_id}->#{comment_id} exists"
+        debug "Issue comment #{owner}/#{repo} #{issue_id}->#{comment_id} exists"
         comment
       end
     end
@@ -528,10 +530,10 @@ module GHTorrent
 
       r.each do |e|
         if get_event(e['id']).empty?
-          info "Retriever: Already got event #{owner}/#{repo} -> #{e['id']}"
+          info "Already got event #{owner}/#{repo} -> #{e['id']}"
         else
           @persister.store(:events, e)
-          info "Retriever: Added event #{owner}/#{repo} -> #{e['id']}"
+          info "Added event #{owner}/#{repo} -> #{e['id']}"
         end
       end
     end
@@ -576,7 +578,7 @@ module GHTorrent
 
             unless exists
               persister.store(entity, x)
-              info "Retriever: Added #{entity} #{user}/#{repo} -> #{x[discriminator]}"
+              info "Added #{entity} #{user}/#{repo} -> #{x[discriminator]}"
             else
               if refresh
                 instances.each do |i|
@@ -590,10 +592,10 @@ module GHTorrent
                   instance_selector = selector.merge({discriminator => id})
                   persister.del(entity, instance_selector)
                   persister.store(entity, x)
-                  debug "Retriever: Refreshing #{entity} #{user}/#{repo} -> #{x[discriminator]}"
+                  debug "Refreshing #{entity} #{user}/#{repo} -> #{x[discriminator]}"
                 end
               else
-                debug "Retriever: #{entity} #{user}/#{repo} -> #{x[discriminator]} exists"
+                debug "#{entity} #{user}/#{repo} -> #{x[discriminator]} exists"
               end
             end
 

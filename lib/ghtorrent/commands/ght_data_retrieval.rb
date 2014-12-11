@@ -27,7 +27,7 @@ class GHTDataRetrieval < GHTorrent::Command
       url = c['url'].split(/\//)
 
       unless url[7].match(/[a-f0-9]{40}$/)
-        error "GHTorrent: Ignoring commit #{sha}"
+        error "Ignoring commit #{sha}"
         return
       end
 
@@ -166,10 +166,10 @@ class GHTDataRetrieval < GHTorrent::Command
   end
 
   def handlers
-    %w(PushEvent WatchEvent FollowEvent MemberEvent
-        CommitCommentEvent PullRequestEvent ForkEvent
-        PullRequestReviewCommentEvent IssuesEvent IssueCommentEvent)
-    #%w(PullRequestEvent)
+    #%w(PushEvent WatchEvent FollowEvent MemberEvent
+    #    CommitCommentEvent PullRequestEvent ForkEvent
+    #    PullRequestReviewCommentEvent IssuesEvent IssueCommentEvent)
+    %w(PushEvent)
   end
 
   def prepare_options(options)
@@ -198,7 +198,7 @@ If event_id is provided, only this event is processed.
     event = persister.get_underlying_connection[:events].find_one('id' => evt_id)
     event.delete '_id'
     data = parse(event.to_json)
-    info "GHTDataRetrieval: Processing event: #{data['type']}-#{data['id']}"
+    info "Processing event: #{data['type']}-#{data['id']}"
     data
   end
 
@@ -208,7 +208,7 @@ If event_id is provided, only this event is processed.
       event = retrieve_event(ARGV[0])
 
       if event.nil?
-        warn "GHTDataRetrieval: No event with id: #{ARGV[0]}"
+        warn "No event with id: #{ARGV[0]}"
       else
         send(event['type'], event)
       end
@@ -233,7 +233,7 @@ If event_id is provided, only this event is processed.
       queue = channel.queue("#{h}s", {:durable => true})\
                          .bind(exchange, :routing_key => "evt.#{h}")
 
-      info "GHTDataRetrieval: Binding handler #{h} to routing key evt.#{h}"
+      info "Binding handler #{h} to routing key evt.#{h}"
 
       queue.subscribe(:ack => true) do |headers, properties, msg|
         begin
@@ -242,11 +242,11 @@ If event_id is provided, only this event is processed.
           send(h, data)
 
           channel.acknowledge(headers.delivery_tag, false)
-          info "GHTDataRetrieval: Processed event: #{data['type']}-#{data['id']}"
+          info "Processed event: #{data['type']}-#{data['id']}"
         rescue Exception => e
           # Give a message a chance to be reprocessed
           if headers.redelivered?
-            warn "GHTDataRetrieval: Could not process event: #{msg}"
+            warn "Could not process event: #{msg}"
             channel.reject(headers.delivery_tag, false)
           else
             channel.reject(headers.delivery_tag, true)

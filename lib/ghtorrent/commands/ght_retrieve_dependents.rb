@@ -4,7 +4,6 @@ require 'pp'
 
 require 'ghtorrent/ghtorrent'
 require 'ghtorrent/settings'
-require 'ghtorrent/logging'
 require 'ghtorrent/command'
 
 class GHTRetrieveDependents < GHTorrent::Command
@@ -32,10 +31,6 @@ pull_request  (owner repo pullreq_id)
       :issue => 3,
       :pull_request => 3
   }
-
-  def logger
-    ghtorrent.logger
-  end
 
   def persister
     @persister ||= connect(:mongo, settings)

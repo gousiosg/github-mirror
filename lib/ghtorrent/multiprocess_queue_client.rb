@@ -33,11 +33,6 @@ Values in the config.yaml file set with the -c command are overridden.
                 :type => :string
   end
 
-  def logger
-    @logger ||= Logger.new(STDOUT)
-    @logger
-  end
-
   def validate
     super
     Trollop::die 'Argument mapping-file is required' unless not args[0].nil?

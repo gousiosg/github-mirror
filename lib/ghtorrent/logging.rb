@@ -19,22 +19,35 @@ module GHTorrent
 
     private
 
+    def retrieve_caller
+      @logprefixes ||= Hash.new
+
+      c = caller[2]
+      unless @logprefixes.key? c
+        file_path = c.split(/:/)[0]
+        @logprefixes[c] = File.basename(file_path) + ': '
+      end
+
+      @logprefixes[c]
+
+    end
+
     # Log a message at the given level.
     def log(level, msg)
 
       case level
         when :fatal then
-          logger.fatal msg
+          logger.fatal (retrieve_caller + msg)
         when :error then
-          logger.error msg
+          logger.error (retrieve_caller + msg)
         when :warn then
-          logger.warn msg
+          logger.warn  (retrieve_caller + msg)
         when :info then
-          logger.info msg
+          logger.info  (retrieve_caller + msg)
         when :debug then
-          logger.debug msg
+          logger.debug (retrieve_caller + msg)
         else
-          logger.debug msg
+          logger.debug (retrieve_caller + msg)
       end
     end
 

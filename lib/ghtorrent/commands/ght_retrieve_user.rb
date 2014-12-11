@@ -2,7 +2,6 @@ require 'rubygems'
 
 require 'ghtorrent/ghtorrent'
 require 'ghtorrent/settings'
-require 'ghtorrent/logging'
 require 'ghtorrent/command'
 require 'ghtorrent/retriever'
 require 'ghtorrent/transacted_ghtorrent'

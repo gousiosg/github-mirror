@@ -2,7 +2,6 @@ require 'rubygems'
 
 require 'ghtorrent/ghtorrent'
 require 'ghtorrent/settings'
-require 'ghtorrent/logging'
 require 'ghtorrent/command'
 require 'ghtorrent/retriever'
 
@@ -24,10 +23,6 @@ An efficient way to get all data for a single repo
   def validate
     super
     Trollop::die "Two arguments are required" unless args[0] && !args[0].empty?
-  end
-
-  def logger
-    ght.logger
   end
 
   def persister

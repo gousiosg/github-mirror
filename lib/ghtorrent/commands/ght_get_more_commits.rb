@@ -12,6 +12,7 @@ class GHTMoreCommitsRetriever < GHTorrent::Command
   include GHTorrent::Settings
   include GHTorrent::Retriever
   include GHTorrent::Persister
+  include GHTorrent::Logging
 
   def prepare_options(options)
     options.banner <<-BANNER
@@ -28,7 +29,7 @@ Retrieves more commits for the provided repository
                         If not set, will start from latest stored commit',
                 :short => 'f', :default => false, :type => :boolean
     options.opt :upto, 'Get all commits up to the provided timestamp',
-                :short => 't', :default => 0, :type => :int
+                :short => 'x', :default => 0, :type => :int
   end
 
   def validate
@@ -36,9 +37,9 @@ Retrieves more commits for the provided repository
     Trollop::die "Two arguments are required" unless args[0] && !args[0].empty?
   end
 
-  def logger
-    @ght.logger
-  end
+  #def logger
+  #  @ght.logger
+  #end
 
   def persister
     @persister ||= connect(:mongo, settings)
@@ -82,7 +83,7 @@ Retrieves more commits for the provided repository
     old_head = nil
     while (true)
       begin
-        logger.debug("Retrieving more commits for #{user}/#{repo} from head: #{head}")
+        debug("Retrieving more commits for #{user}/#{repo} from head: #{head}")
 
         @settings = override_config(@settings, :mirror_history_pages_back, 1)
         commits = retrieve_commits(repo, head, user)
@@ -97,12 +98,12 @@ Retrieves more commits for the provided repository
           total_commits += 1
 
           if options[:num] < total_commits
-            logger.info("Already retrieved #{total_commits} commits. Stopping.")
+            info("Already retrieved #{total_commits} commits. Stopping.")
             return
           end
 
           if Time.parse(c['commit']['author']['date']) < Time.at(options[:upto])
-            logger.info("Commit #{c['sha']} older than #{Time.at(options[:upto])}. Stopping.")
+            info("Commit #{c['sha']} older than #{Time.at(options[:upto])}. Stopping.")
             return
           end
 
@@ -111,16 +112,16 @@ Retrieves more commits for the provided repository
           end
         end
       rescue Exception => e
-        logger.warn("Error processing: #{e}")
-        logger.warn(e.backtrace.join("\n"))
+        warn("Error processing: #{e}")
+        warn(e.backtrace.join("\n"))
         if old_head == head
-          logger.info("Commit #{c['sha']} older than #{Time.at(options[:upto])}. Stopping.")
+          info("Commit #{c['sha']} older than #{Time.at(options[:upto])}. Stopping.")
           fail("Cannot retrieve commits from head: #{head}")
         end
         old_head = head
       end
     end
-    logger.debug("Processed #{total_commits} commits for #{user}/#{repo}")
+    debug("Processed #{total_commits} commits for #{user}/#{repo}")
   end
 end
 

@@ -4,7 +4,6 @@ require 'pp'
 require 'bunny'
 
 require 'ghtorrent/settings'
-require 'ghtorrent/logging'
 require 'ghtorrent/persister'
 require 'ghtorrent/command'
 require 'ghtorrent/bson_orderedhash'
