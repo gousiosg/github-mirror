@@ -46,7 +46,7 @@ require 'ghtorrent/retriever'
 
 # SQL database fillup methods
 require 'ghtorrent/ghtorrent'
-require 'ghtorrent/transacted_ghtorrent'
+require 'ghtorrent/transacted_gh_torrent'
 
 # Multi-process queue clients
 require 'ghtorrent/multiprocess_queue_client'

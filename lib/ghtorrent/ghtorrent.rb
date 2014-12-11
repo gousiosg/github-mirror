@@ -20,7 +20,6 @@ module GHTorrent
       @settings = settings
       @ext_uniq = config(:uniq_id)
       @logger = Logger.new(STDOUT)
-      debug "Using cache dir #{config(:cache_dir)}"
     end
 
     def dispose
@@ -486,8 +485,7 @@ module GHTorrent
     # == Returns:
     #  If the repo can be retrieved, it is returned as a Hash. Otherwise,
     #  the result is nil
-    def ensure_repo(user, repo, commits = true, #project_members = true,
-                    watchers = true, forks = true, labels = true)
+    def ensure_repo(user, repo, recursive = false)
 
       repos = @db[:projects]
       curuser = ensure_user(user, false, false)
@@ -532,16 +530,17 @@ module GHTorrent
 
       info "New repo #{user}/#{repo}"
 
-
-      unless parent.nil?
-        ensure_fork_commits(user, repo, parent_owner, parent_repo)
-      else
-        ensure_commits(user, repo) if commits
+      if recursive
+        unless parent.nil?
+          ensure_fork_commits(user, repo, parent_owner, parent_repo)
+        else
+          ensure_commits(user, repo)
+        end
+        #ensure_project_members(user, repo) if project_members
+        ensure_watchers(user, repo)
+        ensure_forks(user, repo)
+        ensure_labels(user, repo)
       end
-      #ensure_project_members(user, repo) if project_members
-      ensure_watchers(user, repo) if watchers
-      ensure_forks(user, repo) if forks
-      ensure_labels(user, repo) if labels
 
       repos.first(:owner_id => curuser[:id], :name => repo)
     end
@@ -552,16 +551,14 @@ module GHTorrent
     # repository. Then, copy all remaining parent commits to this repo.
     def ensure_fork_commits(owner, repo, parent_owner, parent_repo)
 
-      currepo = ensure_repo(owner, repo, commits = false, watchers = false,
-                            forks = false, labels = false)
+      currepo = ensure_repo(owner, repo)
 
       if currepo.nil?
         warn "Cannot find repo #{owner}/#{repo}"
         return
       end
 
-      parent = ensure_repo(parent_owner, parent_repo, commits = false,
-                           watchers = false, forks = false, labels = false)
+      parent = ensure_repo(parent_owner, parent_repo)
 
       if parent.nil?
         warn "Cannot find parent repo #{owner}/#{repo}"
@@ -1230,7 +1227,7 @@ module GHTorrent
     # ==Parameters:
     # [owner]  The user to which the project belongs
     # [repo]  The repository/project to find forks for
-    def ensure_forks(owner, repo, refresh = false)
+    def ensure_forks(owner, repo)
       currepo = ensure_repo(owner, repo)
 
       if currepo.nil?

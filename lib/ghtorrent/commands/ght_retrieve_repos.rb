@@ -34,7 +34,7 @@ class GHTRepoRetriever
   end
 
   def ght
-    @ght ||= TransactedGhtorrent.new(@config)
+    @ght ||= TransactedGHTorrent.new(@config)
     @ght
   end
 

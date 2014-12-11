@@ -4,7 +4,7 @@ require 'ghtorrent/ghtorrent'
 require 'ghtorrent/settings'
 require 'ghtorrent/command'
 require 'ghtorrent/retriever'
-require 'ghtorrent/transacted_ghtorrent'
+require 'ghtorrent/transacted_gh_torrent'
 require 'ghtorrent/commands/ght_retrieve_repo'
 
 class GHTRetrieveUser < GHTRetrieveRepo
@@ -56,7 +56,7 @@ An efficient way to get all data for a single user
   end
 end
 
-class TransactedGhtorrent 
+class TransactedGHTorrent
 
   def ensure_user_followers(user)
     check_transaction do
