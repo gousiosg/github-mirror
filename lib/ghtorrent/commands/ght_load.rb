@@ -31,7 +31,7 @@ Loads object ids from a collection to a queue for further processing.
     options.opt :earliest, 'Seconds since epoch of earliest item to load',
                 :short => 'e', :default => 0, :type => :int
     options.opt :latest, 'Seconds since epoch of latest item to load',
-                :short => 'l', :default => Time.now.to_i + (60 * 60 * 24 * 360 * 20),
+                :short => 'x', :default => Time.now.to_i + (60 * 60 * 24 * 360 * 20),
                 :type => :int
     options.opt :number, 'Total number of items to load',
                 :short => 'n', :type => :int, :default => 2**48
