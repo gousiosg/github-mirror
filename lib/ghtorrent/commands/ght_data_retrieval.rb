@@ -26,7 +26,14 @@ class GHTDataRetrieval < GHTorrent::Command
     data['payload']['commits'].each do |c|
       url = c['url'].split(/\//)
 
-      ghtorrent.get_commit url[4], url[5], url[7]
+      unless url[7].match(/[a-f0-9]{40}$/)
+        error "GHTorrent: Ignoring commit #{sha}"
+        return
+      end
+
+      ghtorrent.transaction do
+        ghtorrent.ensure_commit(url[5], url[7], url[4])
+      end
     end
   end
 
@@ -36,7 +43,9 @@ class GHTDataRetrieval < GHTorrent::Command
     watcher = data['actor']['login']
     created_at = data['created_at']
 
-    ghtorrent.get_watcher owner, repo, watcher, created_at
+    ghtorrent.transaction do
+      ghtorrent.ensure_watcher(owner, repo, watcher, created_at)
+    end
   end
 
   def FollowEvent(data)
@@ -44,16 +53,47 @@ class GHTDataRetrieval < GHTorrent::Command
     followed = data['payload']['target']['login']
     created_at = data['created_at']
 
-    ghtorrent.get_follower(follower, followed, created_at)
+    ghtorrent.transaction do
+      ghtorrent.ensure_user_follower(followed, follower, created_at)
+    end
   end
 
   def MemberEvent(data)
     owner = data['actor']['login']
     repo = data['repo']['name'].split(/\//)[1]
     new_member = data['payload']['member']['login']
-    created_at = data['created_at']
+    date_added = data['created_at']
 
-    ghtorrent.get_project_member(owner, repo, new_member, created_at)
+    ghtorrent.transaction do
+      pr_members = ghtorrent.get_db[:project_members]
+      project = ghtorrent.ensure_repo(owner, repo)
+      new_user = ghtorrent.ensure_user(new_member, false, false)
+
+      if project.nil? or new_user.nil?
+        return
+      end
+
+      memb_exist = pr_members.first(:user_id => new_user[:id],
+                                    :repo_id => project[:id])
+
+      if memb_exist.nil?
+        added = if date_added.nil?
+                  max(project[:created_at], new_user[:created_at])
+                else
+                  date_added
+                end
+
+        pr_members.insert(
+            :user_id => new_user[:id],
+            :repo_id => project[:id],
+            :created_at => ghtorrent.date(added)
+        )
+        info "Added project member #{repo} -> #{new_member}"
+      else
+        debug "Project member #{repo} -> #{new_member} exists"
+      end
+    end
+
   end
 
   def CommitCommentEvent(data)
@@ -62,7 +102,9 @@ class GHTDataRetrieval < GHTorrent::Command
     id = data['payload']['comment']['id']
     sha = data['payload']['comment']['commit_id']
 
-    ghtorrent.get_commit_comment(user, repo, sha, id)
+    ghtorrent.transaction do
+      ghtorrent.ensure_commit_comment(user, repo, sha, id)
+    end
   end
 
   def PullRequestEvent(data)
@@ -73,7 +115,10 @@ class GHTDataRetrieval < GHTorrent::Command
     actor = data['actor']['login']
     created_at = data['created_at']
 
-    ghtorrent.get_pull_request(owner, repo, pullreq_id, action, actor, created_at)
+    ghtorrent.transaction do
+      ghtorrent.ensure_pull_request(owner, repo, pullreq_id, true, true, true,
+                                    action, actor, created_at)
+    end
   end
 
   def ForkEvent(data)
@@ -81,7 +126,9 @@ class GHTDataRetrieval < GHTorrent::Command
     repo = data['repo']['name'].split(/\//)[1]
     fork_id = data['payload']['forkee']['id']
 
-    #ghtorrent.get_fork(owner, repo, fork_id)
+    ghtorrent.transaction do
+      ghtorrent.ensure_fork(owner, repo, fork_id)
+    end
   end
 
   def PullRequestReviewCommentEvent(data)
@@ -90,7 +137,10 @@ class GHTDataRetrieval < GHTorrent::Command
     comment_id = data['payload']['comment']['id']
     pullreq_id = data['payload']['comment']['_links']['pull_request']['href'].split(/\//)[-1]
 
-    ghtorrent.get_pullreq_comment(owner, repo, pullreq_id, comment_id)
+    ghtorrent.transaction do
+      ghtorrent.ensure_pullreq_comment(owner, repo, pullreq_id, comment_id)
+    end
+
   end
 
   def IssuesEvent(data)
@@ -98,7 +148,9 @@ class GHTDataRetrieval < GHTorrent::Command
     repo = data['repo']['name'].split(/\//)[1]
     issue_id = data['payload']['issue']['number']
 
-    ghtorrent.get_issue(owner, repo, issue_id)
+    ghtorrent.transaction do
+      ghtorrent.ensure_issue(owner, repo, issue_id)
+    end
   end
 
   def IssueCommentEvent(data)
@@ -107,7 +159,10 @@ class GHTDataRetrieval < GHTorrent::Command
     issue_id = data['payload']['issue']['number']
     comment_id = data['payload']['comment']['id']
 
-    ghtorrent.get_issue_comment(owner, repo, issue_id, comment_id)
+    ghtorrent.transaction do
+      ghtorrent.ensure_issue_comment(owner, repo, issue_id, comment_id)
+    end
+
   end
 
   def handlers
