@@ -5,7 +5,6 @@ require 'ghtorrent/api_client'
 require 'ghtorrent/settings'
 require 'ghtorrent/utils'
 require 'ghtorrent/logging'
-require 'ghtorrent/gh_torrent_exception'
 
 module GHTorrent
   module Retriever
@@ -336,7 +335,7 @@ module GHTorrent
       url = review_comments_url
       retrieved_comments = paged_api_request url
 
-      retrieved_comments.each { |x|
+      retrieved_comments.each do |x|
         x['owner'] = owner
         x['repo'] = repo
         x['pullreq_id'] = pullreq_id.to_i
@@ -347,7 +346,7 @@ module GHTorrent
                                                    'id' => x['id']}).empty?
           persister.store(:pull_request_comments, x)
         end
-      }
+      end
 
       persister.find(:pull_request_comments, {'owner' => owner, 'repo' => repo,
                                               'pullreq_id' => pullreq_id})
@@ -356,7 +355,7 @@ module GHTorrent
     def retrieve_pull_req_comment(owner, repo, pullreq_id, comment_id)
       comment = persister.find(:pull_request_comments, {'repo' => repo,
                                                  'owner' => owner,
-                                                 'pullreq_id' => pullreq_id,
+                                                 'pullreq_id' => pullreq_id.to_i,
                                                  'id' => comment_id}).first
       if comment.nil?
         r = api_request(ghurl "repos/#{owner}/#{repo}/pulls/comments/#{comment_id}")
@@ -372,7 +371,7 @@ module GHTorrent
         persister.store(:pull_request_comments, r)
         info "Added pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id}"
         persister.find(:pull_request_comments, {'repo' => repo, 'owner' => owner,
-                                         'pullreq_id' => pullreq_id,
+                                         'pullreq_id' => pullreq_id.to_i,
                                          'id' => comment_id}).first
       else
         debug "Pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id} exists"
