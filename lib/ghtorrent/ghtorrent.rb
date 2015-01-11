@@ -20,6 +20,10 @@ module GHTorrent
       @settings = settings
       @ext_uniq = config(:uniq_id)
       @logger = Logger.new(STDOUT)
+
+      @retry_on_error = Array.new
+      @retry_on_error <<  Mysql2::Error      if defined? Mysql2::Error
+      @retry_on_error <<  SQLite3::Exception if defined? SQLite3::Exception
     end
 
     def dispose
@@ -170,11 +174,11 @@ module GHTorrent
             :project_id => project[:id],
             :commit_id => commitid
         )
-        debug "Associating commit  #{sha} with #{user}/#{repo}"
+        info "Added association of #{sha} with #{user}/#{repo}"
         @db[:project_commits].first(:project_id => project[:id],
                                     :commit_id => commitid)
       else
-        debug "Commit #{sha} already associated with #{user}/#{repo}"
+        debug "Association of commit #{sha} with repo #{user}/#{repo} exists"
         exists
       end
     end
@@ -183,7 +187,6 @@ module GHTorrent
     # Add (or update) an entry for a commit author. This method uses information
     # in the JSON object returned by Github to add (or update) a user in the
     # metadata database with a full user entry (both Git and Github details).
-    # Resolution of how
     #
     # ==Parameters:
     # [githubuser]  A hash containing the user's Github login
@@ -276,12 +279,12 @@ module GHTorrent
           name = name.strip unless name.nil?
           email = email.strip unless email.nil?
         rescue Exception
-          error("Not a valid email address: #{user}")
+          warn "Not a valid email address: #{user}"
           return
         end
 
         unless is_valid_email(email)
-          warn("Extracted email(#{email}) not valid for user #{user}")
+          warn "Extracted email(#{email}) not valid for user #{user}"
         end
         u = ensure_user_byemail(email, name)
       else
@@ -314,7 +317,7 @@ module GHTorrent
         end
 
         email = unless u['email'].nil?
-                  if u['email'].strip == "" then
+                  if u['email'].strip == '' then
                     nil
                   else
                     u['email'].strip
@@ -331,7 +334,7 @@ module GHTorrent
                      :created_at => date(u['created_at']),
                      :ext_ref_id => u[@ext_uniq])
 
-        info "New user #{user}"
+        info "Added user #{user}"
 
         if user_type(u['type']) == 'ORG'
           info "User #{user} is an organization. Retrieving members"
@@ -374,7 +377,7 @@ module GHTorrent
       followed_user = ensure_user(followed, false, false)
 
       if followed_user.nil? or follower_user.nil?
-        warn "Could not add follower #{follower} to #{followed}"
+        warn "Could not find follower #{follower} or user #{followed}"
         return
       end
 
@@ -393,7 +396,7 @@ module GHTorrent
         retrieved = retrieve_user_follower(followed, follower)
 
         if retrieved.nil?
-          warn "Follower #{follower} does not exist for user #{followed}"
+          warn "Could not retrieve follower #{follower} for #{followed}"
           return
         end
 
@@ -401,16 +404,15 @@ module GHTorrent
                          :follower_id => follower_id,
                          :created_at => added,
                          :ext_ref_id => retrieved[@ext_uniq])
-        info "User #{follower} follows #{followed}"
+        info "Added follower #{follower} to #{followed}"
       else
-        debug "Follower #{follower} exists for user #{followed}"
+        debug "Follower #{follower} for user #{followed} exists"
       end
 
       unless date_added.nil?
-        followers.filter(:user_id => followed_id,
-                         :follower_id => follower_id)\
-                    .update(:created_at => date(date_added))
-        debug "Updating follower #{followed} -> #{follower}, created_at -> #{date(date_added)}"
+        followers.filter(:user_id => followed_id, :follower_id => follower_id)
+                 .update(:created_at => date(date_added))
+        info "Updated follower #{followed} -> #{follower}, created_at -> #{date(date_added)}"
       end
 
       followers.first(:user_id => followed_id, :follower_id => follower_id)
@@ -435,14 +437,14 @@ module GHTorrent
         u = retrieve_user_byemail(email, name)
 
         if u.nil? or u['login'].nil?
-          debug "Cannot find #{email} through search API query"
+          warn "Could not find #{email} through search API query"
           login = (0...8).map { 65.+(rand(25)).chr }.join
           users.insert(:email => email,
                        :name => name,
                        :login => login,
                        :fake => true,
                        :created_at => Time.now,
-                       :ext_ref_id => "")
+                       :ext_ref_id => '')
           info "Added fake user #{login} -> #{email}"
           users.first(:login => login)
         else
@@ -456,7 +458,7 @@ module GHTorrent
                          :fake => false,
                          :created_at => date(u['created_at']),
                          :ext_ref_id => u[@ext_uniq])
-            info "Found #{email} through search API query"
+            info "Added user #{u['login']} (#{email}) through search API query"
           else
             in_db.update(:name => u['name'],
                          :company => u['company'],
@@ -465,7 +467,7 @@ module GHTorrent
                          :fake => false,
                          :created_at => date(u['created_at']),
                          :ext_ref_id => u[@ext_uniq])
-            info "User with email #{email} exists with username #{u['login']}"
+            debug "User #{u['login']} with email #{email} exists"
           end
           users.first(:login => u['login'])
         end
@@ -491,7 +493,7 @@ module GHTorrent
       curuser = ensure_user(user, false, false)
 
       if curuser.nil?
-        warn "Cannot find user #{user}"
+        warn "Could not find user #{user}"
         return
       end
 
@@ -505,7 +507,7 @@ module GHTorrent
       r = retrieve_repo(user, repo)
 
       if r.nil?
-        warn "Repo #{user}/#{repo} does not exist"
+        warn "Could not retrieve repo #{user}/#{repo}"
         return
       end
 
@@ -528,7 +530,7 @@ module GHTorrent
         info "Repo #{user}/#{repo} is a fork from #{parent_owner}/#{parent_repo}"
       end
 
-      info "New repo #{user}/#{repo}"
+      info "Added repo #{user}/#{repo}"
 
       ensure_repo_recursive(owner, repo, !r['parent'].nil?) if recursive
 
@@ -563,14 +565,14 @@ module GHTorrent
       currepo = ensure_repo(owner, repo)
 
       if currepo.nil?
-        warn "Cannot find repo #{owner}/#{repo}"
+        warn "Could not find repo #{owner}/#{repo}"
         return
       end
 
       parent = ensure_repo(parent_owner, parent_repo)
 
       if parent.nil?
-        warn "Cannot find parent repo #{owner}/#{repo}"
+        warn "Could not find repo #{owner}/#{repo}, parent of #{owner}/#{repo}"
         return
       end
 
@@ -583,7 +585,7 @@ module GHTorrent
         end
       end
       begin
-        debug "Retrieving commits for #{owner}/#{repo} until we reach a commit shared with the parent"
+        info "Retrieving commits for #{owner}/#{repo} until we reach a commit shared with the parent"
 
         sha = nil
       # Refresh the latest commits for the parent.
@@ -602,7 +604,7 @@ module GHTorrent
           # the commit since which we query commits from) this mean that
           # there are no more commits.
           if commits.size == 1 and commits[0]['sha'] == sha
-            debug "No shared commit found and no more commits for #{owner}/#{repo}"
+            info "Could not find shared commit and no more commits for #{owner}/#{repo}"
             break
           end
 
@@ -617,7 +619,7 @@ module GHTorrent
             sha = c['sha']
             if exists_in_parent
               found = true
-              debug "Found commit #{sha} shared with parent, switching to copying commits"
+              info "Found commit #{sha} shared with parent, switching to copying commits"
               break
             else
               ensure_commit(repo, sha, owner, true)
@@ -625,7 +627,7 @@ module GHTorrent
           end
 
           if processed == 0
-            warn "No commits found for #{owner}/#{repo}, repo deleted?"
+            warn "Could not find commits for #{owner}/#{repo}, repo deleted?"
             break
           end
         end
@@ -644,7 +646,7 @@ module GHTorrent
                     :project_id => currepo[:id],
                     :commit_id => c[:id]
                 )
-                debug "Copied commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} (#{copied} total)"
+                info "Copied commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} (#{copied} total)"
               end
         end
       ensure
@@ -679,6 +681,7 @@ module GHTorrent
       new_user = ensure_user(new_member, false, false)
 
       if project.nil? or new_user.nil?
+        warn "Could not find repo #{owner}/#{repo} or member #{new_member}"
         return
       end
 
@@ -694,7 +697,7 @@ module GHTorrent
         retrieved = retrieve_repo_collaborator(owner, repo, new_member)
 
         if retrieved.nil?
-          warn "Project member #{new_member} does not exist in #{owner}/#{repo}"
+          warn "Could not retrieve #{new_member}, member of #{owner}/#{repo}"
           return
         end
 
@@ -713,7 +716,7 @@ module GHTorrent
         pr_members.filter(:user_id => new_user[:id],
                           :repo_id => project[:id])\
                     .update(:created_at => date(date_added))
-        info "Updating project member #{repo} -> #{new_member}, created_at -> #{date(date_added)}"
+        info "Updated project member #{repo} -> #{new_member}, created_at -> #{date(date_added)}"
       end
     end
 
@@ -739,7 +742,7 @@ module GHTorrent
       org = ensure_org(organization, members)
 
       if org.nil?
-        warn "Organization #{organization} does not exit"
+        warn "Could not find organization #{organization}"
         return
       end
 
@@ -774,7 +777,7 @@ module GHTorrent
 
         # Not an organization, don't go ahead
         if org[:type] != 'ORG'
-          warn "Account #{organization} is not an organization"
+          warn "User #{organization} is not an organization"
           return nil
         end
       end
@@ -818,7 +821,7 @@ module GHTorrent
         retrieved = retrieve_commit_comment(owner, repo, sha, comment_id)
 
         if retrieved.nil?
-          warn "Commit comment #{sha}->#{comment_id} deleted"
+          warn "Could not retrieve commit comment #{sha}->#{comment_id}"
           return
         end
 
@@ -834,9 +837,9 @@ module GHTorrent
             :ext_ref_id => retrieved[@ext_uniq],
             :created_at => date(retrieved['created_at'])
         )
-        info "Added commit comment #{sha} -> #{retrieved['id']} by #{user[:login]}"
+        info "Added commit comment #{owner}/#{repo} -> #{sha}/#{retrieved['id']} by user #{user[:login]}"
       else
-        info "Commit comment #{sha} -> #{comment_id} exists"
+        debug "Commit comment #{sha} -> #{comment_id} exists"
       end
       @db[:commit_comments].first(:comment_id => comment_id)
     end
@@ -847,7 +850,7 @@ module GHTorrent
       currepo = ensure_repo(owner, repo)
 
       if currepo.nil?
-        warn "Could not retrieve watchers for #{owner}/#{repo}"
+        warn "Could not find repo #{owner}/#{repo} for retrieving watchers"
         return
       end
 
@@ -873,7 +876,7 @@ module GHTorrent
       new_watcher = ensure_user(watcher, false, false)
 
       if new_watcher.nil? or project.nil?
-        warn "Watcher #{watcher} does not exist"
+        warn "Could not find watcher #{watcher} or repo #{owner}/#{repo}"
         return
       end
 
@@ -890,7 +893,7 @@ module GHTorrent
         retrieved = retrieve_watcher(owner, repo, watcher)
 
         if retrieved.nil?
-          warn "Watcher #{watcher} no longer watches #{owner}/#{repo}"
+          warn "Could not retrieve #{watcher} of repo #{owner}/#{repo}"
           return
         end
 
@@ -909,7 +912,7 @@ module GHTorrent
         watchers.filter(:user_id => new_watcher[:id],
                         :repo_id => project[:id])\
                   .update(:created_at => date(date_added))
-        info "Updating watcher #{owner}/#{repo} -> #{watcher}, created_at -> #{date_added}"
+        info "Updated watcher #{owner}/#{repo} -> #{watcher}, created_at -> #{date_added}"
       end
 
       watchers.first(:user_id => new_watcher[:id],
@@ -921,7 +924,7 @@ module GHTorrent
     def ensure_pull_requests(owner, repo, refresh = false)
       currepo = ensure_repo(owner, repo)
       if currepo.nil?
-        warn "Could not retrieve pull requests from #{owner}/#{repo}"
+        warn "Could not find repo #{owner}/#{repo} for retrieving pull requests"
         return
       end
 
@@ -963,15 +966,15 @@ module GHTorrent
                                 :ext_ref_id => unq,
                                 :action => act,
                                 :actor_id => unless user.nil? then user[:id] end)
-        info "New pull request (#{id}) event (#{act}) by (#{actor}) timestamp #{ts}"
+        info "Added pull request (#{id}) event (#{act}) by (#{actor}) timestamp #{ts}"
       else
-        info "Pull request (#{id}) event (#{act}) by (#{actor}) timestamp #{ts} exists"
+        debug "Pull request (#{id}) event (#{act}) by (#{actor}) timestamp #{ts} exists"
         if entry[:actor_id].nil? and not user.nil?
           pull_req_history.where(:pull_request_id => id,
                                :created_at => (ts - 3)..(ts + 3),
                                :action => act)\
                           .update(:actor_id => user[:id])
-          debug "Pull request (#{id}) event (#{act}) timestamp #{ts} set actor -> #{user[:login]}"
+          info "Updated pull request (#{id}) event (#{act}) timestamp #{ts}, actor -> #{user[:login]}"
         end
       end
     end
@@ -987,6 +990,7 @@ module GHTorrent
       project = ensure_repo(owner, repo)
 
       if project.nil?
+        warn "Could not find repo #{owner}/#{repo} for retrieving pull request #{pullreq_id}"
         return
       end
 
@@ -1014,10 +1018,10 @@ module GHTorrent
         head = if has_head_repo(req)
                  req['head']['repo']['full_name']
                else
-                 "(head deleted)"
+                 '(head deleted)'
                end
 
-        <<-eos.gsub(/\s+/, " ").strip
+        <<-eos.gsub(/\s+/, ' ').strip
             Pull request #{req['number']}
             #{head} -> #{req['base']['repo']['full_name']}
         eos
@@ -1026,7 +1030,7 @@ module GHTorrent
       retrieved = retrieve_pull_request(owner, repo, pullreq_id)
 
       if retrieved.nil?
-        warn "Cannot retrieve pull request (#{owner}/#{repo} #{pullreq_id})"
+        warn "Could not retrieve pull request #{owner}/#{repo} -> #{pullreq_id}"
         return
       end
 
@@ -1042,7 +1046,7 @@ module GHTorrent
         head_commit = ensure_commit(retrieved['base']['repo']['name'],
                                     retrieved['head']['sha'],
                                     retrieved['base']['repo']['owner']['login'])
-        info log_msg(retrieved) + " is intra branch"
+        info log_msg(retrieved) + ' is intra-branch'
       else
         head_repo = if has_head_repo(retrieved)
                       ensure_repo(retrieved['head']['repo']['owner']['login'],
@@ -1072,7 +1076,7 @@ module GHTorrent
             :pullreq_id => pullreq_id,
             :intra_branch => is_intra_branch(retrieved)
         )
-        info log_msg(retrieved) + ' was added'
+        info 'Added ' + log_msg(retrieved)
       else
         debug log_msg(retrieved) + ' exists'
       end
@@ -1094,9 +1098,9 @@ module GHTorrent
                       :pull_request_id => pull_req[:id],
                       :created_at => date(retrieved['created_at']),
                       :ext_ref_id => retrieved[@ext_uniq])
-        debug 'Adding accompanying issue for ' + log_msg(retrieved)
+        debug 'Added accompanying issue for ' + log_msg(retrieved)
       else
-        debug 'Accompanying issue exists for ' + log_msg(retrieved)
+        debug 'Accompanying issue for ' + log_msg(retrieved) + ' exists'
       end
 
       if history
@@ -1126,14 +1130,14 @@ module GHTorrent
       currepo = ensure_repo(owner, repo)
 
       if currepo.nil?
-        warn "Could not find repository #{owner}/#{repo}"
+        warn "Could not find repository #{owner}/#{repo} for retrieving pull req comments"
         return
       end
 
       pull_req = ensure_pull_request(owner, repo, pullreq_id, false, false, false)
 
       if pull_req.nil?
-        warn "Could not retrieve pull req #{owner}/#{repo} -> #{pullreq_id}"
+        warn "Could not find pull req #{owner}/#{repo} -> #{pullreq_id}"
         return
       end
 
@@ -1158,7 +1162,7 @@ module GHTorrent
       pull_req = ensure_pull_request(owner, repo, pullreq_id, false, false, false)
 
       if pull_req.nil?
-        warn "Could not retrieve pull req #{owner}/#{repo} -> #{pullreq_id}"
+        warn "Could not find pull req #{owner}/#{repo} -> #{pullreq_id} for retrieving comment #{comment_id}"
         return
       end
 
@@ -1176,7 +1180,7 @@ module GHTorrent
         commenter = ensure_user(retrieved['user']['login'], false, false)
 
         if commenter.nil?
-          warn "Could not retrieve commenter #{retrieved['user']['login']}" +
+          warn "Could not find commenter #{retrieved['user']['login']}" +
                "for pullreq comment #{owner}/#{repo} -> #{pullreq_id}(#{comment_id}) "
         end
 
@@ -1192,7 +1196,7 @@ module GHTorrent
             :created_at => retrieved['created_at'],
             :ext_ref_id => retrieved[@ext_uniq]
         )
-        debug "Adding comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id}"
+        debug "Added comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id}"
         @db[:pull_request_comments].first(:pull_request_id => pull_req[:id],
                                           :comment_id => comment_id)
       else
@@ -1205,7 +1209,7 @@ module GHTorrent
       pullreq = ensure_pull_request(owner, repo, pullreq_id, false, false, false)
 
       if pullreq.nil?
-        warn "Pull request #{pullreq_id} does not exist for #{owner}/#{repo}"
+        warn "Could not find pull request #{owner}/#{repo} -> #{pullreq_id} for retrieving commits"
         return
       end
 
@@ -1226,7 +1230,7 @@ module GHTorrent
 
             info "Added commit #{c[:sha]} to pullreq #{owner}/#{repo} -> #{pullreq_id}"
           else
-            debug "Commit #{c[:sha]} exists in pullreq #{owner}/#{repo} -> #{pullreq_id}"
+            debug "Commit #{c[:sha]} in pullreq #{owner}/#{repo} -> #{pullreq_id} exists"
             exists
           end
         end
@@ -1243,7 +1247,7 @@ module GHTorrent
       currepo = ensure_repo(owner, repo)
 
       if currepo.nil?
-        warn "Could not retrieve forks for #{owner}/#{repo}"
+        warn "Could not find repo #{owner}/#{repo} for retrieving forks"
         return
       end
 
@@ -1270,7 +1274,7 @@ module GHTorrent
       fork = retrieve_fork(owner, repo, fork_id)
 
       if fork.nil?
-        warn "Fork #{fork_id} does not exist for #{owner}/#{repo}"
+        warn "Could not retrive fork #{owner}/#{repo} -> #{fork_id}"
         return
       end
 
@@ -1280,9 +1284,9 @@ module GHTorrent
       r = ensure_repo(fork_owner, fork_name)
 
       if r.nil?
-        warn "Failed to add #{fork_owner}/#{fork_name} as fork of  #{owner}/#{repo}"
+        warn "Could not add #{fork_owner}/#{fork_name} as fork of #{owner}/#{repo}"
       else
-        info "Added #{fork_owner}/#{fork_name} as fork of  #{owner}/#{repo}"
+        info "Added #{fork_owner}/#{fork_name} as fork of #{owner}/#{repo}"
       end
       r
     end
@@ -1292,7 +1296,7 @@ module GHTorrent
     def ensure_issues(owner, repo, refresh = false)
       currepo = ensure_repo(owner, repo)
       if currepo.nil?
-        warn "Could not retrieve issues for #{owner}/#{repo}"
+        warn "Could not find repo #{owner}/#{repo} for retrieving issues"
         return
       end
 
@@ -1321,7 +1325,7 @@ module GHTorrent
       repository = ensure_repo(owner, repo)
 
       if repo.nil?
-        warn "Cannot find repo #{owner}/#{repo}"
+        warn "Could not find repo #{owner}/#{repo} for retrieving issue #{issue_id}"
         return
       end
 
@@ -1331,7 +1335,7 @@ module GHTorrent
       retrieved = retrieve_issue(owner, repo, issue_id)
 
       if retrieved.nil?
-        warn "Issue #{issue_id} does not exist for #{owner}/#{repo}"
+        warn "Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
         return
       end
 
@@ -1360,9 +1364,9 @@ module GHTorrent
 
         info "Added issue #{owner}/#{repo} -> #{issue_id}"
       else
-        info "Issue #{owner}/#{repo}->#{issue_id} exists"
+        debug "Issue #{owner}/#{repo}->#{issue_id} exists"
         if cur_issue[:pull_request] == false and not pull_req.nil?
-          info "Updating issue #{owner}/#{repo}->#{issue_id} as pull request"
+          info "Updated issue #{owner}/#{repo}->#{issue_id} as pull request"
           issues.filter(:issue_id => issue_id, :repo_id => repository[:id]).update(
               :pull_request => true,
               :pull_request_id => pull_req[:id])
@@ -1381,13 +1385,13 @@ module GHTorrent
       currepo = ensure_repo(owner, repo)
 
       if currepo.nil?
-        warn "Could not find repository #{owner}/#{repo}"
+        warn "Could not find repository #{owner}/#{repo} for retrieving events for issue #{issue_id}"
         return
       end
 
       issue = ensure_issue(owner, repo, issue_id, false, false, false)
       if issue.nil?
-        warn "Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
+        warn "Could not find issue #{owner}/#{repo} -> #{issue_id} for retrieving events"
         return
       end
 
@@ -1410,7 +1414,7 @@ module GHTorrent
       issue = ensure_issue(owner, repo, issue_id, false, false, false)
 
       if issue.nil?
-        warn "Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
+        warn "Could not find issue #{owner}/#{repo} -> #{issue_id} for retrieving event #{event_id}"
         return
       end
 
@@ -1423,10 +1427,10 @@ module GHTorrent
         retrieved = retrieve_issue_event(owner, repo, issue_id, event_id)
 
         if retrieved.nil?
-          warn "Could not retrieve issue event #{issue_event_str}"
+          warn "Could not retrieve issue event #{owner}/#{repo} -> #{issue_id}/#{issue_event_str}"
           return
         elsif retrieved['actor'].nil?
-          warn "Issue event #{issue_event_str} does not contain an actor"
+          warn "Could not find actor for issue event #{owner}/#{repo} -> #{issue_id}/#{issue_event_str}"
           return
         end
 
@@ -1439,18 +1443,18 @@ module GHTorrent
                             else nil
                           end
 
-        if retrieved['event'] == "assigned"
+        if retrieved['event'] == 'assigned'
 
           def update_assignee(owner, repo, issue, actor)
             @db[:issues].first(:id => issue[:id]).update(:assignee_id => actor[:id])
-            info "Updating #{owner}/#{repo} -> #{issue[:id]} assignee to #{actor[:id]}"
+            info "Updated #{owner}/#{repo} -> #{issue[:id]}, assignee -> #{actor[:id]}"
           end
 
           if issue[:assignee_id].nil? then
             update_assignee(owner, repo, issue, actor)
           else
             existing = @db[:issue_events].\
-                        filter(:issue_id => issue[:id],:action => "assigned").\
+                        filter(:issue_id => issue[:id],:action => 'assigned').\
                         order(Sequel.desc(:created_at)).first
             if existing.nil?
               update_assignee(owner, repo, issue, actor)
@@ -1470,11 +1474,11 @@ module GHTorrent
             :ext_ref_id => retrieved[@ext_uniq]
         )
 
-        info "Added issue event #{issue_event_str}"
+        info "Added issue event #{owner}/#{repo} -> #{issue_id}/#{issue_event_str}"
         @db[:issue_events].first(:issue_id => issue[:id],
                                  :event_id => event_id)
       else
-        debug "Issue event #{issue_event_str} exists"
+        debug "Issue event #{owner}/#{repo} -> #{issue_id}/#{issue_event_str} exists"
         curevent
       end
     end
@@ -1488,7 +1492,7 @@ module GHTorrent
       currepo = ensure_repo(owner, repo)
 
       if currepo.nil?
-        warn "Could not find repository #{owner}/#{repo}"
+        warn "Could not find repository #{owner}/#{repo} for retrieving issue comments for issue #{issue_id}"
         return
       end
 
@@ -1499,7 +1503,7 @@ module GHTorrent
               end
 
       if issue.nil?
-        warn "Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
+        warn "Could not find issue #{owner}/#{repo} -> #{issue_id} for retrieving issue comments"
         return
       end
 
@@ -1527,7 +1531,7 @@ module GHTorrent
               end
 
       if issue.nil?
-        warn "Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
+        warn "Could not find issue #{owner}/#{repo} -> #{issue_id} for retrieving comment #{comment_id}"
         return
       end
 
@@ -1568,6 +1572,11 @@ module GHTorrent
     def ensure_labels(owner, repo, refresh = false)
       currepo = ensure_repo(owner, repo)
 
+      if currepo.nil?
+        warn "Could not find #{owner}/#{repo} for retrieving issue labels"
+        return
+      end
+
       repo_labels = @db[:repo_labels].filter(:repo_id => currepo[:id]).all
 
       retrieve_repo_labels(owner, repo, refresh).reduce([]) do |acc, x|
@@ -1585,7 +1594,7 @@ module GHTorrent
       currepo = ensure_repo(owner, repo)
 
       if currepo.nil?
-        warn "Repo #{owner}/#{repo} does not exist"
+        warn "Could not find #{owner}/#{repo} for retrieving label #{name}"
         return
       end
 
@@ -1595,7 +1604,7 @@ module GHTorrent
         retrieved = retrieve_repo_label(owner, repo, name)
 
         if retrieved.nil?
-          warn "Repo label #{owner}/#{repo} -> #{name} does not exist"
+          warn "Could not retrieve repo label #{owner}/#{repo} -> #{name}"
           return
         end
 
@@ -1619,7 +1628,7 @@ module GHTorrent
       issue = ensure_issue(owner, repo, issue_id, false, false, false)
 
       if issue.nil?
-        warn "Issue #{owner}/#{repo} -> #{issue_id} does not exist"
+        warn "Could not find issue #{owner}/#{repo} -> #{issue_id} for retrieving labels"
         return
       end
 
@@ -1645,14 +1654,14 @@ module GHTorrent
       issue = ensure_issue(owner, repo, issue_id, false, false, false)
 
       if issue.nil?
-        warn "Issue #{owner}/#{repo} -> #{issue_id} does not exist"
+        warn "Could not find issue #{owner}/#{repo} -> #{issue_id} to assign label #{name}"
         return
       end
 
       label = ensure_repo_label(owner, repo, name)
 
       if label.nil?
-        warn "Label #{owner}/#{repo} -> #{name} does not exist"
+        warn "Could not find repo label #{owner}/#{repo} -> #{name}"
         return
       end
 
@@ -1669,6 +1678,7 @@ module GHTorrent
         @db[:issue_labels].first(:label_id => label[:id],
                                  :issue_id => issue[:id])
       else
+        debug "Issue label #{name} to issue #{owner}/#{repo} -> #{issue_id} exists"
         issue_lbl
       end
 
@@ -1684,7 +1694,7 @@ module GHTorrent
       start_time = Time.now
       begin
         @db.transaction(:rollback => :reraise, :isolation => :repeatable,
-                        :retry_on => [Mysql2::Error], :num_retries => 3) do
+                        :retry_on => @retry_on_error, :num_retries => 3) do
           result = yield block
         end
         total = Time.now.to_ms - start_time.to_ms
@@ -1692,7 +1702,7 @@ module GHTorrent
         result
       rescue Exception => e
         total = Time.now.to_ms - start_time.to_ms
-        warn "Transaction failed (#{total} ms)"
+        error "Transaction failed (#{total} ms)"
         raise e
       ensure
         GC.start
@@ -1725,7 +1735,7 @@ module GHTorrent
         repository = ensure_repo(user, repo)
 
         if repository.nil?
-          warn "Repository #{user}/#{repo} deleted"
+          warn "Could not find repo #{user}/#{repo} for storing commit #{c}"
         end
 
         commits.insert(:sha => c['sha'],
@@ -1735,7 +1745,7 @@ module GHTorrent
                        :created_at => date(c['commit']['author']['date']),
                        :ext_ref_id => c[@ext_uniq]
         )
-        debug "New commit #{user}/#{repo} -> #{c['sha']} "
+        info "Added commit #{user}/#{repo} -> #{c['sha']} "
         commits.first(:sha => c['sha'])
       else
         debug "Commit #{user}/#{repo} -> #{c['sha']} exists"
