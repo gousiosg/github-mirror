@@ -1196,7 +1196,7 @@ module GHTorrent
             :created_at => retrieved['created_at'],
             :ext_ref_id => retrieved[@ext_uniq]
         )
-        debug "Added comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id}"
+        info "Added comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id}"
         @db[:pull_request_comments].first(:pull_request_id => pull_req[:id],
                                           :comment_id => comment_id)
       else
