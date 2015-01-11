@@ -7,5 +7,4 @@ mirror:
   #username: github_username
   #passwd: github_passwd
   #token: a valid github API key
-  respect_api_ratelimit: true
   user_agent: ghtorrent
