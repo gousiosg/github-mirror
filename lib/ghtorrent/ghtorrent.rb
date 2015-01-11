@@ -582,71 +582,74 @@ module GHTorrent
           slept += 1
         end
       end
-      debug "Retrieving commits for #{owner}/#{repo} until we reach a commit shared with the parent"
+      begin
+        debug "Retrieving commits for #{owner}/#{repo} until we reach a commit shared with the parent"
 
-      sha = nil
+        sha = nil
       # Refresh the latest commits for the parent.
-      retrieve_commits(parent_repo, sha, parent_owner, 1).each do |c|
-        sha = c['sha']
-        ensure_commit(parent_repo, sha, parent_owner, true)
-      end
-
-      sha = nil
-      found = false
-      while not found
-        processed = 0
-        commits = retrieve_commits(repo, sha, owner, 1)
-
-        # If only one commit has been retrieved (and this is the same as
-        # the commit since which we query commits from) this mean that
-        # there are no more commits.
-        if commits.size == 1 and commits[0]['sha'] == sha
-          debug "No shared commit found and no more commits for #{owner}/#{repo}"
-          break
+        retrieve_commits(parent_repo, sha, parent_owner, 1).each do |c|
+          sha = c['sha']
+          ensure_commit(parent_repo, sha, parent_owner, true)
         end
 
-        for c in commits
-          processed += 1
-          exists_in_parent =
-              !@db.from(:project_commits, :commits).\
-                       where(:project_commits__commit_id => :commits__id).\
-                       where(:project_commits__project_id => parent[:id]).\
-                       where(:commits__sha => c['sha']).first.nil?
+        sha = nil
+        found = false
+        while not found
+          processed = 0
+          commits = retrieve_commits(repo, sha, owner, 1)
 
-          sha = c['sha']
-          if exists_in_parent
-            found = true
-            debug "Found commit #{sha} shared with parent, switching to copying commits"
+          # If only one commit has been retrieved (and this is the same as
+          # the commit since which we query commits from) this mean that
+          # there are no more commits.
+          if commits.size == 1 and commits[0]['sha'] == sha
+            debug "No shared commit found and no more commits for #{owner}/#{repo}"
             break
-          else
-            ensure_commit(repo, sha, owner, true)
+          end
+
+          for c in commits
+            processed += 1
+            exists_in_parent =
+                !@db.from(:project_commits, :commits).\
+                         where(:project_commits__commit_id => :commits__id).\
+                         where(:project_commits__project_id => parent[:id]).\
+                         where(:commits__sha => c['sha']).first.nil?
+
+            sha = c['sha']
+            if exists_in_parent
+              found = true
+              debug "Found commit #{sha} shared with parent, switching to copying commits"
+              break
+            else
+              ensure_commit(repo, sha, owner, true)
+            end
+          end
+
+          if processed == 0
+            warn "No commits found for #{owner}/#{repo}, repo deleted?"
+            break
           end
         end
 
-        if processed == 0
-          warn "No commits found for #{owner}/#{repo}, repo deleted?"
-          break
+        if found
+          shared_commit = @db[:commits].first(:sha => sha)
+          copied = 0
+          @db.from(:project_commits, :commits).\
+                  where(:project_commits__commit_id => :commits__id).\
+                  where(:project_commits__project_id => parent[:id]).\
+                  where('commits.created_at < ?', shared_commit[:created_at]).\
+                  select(:commits__id, :commits__sha).\
+              each do |c|
+                copied += 1
+                @db[:project_commits].insert(
+                    :project_id => currepo[:id],
+                    :commit_id => c[:id]
+                )
+                debug "Copied commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} (#{copied} total)"
+              end
         end
+      ensure
+        watchdog.exit
       end
-
-      if found
-        shared_commit = @db[:commits].first(:sha => sha)
-        copied = 0
-        @db.from(:project_commits, :commits).\
-                where(:project_commits__commit_id => :commits__id).\
-                where(:project_commits__project_id => parent[:id]).\
-                where('commits.created_at < ?', shared_commit[:created_at]).\
-                select(:commits__id, :commits__sha).\
-            each do |c|
-              copied += 1
-              @db[:project_commits].insert(
-                  :project_id => currepo[:id],
-                  :commit_id => c[:id]
-              )
-              debug "Copied commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} (#{copied} total)"
-            end
-      end
-      watchdog.exit
     end
 
     ##
