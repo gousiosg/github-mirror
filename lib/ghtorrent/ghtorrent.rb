@@ -1702,7 +1702,7 @@ module GHTorrent
         result
       rescue Exception => e
         total = Time.now.to_ms - start_time.to_ms
-        error "Transaction failed (#{total} ms)"
+        warn "Transaction failed (#{total} ms)"
         raise e
       ensure
         GC.start
