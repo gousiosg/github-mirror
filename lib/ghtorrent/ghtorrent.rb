@@ -330,6 +330,7 @@ module GHTorrent
                      :email => email,
                      :location => u['location'],
                      :fake => false,
+                     :deleted => false,
                      :type => user_type(u['type']),
                      :created_at => date(u['created_at']),
                      :ext_ref_id => u[@ext_uniq])
@@ -458,6 +459,7 @@ module GHTorrent
                        :name => name,
                        :login => login,
                        :fake => true,
+                       :deleted => false,
                        :created_at => Time.now,
                        :ext_ref_id => '')
           info "Added fake user #{login} -> #{email}"
@@ -471,6 +473,7 @@ module GHTorrent
                          :email => u['email'],
                          :location => u['location'],
                          :fake => false,
+                         :deleted => false,
                          :created_at => date(u['created_at']),
                          :ext_ref_id => u[@ext_uniq])
             info "Added user #{u['login']} (#{email}) through search API query"
@@ -480,6 +483,7 @@ module GHTorrent
                          :email => u['email'],
                          :location => u['location'],
                          :fake => false,
+                         :deleted => false,
                          :created_at => date(u['created_at']),
                          :ext_ref_id => u[@ext_uniq])
             debug "User #{u['login']} with email #{email} exists"

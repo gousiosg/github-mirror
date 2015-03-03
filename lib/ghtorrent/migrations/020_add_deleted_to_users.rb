@@ -19,7 +19,7 @@ Sequel.migration do
                   and not exists (select * from project_members where users.id = user_id)
                   and not exists (select * from issues where reporter_id=users.id )
                   and not exists (select * from issues where assignee_id=users.id )
-                  and not exists (select * from organization_members where user_id = users.id);"
+                a nd not exists (select * from organization_members where user_id = users.id);"
       end
     end
   end

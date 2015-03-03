@@ -18,6 +18,15 @@ An efficient way to get all data for a single user
     BANNER
   end
 
+  def set_deleted(user)
+    ght.transaction do
+      ght.get_db.from(:users).\
+       where(:login => user).\
+       update(:users__deleted => true)
+    end
+    warn "User #{user} marked as deleted"
+  end
+
   def validate
     super
     Trollop::die "One argument is required" unless args[0] && !args[0].empty?
@@ -25,10 +34,23 @@ An efficient way to get all data for a single user
 
   def go
     self.settings = override_config(settings, :mirror_history_pages_back, -1)
-    user_entry = ght.transaction{ght.ensure_user(ARGV[0], false, false)}
 
-    if user_entry.nil?
-      Trollop::die "Cannot find user #{ARGV[0]}"
+    user_entry = ght.transaction{ght.ensure_user(ARGV[0], false, false)}
+    on_github = api_request(ghurl ("users/#{ARGV[0]}"))
+
+    if on_github.empty?
+      if user_entry.nil?
+        warn "User #{ARGV[0]} does not exist on GitHub"
+        exit
+      else
+        set_deleted(ARGV[0])
+        exit
+      end
+    else
+      if user_entry.nil?
+        warn "Error retrieving user #{ARGV[0]}"
+        exit
+      end
     end
 
     user = user_entry[:login]
