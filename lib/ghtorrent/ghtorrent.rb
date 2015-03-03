@@ -418,6 +418,21 @@ module GHTorrent
       followers.first(:user_id => followed_id, :follower_id => follower_id)
     end
 
+    def ensure_user_following(user)
+      curuser = ensure_user(user, false, false)
+      following = @db.from(:followers, :users).\
+          where(:followers__follower_id => curuser[:id]).\
+          where(:followers__user_id => :users__id).select(:login).all
+
+      retrieve_user_following(user).reduce([]) do |acc, x|
+         if following.find {|y| y[:login] == x['follows']}.nil?
+           acc << x
+         else
+           acc
+         end
+       end.map { |x| save{ensure_user_follower(x['follows'], user) }}.select{|x| !x.nil?}
+    end
+
     ##
     # Try to retrieve a user by email. Search the DB first, fall back to
     # Github search API if unsuccessful.

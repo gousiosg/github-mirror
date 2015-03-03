@@ -111,7 +111,7 @@ module GHTorrent
         x['follows'] = user
 
         exists = !persister.find(:followers, {'follows' => user,
-                                     'login' => x['login']}).empty?
+                                              'login' => x['login']}).empty?
 
         if not exists
           persister.store(:followers, x)
@@ -122,6 +122,39 @@ module GHTorrent
       end
 
       persister.find(:followers, {'follows' => user})
+    end
+
+    def retrieve_user_following(user)
+      following = paged_api_request(ghurl "users/#{user}/following")
+      user_followers_entry = nil
+
+      following.each do |x|
+
+        if user_followers_entry.nil?
+          reverse_lookup = persister.find(:followers, {'follows' => x['login'],
+                                                       'login' => user})
+          if reverse_lookup.empty?
+            user_followers_entry = retrieve_user_followers(x['login']).\
+                                     find{|y| y['login'] == user}
+          else
+            user_followers_entry = reverse_lookup[0]
+          end
+        end
+
+        exists = !persister.find(:followers, {'follows' => x['login'],
+                                              'login' => user}).empty?
+        if not exists
+          user_followers_entry['follows'] = x['login']
+          user_followers_entry.delete(:_id)
+          user_followers_entry.delete('_id')
+          a = persister.store(:followers, user_followers_entry)
+          info "Added following #{user} -> #{x['login']}"
+        else
+          debug "Following #{user} -> #{x['login']} exists"
+        end
+      end
+
+      persister.find(:followers, {'login' => user})
     end
 
     # Retrieve a single commit from a repo
