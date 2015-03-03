@@ -38,13 +38,13 @@ class GHTMirrorEvents < GHTorrent::Command
   def retrieve(exchange)
     begin
       new = dupl = 0
-      events = api_request "https://api.github.com/events"
+      events = api_request "https://api.github.com/events?per_page=100"
       (new, dupl, stored) = store_count events
 
-      # This means that first page cannot contain all new events. Go
-      # up to 10 pages back to find all new events not contained in first page.
+      # This means that the first page does not contain all new events. Do
+      # a paged request and get everything on the queue
       if dupl == 0
-        events = paged_api_request "https://api.github.com/events"
+        events = paged_api_request "https://api.github.com/events?per_page=100"
         (new1, dupl1, stored1) = store_count events
         stored = stored | stored1
         new = new + new1

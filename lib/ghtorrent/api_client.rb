@@ -132,7 +132,9 @@ module GHTorrent
 
         contents
       rescue OpenURI::HTTPError => e
-        case e.io.status[0].to_i
+          @remaining = e.io.meta['x-ratelimit-remaining'].to_i
+          @reset = e.io.meta['x-ratelimit-reset'].to_i
+          case e.io.status[0].to_i
           # The following indicate valid Github return codes
           when 400, # Bad request
               401, # Unauthorized
@@ -141,13 +143,14 @@ module GHTorrent
               422 then # Unprocessable entity
             total = Time.now.to_ms - start_time.to_ms
             warn "[#{@attach_ip}]: Request: #{url} (#{@remaining} remaining), Total: #{total} ms, Status: #{e.io.status[1]}"
-            @remaining = e.io.meta['x-ratelimit-remaining'].to_i
-            @reset = e.io.meta['x-ratelimit-reset'].to_i
-            return nil
+           return nil
           else # Server error or HTTP conditions that Github does not report
-            warn ": #{url}: #{e.io.status[1]}"
+            warn "Failed request: URL: #{url}, Status code: #{e.io.status[0]}, Status: #{e.io.status[1]}, Access: #{if @token.nil? then @username else @token end}, IP: #{@attach_ip}"
             raise e
         end
+      rescue Exception => e
+        warn "Failed request: URL: #{url}, Status code: #{e.io.status[0]}, Status: #{e.io.status[1]}, Access: #{if @token.nil? then @username else @token end}, IP: #{@attach_ip}"
+        raise e
       ensure
         # The exact limit is only enforced upon the first @reset
         if 5000 - @remaining > @req_limit
