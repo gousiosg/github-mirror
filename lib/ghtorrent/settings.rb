@@ -57,7 +57,7 @@ module GHTorrent
         :attach_ip => '0.0.0.0',
 
         :rescue_loops => 'true',
-        :req_limit => 5000
+        :req_limit => 4998
     }
 
     def config(key, use_default = true)

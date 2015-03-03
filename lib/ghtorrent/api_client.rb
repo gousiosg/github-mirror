@@ -153,7 +153,7 @@ module GHTorrent
         raise e
       ensure
         # The exact limit is only enforced upon the first @reset
-        if 5000 - @remaining > @req_limit
+        if 5000 - @remaining >= @req_limit
           to_sleep = @reset - Time.now.to_i + 2
           debug "[#{@attach_ip}]: Request limit reached, sleeping for #{to_sleep} secs"
           t = Thread.new do
