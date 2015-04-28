@@ -153,12 +153,11 @@ Standard options:
     def go
     end
 
-    # Specify a handler to incoming messages from a connection to
-    # a queue.
-    # [queue]: The queue name to bind to
-    # [ack]: :before or :after when should acks be send, before or after
-    #        the block returns
-    # [block]: A block with one argument (the message)
+    # Specify a handler to incoming messages from a connection to a queue.
+    #
+    # @param queue [String] the queue name to bind to
+    # @param ack [Symbol] when should acks be send, :before or :after the block returns
+    # @param block [Block]: A block accepting one argument (the message)
     def queue_client(queue, ack = :after, block)
 
       stopped = false

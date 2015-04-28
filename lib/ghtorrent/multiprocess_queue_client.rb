@@ -1,3 +1,28 @@
+# A generic class to implement a multiprocess client for clients that listen
+# to the same queue for incoming messages.
+#
+# Client creation is driven by an input file whose format is described
+# in #options.banner.
+#
+# MultiprocessQueueClient expects overriding classes to overload the #clazz method
+# with the name of a class that respects the following protocol:
+#
+# @example
+#   class ExampleQueueClient
+#     # Constructor accepting a GHTorrent::Settings and a String object
+#     # representing the client configuration and the queue to connect to
+#     def initialize(config, queue); end
+#
+#     # Start processing using the specified GHTorrent::Command as input
+#     def run(command); end
+#
+#     # Stop processing of queue messages
+#     def stop; end
+#   end
+#
+# MultiprocessQueueClient does not do any error handling/respawning of
+# dead children. Client/Sub classes are expected to handle errors by
+# themselves.
 class MultiprocessQueueClient < GHTorrent::Command
 
   include GHTorrent::Settings
