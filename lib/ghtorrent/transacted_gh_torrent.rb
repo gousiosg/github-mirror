@@ -91,6 +91,24 @@ class TransactedGHTorrent < GHTorrent::Mirror
     end
   end
 
+  def ensure_user_followers(user)
+    check_transaction do
+      super(user)
+    end
+  end
+
+  def ensure_orgs(user)
+    check_transaction do
+      super(user)
+    end
+  end
+
+  def ensure_org(user, members = true)
+    check_transaction do
+      super(user, members)
+    end
+  end
+
   def check_transaction(&block)
     if get_db.in_transaction?
       yield block
