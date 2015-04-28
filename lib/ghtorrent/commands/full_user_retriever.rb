@@ -17,7 +17,7 @@ module GHTorrent
             ght.transaction do
               ght.get_db.from(:users).where(:login => login).update(:users__deleted => true)
             end
-            warn "User #{user} marked as deleted"
+            warn "User #{login} marked as deleted"
             return
           end
         else
