@@ -162,7 +162,9 @@ module GHTorrent
                                            .db(config(:mongo_db))
                  end
 
-        @mongo.authenticate(config(:mongo_username), config(:mongo_passwd))
+        unless config(:mongo_username).nil?
+          @mongo.authenticate(config(:mongo_username), config(:mongo_passwd))
+        end
         stats = @mongo.stats
         init_db(@mongo) if stats['collections'] < ENTITIES.size + 2
         init_db(@mongo) if stats['indexes'] < IDXS.keys.size + ENTITIES.size
