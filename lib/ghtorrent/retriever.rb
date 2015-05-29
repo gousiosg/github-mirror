@@ -609,6 +609,9 @@ module GHTorrent
             exists = !instances.empty?
 
             unless exists
+              x = api_request(x['url'])
+              x['repo'] = repo
+              x['owner'] = user
               persister.store(entity, x)
               info "Added #{entity} #{user}/#{repo} -> #{x[discriminator]}"
             else
