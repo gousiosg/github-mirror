@@ -1,0 +1,109 @@
+#!/usr/bin/env ruby
+#
+
+require 'rubygems'
+require 'trollop'
+require 'influxdb'
+require 'pp'
+require 'time'
+
+def parse_api_client_line(line)
+  if line.start_with?("Successful")
+    # Successful request. URL: https://api.github.com/repos/amizony/self-destructing-task-list/comments/11518274?per_page=100, Remaining: 3949, Total: 423 ms
+    remaining, elapsed = line.match(/.*Remaining: ([\d]+), Total: ([\d]+) ms/).captures
+    {
+        :outcome => "success",
+        :elapsed => elapsed.to_i,
+        :remaining => remaining.to_i
+    }
+  elsif line.start_with?("Failed")
+    # Failed request. URL: https://api.github.com/repos/mingliang7/hotel/commits?per_page=100, Status code: 409, Status: Conflict, Access: ghtorrent, IP: 0.0.0.0, Remaining: 3332
+    code, elapsed = line.match(/.*Status code: ([^,]+), .*Remaining: ([\d]+)/).captures
+    {
+        :outcome => "error",
+        :error_code => code.to_i,
+        :remaining => remaining.to_i
+    }
+  else
+    {}
+  end
+end
+
+def parse_data_retrieval_line(line)
+  #Success processing event. Type: PushEvent, ID: 2863181313, Time: 967 ms
+  return {} unless line.start_with?("Success") or line.start_with?("Error")
+  outcome, evt_type, time = line.match(/([^\ ]+) processing event\. Type: ([\D]+)Event, .*, Time: ([\d]+) ms/).captures
+
+  {
+      :outcome => outcome.downcase,
+      :evt_type => evt_type,
+      :elapsed => time.to_i
+  }
+end
+
+def parse_log_line(line)
+  severity, time, progname, stage, msg =
+      line.match(/([A-Z]+), (.+), (.+) -- ([^:]*?): (.*)/).captures
+
+  return {} if severity.downcase == 'debug'
+  stage = stage.split(/\./)[0]
+  data = {
+      :time => Time.iso8601(time).to_f,
+      :client => progname,
+      :severity => severity,
+      :stage => stage
+  }
+
+  stage_specific =
+      case stage
+        when 'api_client'
+          parse_api_client_line(msg)
+        when 'ght_data_retrieval'
+          parse_data_retrieval_line(msg)
+        else
+          {}
+      end
+
+  return {} if stage_specific.empty?
+  data.merge(stage_specific)
+end
+
+opts = Trollop::options do
+  banner <<-END
+  Store GHTorrent log output to InfluxDB. By default reads from STDIN.
+  Can be configured to watch files in directories.
+
+Options:
+  END
+
+  opt :watch, "Use watch mode", :sort => 'w'
+  opt :watch_pattern, "Pattern for files to watch",
+      :sort => 'p', :default => '*.log'
+end
+
+influx = InfluxDB::Client.new('ghtorrent')
+
+if opts[:watch]
+  require 'filewatch/tail'
+
+  t = FileWatch::Tail.new
+  t.tail(opts[:watch_pattern])
+
+  t.subscribe do |path, line|
+    p = parse_log_line(line)
+    next if p.empty?
+
+    p[:client] = path
+    pp p
+    influx.write_point(p[:stage], p)
+  end
+else
+  ARGF.each do |line|
+    next if line !~ /^[IDEW]/
+    p = parse_log_line(line)
+
+    next if p.empty?
+
+    influx.write_point(p[:stage], p)
+  end
+end

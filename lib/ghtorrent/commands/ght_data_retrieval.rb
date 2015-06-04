@@ -192,7 +192,7 @@ If event_id is provided, only this event is processed.
     event = persister.get_underlying_connection[:events].find_one('id' => evt_id)
     event.delete '_id'
     data = parse(event.to_json)
-    info "Processing event: #{data['type']}-#{data['id']}"
+    debug "Processing event: #{data['type']}-#{data['id']}"
     data
   end
 
@@ -230,17 +230,17 @@ If event_id is provided, only this event is processed.
       info "Binding handler #{h} to routing key evt.#{h}"
 
       queue.subscribe(:ack => true) do |headers, properties, msg|
+        start = Time.now
         begin
-
           data = retrieve_event(msg)
           send(h, data)
 
           channel.acknowledge(headers.delivery_tag, false)
-          info "Processed event: #{data['type']}-#{data['id']}"
+          info "Success processing event. Type: #{data['type']}, ID: #{data['id']}, Time: #{Time.now.to_ms - start.to_ms} ms"
         rescue Exception => e
           # Give a message a chance to be reprocessed
           if headers.redelivered?
-            warn "Could not process event: #{msg}"
+            warn "Error processing event. Type: #{data['type']}, ID: #{data['id']}, Time: #{Time.now.to_ms - start.to_ms} ms"
             channel.reject(headers.delivery_tag, false)
           else
             channel.reject(headers.delivery_tag, true)
