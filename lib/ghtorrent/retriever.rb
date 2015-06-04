@@ -35,11 +35,11 @@ module GHTorrent
         unq = persister.store(:users, u)
         u[ext_uniq] = unq
         what = user_type(u['type'])
-        info "New #{what} #{user}"
+        info "Added #{what} #{user}"
         u
       else
         what = user_type(stored_user.first['type'])
-        debug "Already got #{what} #{user}"
+        debug "#{what} #{user} exists"
         stored_user.first
       end
     end
@@ -81,14 +81,14 @@ module GHTorrent
         end
       else
         unless byemail['user']['login'].nil?
-          info "User #{byemail['user']['login']} retrieved by email #{email}"
+          info "Added user #{byemail['user']['login']} retrieved by email #{email}"
           retrieve_user_byusername(byemail['user']['login'])
         else
           u = byemail['user']
           unq = persister.store(:users, u)
           u[ext_uniq] = unq
           what = user_type(u['type'])
-          info "New #{what} #{user}"
+          info "Added #{what} #{user}"
           u
         end
       end
@@ -170,11 +170,11 @@ module GHTorrent
         end
 
         unq = persister.store(:commits, c)
-        info "New commit #{user}/#{repo} -> #{sha}"
+        info "Added commit #{user}/#{repo} -> #{sha}"
         c[ext_uniq] = unq
         c
       else
-        debug "Already got commit #{user}/#{repo} -> #{sha}"
+        debug "Commit #{user}/#{repo} -> #{sha} exists"
         commit.first
       end
     end
@@ -207,11 +207,11 @@ module GHTorrent
         end
 
         unq = persister.store(:repos, r)
-        info "New repo #{user} -> #{repo}"
+        info "Added repo #{user} -> #{repo}"
         r[ext_uniq] = unq
         r
       else
-        debug "Already got repo #{user} -> #{repo}"
+        debug "Repo #{user} -> #{repo} exists"
         stored_repo.first
       end
     end
@@ -273,7 +273,7 @@ module GHTorrent
         r = api_request(ghurl "repos/#{owner}/#{repo}/comments/#{id}")
 
         if r.empty?
-          debug "Commit comment #{id} deleted"
+          warn "Could not find commit comment #{id}. Deleted?"
           return
         end
 
@@ -394,7 +394,7 @@ module GHTorrent
         r = api_request(ghurl "repos/#{owner}/#{repo}/pulls/comments/#{comment_id}")
 
         if r.empty?
-          debug "Pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id} deleted"
+          warn "Could not find pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id}. Deleted?"
           return
         end
 
@@ -407,7 +407,7 @@ module GHTorrent
                                          'pullreq_id' => pullreq_id.to_i,
                                          'id' => comment_id}).first
       else
-        debug "Pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id} exists"
+        debug "Pull request comment #{owner}/#{repo} #{pullreq_id}->#{comment_id} exists"
         comment
       end
     end
@@ -462,7 +462,7 @@ module GHTorrent
         r = api_request(ghurl "repos/#{owner}/#{repo}/issues/events/#{event_id}")
 
         if r.empty?
-          warn "Issue event #{owner}/#{repo} #{issue_id}->#{event_id} deleted"
+          warn "Could not find issue event #{owner}/#{repo} #{issue_id}->#{event_id}. Deleted?"
           return
         end
 
@@ -512,7 +512,7 @@ module GHTorrent
         r = api_request(ghurl "repos/#{owner}/#{repo}/issues/comments/#{comment_id}")
 
         if r.empty?
-          warn "Issue comment #{owner}/#{repo} #{issue_id}->#{comment_id} deleted"
+          warn "Could not find issue comment #{owner}/#{repo} #{issue_id}->#{comment_id}. Deleted?"
           return
         end
 
@@ -562,10 +562,10 @@ module GHTorrent
 
       r.each do |e|
         if get_event(e['id']).empty?
-          info "Already got event #{owner}/#{repo} -> #{e['id']}"
+          debug "Event #{owner}/#{repo} -> #{e['id']} exists"
         else
           @persister.store(:events, e)
-          info "Added event #{owner}/#{repo} -> #{e['id']}"
+          info "Added repository event #{owner}/#{repo} -> #{e['id']}"
         end
       end
     end
