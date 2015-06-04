@@ -1,9 +1,15 @@
 require 'logger'
 
+require 'ghtorrent/settings'
+
 module GHTorrent
   module Logging
 
-    DEBUG_LEVEL = defined?(Logger) ? Logger::DEBUG : 0
+    include GHTorrent::Settings
+
+    def error(msg)
+      log(:warn, msg)
+    end
 
     def warn(msg)
       log(:warn, msg)
@@ -15,6 +21,45 @@ module GHTorrent
 
     def debug(msg)
       log(:debug, msg)
+    end
+
+    # Default logger
+    def loggerr
+      @logger ||= proc do
+        @logger_uniq ||= config(:logging_uniq)
+
+        logger = if config(:logging_file).casecmp('stdout')
+                   Logger.new(STDOUT)
+                 elsif config(:logging_file).casecmp('stderr')
+                   Logger.new(STDERR)
+                 else
+                   Logger.new(config(:logging_file))
+                 end
+
+        logger.level =
+            case config(:logging_level).downcase
+              when 'debug' then
+                Logger::DEBUG
+              when 'info' then
+                Logger::INFO
+              when 'warn' then
+                Logger::WARN
+              when 'error' then
+                Logger::ERROR
+              else
+                Logger::INFO
+            end
+
+        logger.formatter = proc do |severity, time, progname, msg|
+          if progname.nil? or progname.empty?
+            progname = @logger_uniq
+          end
+          "#{severity}, #{time}, #{progname} -- #{msg}\n"
+        end
+        logger
+      end.call
+
+      @logger
     end
 
     private
@@ -37,23 +82,18 @@ module GHTorrent
 
       case level
         when :fatal then
-          logger.fatal (retrieve_caller + msg)
+          loggerr.fatal (retrieve_caller + msg)
         when :error then
-          logger.error (retrieve_caller + msg)
+          loggerr.error (retrieve_caller + msg)
         when :warn then
-          logger.warn  (retrieve_caller + msg)
+          loggerr.warn  (retrieve_caller + msg)
         when :info then
-          logger.info  (retrieve_caller + msg)
+          loggerr.info  (retrieve_caller + msg)
         when :debug then
-          logger.debug (retrieve_caller + msg)
+          loggerr.debug (retrieve_caller + msg)
         else
-          logger.debug (retrieve_caller + msg)
+          loggerr.debug (retrieve_caller + msg)
       end
-    end
-
-    # Default logger
-    def logger
-      @logger ||= Logger.new(STDOUT)
     end
   end
 end

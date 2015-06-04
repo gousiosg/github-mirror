@@ -120,6 +120,23 @@ module GHTorrent
       end
     end
 
+    def request_error_msg(url, exception)
+      <<-MSG
+            Failed request. URL: #{url}, Status code: #{exception.io.status[0]},
+            Status: #{exception.io.status[1]},
+            Access: #{if (@token.nil? or @token.empty?) then @username else @token end},
+            IP: #{@attach_ip}, Remaining: #{@remaining}
+      MSG
+    end
+
+    def error_msg(url, exception)
+      <<-MSG
+            Failed request. URL: #{url}, Exception: #{exception.message},
+            Access: #{if (@token.nil? or @token.empty?) then @username else @token end},
+            IP: #{@attach_ip}, Remaining: #{@remaining}
+      MSG
+    end
+
     # Do the actual request and return the result object
     def api_request_raw(url)
 
@@ -128,12 +145,13 @@ module GHTorrent
 
         contents = do_request(url)
         total = Time.now.to_ms - start_time.to_ms
-        debug "[#{@attach_ip}]: Request: #{url} (#{@remaining} remaining), Total: #{total} ms"
+        info "Successful request. URL: #{url}, Remaining: #{@remaining}, Total: #{total} ms"
 
         contents
       rescue OpenURI::HTTPError => e
           @remaining = e.io.meta['x-ratelimit-remaining'].to_i
           @reset = e.io.meta['x-ratelimit-reset'].to_i
+
           case e.io.status[0].to_i
           # The following indicate valid Github return codes
           when 400, # Bad request
@@ -142,24 +160,24 @@ module GHTorrent
               404, # Not found
               422 then # Unprocessable entity
             total = Time.now.to_ms - start_time.to_ms
-            warn "[#{@attach_ip}]: Request: #{url} (#{@remaining} remaining), Total: #{total} ms, Status: #{e.io.status[1]}"
+            warn request_error_msg(url, e).strip.gsub(/\s+/,' ').gsub("\n", ' ')
            return nil
           else # Server error or HTTP conditions that Github does not report
-            warn "Failed request: URL: #{url}, Status code: #{e.io.status[0]}, Status: #{e.io.status[1]}, Access: #{if @token.nil? then @username else @token end}, IP: #{@attach_ip}"
+            warn request_error_msg(url, e).strip.gsub(/\s+/,' ').gsub("\n", ' ')
             raise e
         end
       rescue Exception => e
-        warn "Failed request: URL: #{url}, Status code: #{e.io.status[0]}, Status: #{e.io.status[1]}, Access: #{if @token.nil? then @username else @token end}, IP: #{@attach_ip}"
+        warn error_msg(url, e).strip.gsub(/\s+/,' ').gsub("\n", ' ')
         raise e
       ensure
         # The exact limit is only enforced upon the first @reset
         if 5000 - @remaining >= @req_limit
           to_sleep = @reset - Time.now.to_i + 2
-          debug "[#{@attach_ip}]: Request limit reached, sleeping for #{to_sleep} secs"
+          debug "Request limit reached, sleeping for #{to_sleep} secs"
           t = Thread.new do
             slept = 0
             while true do
-              debug "[#{@attach_ip}]: sleeping for #{to_sleep - slept} seconds"
+              debug "Sleeping for #{to_sleep - slept} seconds"
               sleep 1
               slept += 1
             end

@@ -31,7 +31,11 @@ module GHTorrent
         :attach_ip => 'mirror.attach_ip',
 
         :rescue_loops => 'mirror.rescue_loops',
-        :req_limit => 'mirror.req_limit'
+        :req_limit => 'mirror.req_limit',
+
+        :logging_level => 'logging.level',
+        :logging_uniq => 'logging.uniq',
+        :logging_file => 'logging.file'
     }
 
     DEFAULTS = {
@@ -57,7 +61,11 @@ module GHTorrent
         :attach_ip => '0.0.0.0',
 
         :rescue_loops => 'true',
-        :req_limit => 4998
+        :req_limit => 4998,
+
+        :logging_level => 'info',
+        :logging_uniq => '',
+        :logging_file => 'stdout'
     }
 
     def config(key, use_default = true)

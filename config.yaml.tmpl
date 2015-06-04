@@ -55,3 +55,11 @@ mongo:
   db: github           # DB name to store commits to
   username: github     # User name to connect to Mongo
   password: github     # Password for mongo
+
+logging:
+  # A unique string to appear in all messages produced by the invoking program.
+  uniq: "ghtorrent"
+  # debug < info < warn < error, for decreasing log output
+  level: "info"
+  # stdout or stderr to log to system streams. A file name to log to this file.
+  file: "stdout"

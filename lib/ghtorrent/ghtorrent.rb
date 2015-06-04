@@ -19,7 +19,6 @@ module GHTorrent
     def initialize(settings)
       @settings = settings
       @ext_uniq = config(:uniq_id)
-      @logger = Logger.new(STDOUT)
 
       @retry_on_error = Array.new
       @retry_on_error <<  Mysql2::Error      if defined? Mysql2::Error
@@ -1733,8 +1732,8 @@ module GHTorrent
         begin
           yield block
         rescue Exception => e
-          @logger.error e.message
-          @logger.error e.backtrace.join("\n")
+          error e.message
+          error e.backtrace.join("\n")
           nil
         end
       else

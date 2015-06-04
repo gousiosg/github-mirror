@@ -67,6 +67,12 @@ module GHTorrent
                                                      command.options[:req_limit])
         end
 
+        unless command.options[:uniq].nil?
+          command.settings = command.override_config(command.settings,
+                                                     :logging_uniq,
+                                                     command.options[:uniq])
+        end
+
 
         begin
           command.go
@@ -96,7 +102,7 @@ Standard options:
         opt :config, 'config.yaml file location', :short => 'c',
             :default => 'config.yaml'
         opt :verbose, 'verbose mode', :short => 'v'
-        opt :addr, 'ip address to use for performing requests', :short => 'a',
+        opt :addr, 'IP address to use for performing requests', :short => 'a',
             :type => String
         opt :username, 'Username at Github', :short => 's', :type => String
         opt :password, 'Password at Github', :type => String
@@ -104,6 +110,8 @@ Standard options:
             :type => String, :short => 't'
         opt :req_limit, 'Request limit for provided account (in reqs/hour)',
             :type => Integer, :short => 'l'
+        opt :uniq, 'Unique name for this command. Will appear in logs.',
+            :type => String, :short => 'u'
       end
     end
 
