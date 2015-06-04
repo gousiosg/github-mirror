@@ -54,7 +54,7 @@ module GHTorrent
           if progname.nil? or progname.empty?
             progname = @logger_uniq
           end
-          "#{severity}, #{time}, #{progname} -- #{msg}\n"
+          "#{severity}, #{time.iso8601}, #{progname} -- #{msg}\n"
         end
         logger
       end.call
