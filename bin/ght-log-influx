@@ -42,8 +42,13 @@ def parse_data_retrieval_line(line)
 end
 
 def parse_log_line(line)
-  severity, time, progname, stage, msg =
-      line.match(/([A-Z]+), (.+), (.+) -- ([^:]*?): (.*)/).captures
+  begin
+    severity, time, progname, stage, msg =
+        line.match(/([A-Z]+), (.+), (.+) -- ([^:]*?): (.*)/).captures
+  rescue
+    puts "Error parsing line: #{line}"
+    return {}
+  end
 
   return {} if severity.downcase == 'debug'
   stage = stage.split(/\./)[0]
@@ -54,7 +59,11 @@ def parse_log_line(line)
       :stage => stage
   }
 
+  return {} if msg.nil? or msg.length == 0
+
+
   stage_specific =
+    begin
       case stage
         when 'api_client'
           parse_api_client_line(msg)
@@ -63,6 +72,10 @@ def parse_log_line(line)
         else
           {}
       end
+    rescue
+      puts "Error parsing line: #{msg}"
+      {}
+    end
 
   return {} if stage_specific.empty?
   data.merge(stage_specific)
@@ -78,10 +91,28 @@ Options:
 
   opt :watch, "Use watch mode", :sort => 'w'
   opt :watch_pattern, "Pattern for files to watch",
-      :sort => 'p', :default => '*.log'
+    :short => 'p', :default => '*.log'
+
+  opt :db_server, "InfluxDB server to use", :type => String,
+    :short => 's', :default => '127.0.0.1'
+  opt :database, "InfluxDB database to use", :type => String,
+      :short => 'd', :default => 'ghtorrent'
+  opt :db_uname, "Username for the Influx database", :type => String,
+      :short => 'u', :default => 'ghtorrent'
+  opt :db_passwd, "Password for the Influx database", :type => String,
+      :short => 'x', :default => ''
 end
 
-influx = InfluxDB::Client.new('ghtorrent')
+unless opts[:db_passwd_given].nil?
+  influx = InfluxDB::Client.new(opts[:database],
+                                :host     => opts[:db_server],
+                                :username => opts[:db_uname],
+                                :password => opts[:db_passwd])
+else
+  influx = InfluxDB::Client.new("ghtorrent",
+                                :host => opts[:db_server])
+end
+influx.get_database_list
 
 if opts[:watch]
   require 'filewatch/tail'
@@ -93,17 +124,17 @@ if opts[:watch]
     p = parse_log_line(line)
     next if p.empty?
 
-    p[:client] = path
     pp p
-    influx.write_point(p[:stage], p)
+    #influx.write_point(p[:stage], p)
   end
 else
+  puts "Reading from STDIN..."
   ARGF.each do |line|
     next if line !~ /^[IDEW]/
     p = parse_log_line(line)
 
     next if p.empty?
-
+    pp p
     influx.write_point(p[:stage], p)
   end
 end
