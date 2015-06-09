@@ -134,7 +134,10 @@ else
     p = parse_log_line(line)
 
     next if p.empty?
-    pp p
-    influx.write_point(p[:stage], p)
+    begin
+      pp p
+      influx.write_point(p[:stage], p)
+    rescue
+    end
   end
 end
