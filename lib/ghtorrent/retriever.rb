@@ -555,19 +555,23 @@ module GHTorrent
       api_request "https://api.github.com/events"
     end
 
-    # Get all events for the specified repo
+    # Get all events for the specified repo.
+    # GitHub will only return 90 days of events
     def get_repo_events(owner, repo)
       url = ghurl("repos/#{owner}/#{repo}/events")
       r = paged_api_request(url)
 
       r.each do |e|
-        if get_event(e['id']).empty?
-          debug "Event #{owner}/#{repo} -> #{e['id']} exists"
+        unless get_event(e['id']).empty?
+          debug "Repository event #{owner}/#{repo} -> #{e['type']}-#{e['id']} already exists"
         else
-          @persister.store(:events, e)
-          info "Added repository event #{owner}/#{repo} -> #{e['id']}"
+          persister.store(:events, e)
+          info "Added repository event #{owner}/#{repo} -> #{e['type']}-#{e['id']}"
         end
       end
+
+      persister.find(:events, {'repo.name' => "#{owner}/#{repo}"})
+
     end
 
     # Get a specific event by +id+.
