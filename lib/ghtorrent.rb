@@ -45,6 +45,7 @@ require 'ghtorrent/persister'
 require 'ghtorrent/retriever'
 
 # SQL database fillup methods
+require 'ghtorrent/event_processing'
 require 'ghtorrent/ghtorrent'
 require 'ghtorrent/transacted_gh_torrent'
 
