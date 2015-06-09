@@ -660,11 +660,15 @@ module GHTorrent
                   select(:commits__id, :commits__sha).\
               each do |c|
                 copied += 1
-                @db[:project_commits].insert(
-                    :project_id => currepo[:id],
-                    :commit_id => c[:id]
-                )
-                info "Copied commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} (#{copied} total)"
+                begin
+                  @db[:project_commits].insert(
+                      :project_id => currepo[:id],
+                      :commit_id => c[:id]
+                  )
+                  info "Copied commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} (#{copied} total)"
+                rescue Exception => e
+                  warn "Could not copy commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} : #{e.message}"
+                end
               end
         end
       ensure
@@ -911,7 +915,7 @@ module GHTorrent
         retrieved = retrieve_watcher(owner, repo, watcher)
 
         if retrieved.nil?
-          warn "Could not retrieve #{watcher} of repo #{owner}/#{repo}"
+          warn "Could not retrieve watcher #{watcher} of repo #{owner}/#{repo}"
           return
         end
 
@@ -1360,7 +1364,7 @@ module GHTorrent
       # Pull requests and issues share the same issue_id
       pull_req = unless retrieved['pull_request'].nil? or
           retrieved['pull_request']['patch_url'].nil?
-                   info "Issue #{owner}/#{repo}->#{issue_id} is a pull request"
+                   debug "Issue #{owner}/#{repo}->#{issue_id} is a pull request"
                    ensure_pull_request(owner, repo, issue_id)
                  end
 
