@@ -268,7 +268,7 @@ module GHTorrent
     # ==Returns:
     # If the user can be retrieved, it is returned as a Hash. Otherwise,
     # the result is nil
-    def ensure_user(user, followers, orgs)
+    def ensure_user(user, followers = true, orgs = true)
       # Github only supports alpa-nums and dashes in its usernames.
       # All other sympbols are treated as emails.
       if not user.match(/^[\w\-]*$/)
@@ -609,7 +609,7 @@ module GHTorrent
       # Refresh the latest commits for the parent.
         retrieve_commits(parent_repo, sha, parent_owner, 1).each do |c|
           sha = c['sha']
-          ensure_commit(parent_repo, sha, parent_owner, true)
+          ensure_commit(parent_repo, sha, parent_owner)
         end
 
         sha = nil
@@ -640,7 +640,7 @@ module GHTorrent
               info "Found commit #{sha} shared with parent, switching to copying commits"
               break
             else
-              ensure_commit(repo, sha, owner, true)
+              ensure_commit(repo, sha, owner)
             end
           end
 
@@ -847,7 +847,7 @@ module GHTorrent
           return
         end
 
-        commit = ensure_commit(repo, sha, owner, false)
+        commit = ensure_commit(repo, sha, owner)
         user = ensure_user(retrieved['user']['login'], false, false)
         @db[:commit_comments].insert(
             :commit_id => commit[:id],
@@ -1068,7 +1068,7 @@ module GHTorrent
         head_commit = ensure_commit(retrieved['base']['repo']['name'],
                                     retrieved['head']['sha'],
                                     retrieved['base']['repo']['owner']['login'])
-        info log_msg(retrieved) + ' is intra-branch'
+        debug log_msg(retrieved) + ' is intra-branch'
       else
         head_repo = if has_head_repo(retrieved)
                       ensure_repo(retrieved['head']['repo']['owner']['login'],
@@ -1239,8 +1239,8 @@ module GHTorrent
         next if c.nil?
         head_repo_owner = c['url'].split(/\//)[4]
         head_repo_name = c['url'].split(/\//)[5]
-        x = ensure_commit(head_repo_name, c['sha'], head_repo_owner, true)
-        acc << x if not x.nil?
+        x = ensure_commit(head_repo_name, c['sha'], head_repo_owner)
+        acc << x unless x.nil?
         acc
       }.map do |c|
         save do
@@ -1365,7 +1365,7 @@ module GHTorrent
       pull_req = unless retrieved['pull_request'].nil? or
           retrieved['pull_request']['patch_url'].nil?
                    debug "Issue #{owner}/#{repo}->#{issue_id} is a pull request"
-                   ensure_pull_request(owner, repo, issue_id)
+                   ensure_pull_request(owner, repo, issue_id, false, false, false)
                  end
 
       if cur_issue.nil?
