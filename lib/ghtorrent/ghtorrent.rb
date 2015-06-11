@@ -847,7 +847,7 @@ module GHTorrent
           return
         end
 
-        commit = ensure_commit(repo, sha, owner)
+        commit = ensure_commit(repo, sha, owner, false)
         user = ensure_user(retrieved['user']['login'], false, false)
         @db[:commit_comments].insert(
             :commit_id => commit[:id],
