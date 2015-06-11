@@ -26,6 +26,10 @@ An efficient way to get all data for a single repo
                 :type => String
     options.opt :exclude_events, 'Comma separated list of event types to exclude from processing',
                 :type => String
+    options.opt :events_after, 'Process all events later than the provided event id',
+                :type => Integer
+    options.opt :events_before, 'Process all events earlier than the provided event id',
+                :type => Integer
   end
 
   def validate
@@ -95,11 +99,15 @@ An efficient way to get all data for a single repo
 
     # Process repo events
     unless options[:no_events_given]
-      get_repo_events(ARGV[0], ARGV[1]).each do |event|
+      events = get_repo_events(ARGV[0], ARGV[1]).sort{|e| e['id'].to_i}
+      events.each do |event|
         begin
-          unless @exclude_event_types.include? event['type']
-            send(event['type'], event)
-          end
+          next if @exclude_event_types.include? event['type']
+          next if options[:events_after_given] and event['id'].to_i <= options[:events_after]
+          next if options[:events_before_given] and event['id'].to_i >= options[:events_before]
+
+          send(event['type'], event)
+          puts "Processed event #{event['type']}-#{event['id']}"
         rescue Exception => e
            puts "Could not process event #{event['type']}-#{event['id']}: #{e.message}"
         end
