@@ -31,6 +31,7 @@ require 'ghtorrent/utils'
 require 'ghtorrent/logging'
 require 'ghtorrent/settings'
 require 'ghtorrent/api_client'
+require 'ghtorrent/geo'
 
 # Support for command line utilities offered by this gem
 require 'ghtorrent/command'

@@ -245,6 +245,7 @@ module GHTorrent
                 :login => login,
                 :company => added['company'],
                 :location => added['location'],
+                :geo => user_geocode(added['location']),
                 :created_at => added['created_at']
             )
           end
@@ -328,6 +329,7 @@ module GHTorrent
                      :company => u['company'],
                      :email => email,
                      :location => u['location'],
+                     :geo => user_geocode(u['location']),
                      :fake => false,
                      :deleted => false,
                      :type => user_type(u['type']),
@@ -471,6 +473,7 @@ module GHTorrent
                          :company => u['company'],
                          :email => u['email'],
                          :location => u['location'],
+                         :geo => user_geocode(u['location']),
                          :fake => false,
                          :deleted => false,
                          :created_at => date(u['created_at']),
@@ -481,6 +484,7 @@ module GHTorrent
                          :company => u['company'],
                          :email => u['email'],
                          :location => u['location'],
+                         :geo => user_geocode(u['location']),
                          :fake => false,
                          :deleted => false,
                          :created_at => date(u['created_at']),
