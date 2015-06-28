@@ -7,7 +7,8 @@ module GHTorrent
       # Instantiate the API using an API key
       mapquest = MapQuest.new(ENV['mapquest_key'],1, true)
       # Get geolocation data
-      return mapquest.geocoding.address(str)
+      resp = mapquest.geocoding.reverse((mapquest.geocoding.address(str))[0])
+      return Array[resp.latLng, resp.adminArea1, resp.adminArea3, resp.adminArea5]
     else
       return ""
     end
