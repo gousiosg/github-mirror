@@ -21,7 +21,7 @@ module GHTorrent
     }
 
     IDXS = {
-        :events                => %w(id repo.name),
+        :events                => %w(id),
         :users                 => %w(login),
         :commits               => %w(sha),
         :commit_comments       => %w(commit_id id),
