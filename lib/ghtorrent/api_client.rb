@@ -221,7 +221,7 @@ module GHTorrent
             when :token
               # As per: https://developer.github.com/v3/auth/#via-oauth-tokens
               lambda {|url| open(url, 'User-Agent' => @user_agent,
-                                 :http_basic_authentication => [@token, 'x-oauth-basic'])}
+                                 'Authorization' => "token #{@token}") }
           end
 
       result = if @attach_ip.nil? or @attach_ip.eql? '0.0.0.0'
