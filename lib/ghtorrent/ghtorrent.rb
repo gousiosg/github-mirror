@@ -1215,7 +1215,7 @@ module GHTorrent
             :position => retrieved['original_position'],
             :body => retrieved['body'][0..254],
             :commit_id => (commit[:id] unless commit.nil?),
-            :created_at => retrieved['created_at'],
+            :created_at => date(retrieved['created_at']),
             :ext_ref_id => retrieved[@ext_uniq]
         )
         info "Added comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id}"
