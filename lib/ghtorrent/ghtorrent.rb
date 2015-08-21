@@ -125,14 +125,14 @@ module GHTorrent
           if parent.nil?
             c = retrieve_commit(url[5], url[7], url[4])
             if c.nil?
-              warn "Could not retrieve #{url[4]}/#{url[5]} -> #{url[7]}, parent to commit #{this[:sha]}"
+              warn "Could not retrieve commit_parent #{url[4]}/#{url[5]} -> #{url[7]} to #{this[:sha]}"
               next
             end
             parent = store_commit(c, url[5], url[4])
           end
 
           if parent.nil?
-            warn "Could not retrieve #{url[4]}/#{url[5]} -> #{url[7]}, parent to commit #{this[:sha]}"
+            warn "Could not find #{url[4]}/#{url[5]} -> #{url[7]}, parent to commit #{this[:sha]}"
             next
           end
 
@@ -141,7 +141,7 @@ module GHTorrent
 
             parents.insert(:commit_id => this[:id],
                            :parent_id => parent[:id])
-            info "Added parent #{parent[:sha]} to commit #{this[:sha]}"
+            info "Added commit_parent #{parent[:sha]} to commit #{this[:sha]}"
           else
             debug "Parent #{parent[:sha]} for commit #{this[:sha]} exists"
           end
@@ -173,7 +173,7 @@ module GHTorrent
             :project_id => project[:id],
             :commit_id => commitid
         )
-        info "Added association of #{sha} with #{user}/#{repo}"
+        info "Added commit_assoc of #{sha} with #{user}/#{repo}"
         @db[:project_commits].first(:project_id => project[:id],
                                     :commit_id => commitid)
       else
@@ -452,7 +452,7 @@ module GHTorrent
         u = retrieve_user_byemail(email, name)
 
         if u.nil? or u['login'].nil?
-          warn "Could not find #{email} through search API query"
+          warn "Could not retrieve user #{email} through search API query"
           login = (0...8).map { 65.+(rand(25)).chr }.join
           users.insert(:email => email,
                        :name => name,
@@ -461,7 +461,7 @@ module GHTorrent
                        :deleted => false,
                        :created_at => Time.now,
                        :ext_ref_id => '')
-          info "Added fake user #{login} -> #{email}"
+          info "Added user fake #{login} -> #{email}"
           users.first(:login => login)
         else
           in_db = users.first(:login => u['login'])
@@ -719,7 +719,7 @@ module GHTorrent
         retrieved = retrieve_repo_collaborator(owner, repo, new_member)
 
         if retrieved.nil?
-          warn "Could not retrieve #{new_member}, member of #{owner}/#{repo}"
+          warn "Could not retrieve member #{new_member} of #{owner}/#{repo}"
           return
         end
 
@@ -729,7 +729,7 @@ module GHTorrent
             :created_at => date(added),
             :ext_ref_id => retrieved[@ext_uniq]
         )
-        info "Added project member #{repo} -> #{new_member}"
+        info "Added project_member #{repo} -> #{new_member}"
       else
         debug "Project member #{repo} -> #{new_member} exists"
       end
@@ -843,7 +843,7 @@ module GHTorrent
         retrieved = retrieve_commit_comment(owner, repo, sha, comment_id)
 
         if retrieved.nil?
-          warn "Could not retrieve commit comment #{sha}->#{comment_id}"
+          warn "Could not retrieve commit_comment #{sha}->#{comment_id}"
           return
         end
 
@@ -859,7 +859,7 @@ module GHTorrent
             :ext_ref_id => retrieved[@ext_uniq],
             :created_at => date(retrieved['created_at'])
         )
-        info "Added commit comment #{owner}/#{repo} -> #{sha}/#{retrieved['id']} by user #{user[:login]}"
+        info "Added commit_comment #{owner}/#{repo} -> #{sha}/#{retrieved['id']} by user #{user[:login]}"
       else
         debug "Commit comment #{sha} -> #{comment_id} exists"
       end
@@ -988,7 +988,7 @@ module GHTorrent
                                 :ext_ref_id => unq,
                                 :action => act,
                                 :actor_id => unless user.nil? then user[:id] end)
-        info "Added pull request (#{id}) event (#{act}) by (#{actor}) timestamp #{ts}"
+        info "Added pullreq_event (#{id}) -> (#{act}) by (#{actor}) timestamp #{ts}"
       else
         debug "Pull request (#{id}) event (#{act}) by (#{actor}) timestamp #{ts} exists"
         if entry[:actor_id].nil? and not user.nil?
@@ -1044,7 +1044,7 @@ module GHTorrent
                end
 
         <<-eos.gsub(/\s+/, ' ').strip
-            Pull request #{req['number']}
+            pull_req #{req['number']}
             #{head} -> #{req['base']['repo']['full_name']}
         eos
       end
@@ -1052,7 +1052,7 @@ module GHTorrent
       retrieved = retrieve_pull_request(owner, repo, pullreq_id)
 
       if retrieved.nil?
-        warn "Could not retrieve pull request #{owner}/#{repo} -> #{pullreq_id}"
+        warn "Could not retrieve pull_req #{owner}/#{repo} -> #{pullreq_id}"
         return
       end
 
@@ -1120,7 +1120,7 @@ module GHTorrent
                       :pull_request_id => pull_req[:id],
                       :created_at => date(retrieved['created_at']),
                       :ext_ref_id => retrieved[@ext_uniq])
-        debug 'Added accompanying issue for ' + log_msg(retrieved)
+        debug 'Added accompanying_issue for ' + log_msg(retrieved)
       else
         debug 'Accompanying issue for ' + log_msg(retrieved) + ' exists'
       end
@@ -1159,7 +1159,7 @@ module GHTorrent
       pull_req = ensure_pull_request(owner, repo, pullreq_id, false, false, false)
 
       if pull_req.nil?
-        warn "Could not find pull req #{owner}/#{repo} -> #{pullreq_id}"
+        warn "Could not find pull_req #{owner}/#{repo} -> #{pullreq_id}"
         return
       end
 
@@ -1195,7 +1195,7 @@ module GHTorrent
         retrieved = retrieve_pull_req_comment(owner, repo, pullreq_id, comment_id)
 
         if retrieved.nil?
-          warn "Could not retrieve comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id}"
+          warn "Could not retrieve pullreq_comment #{comment_id} for #{owner}/#{repo} -> #{pullreq_id}"
           return
         end
 
@@ -1218,7 +1218,7 @@ module GHTorrent
             :created_at => date(retrieved['created_at']),
             :ext_ref_id => retrieved[@ext_uniq]
         )
-        info "Added comment #{comment_id} for pullreq #{owner}/#{repo} -> #{pullreq_id}"
+        info "Added pullreq_comment #{comment_id} for #{owner}/#{repo} -> #{pullreq_id}"
         @db[:pull_request_comments].first(:pull_request_id => pull_req[:id],
                                           :comment_id => comment_id)
       else
@@ -1250,7 +1250,7 @@ module GHTorrent
             @db[:pull_request_commits].insert(:pull_request_id => pullreq[:id],
                                               :commit_id => c[:id])
 
-            info "Added commit #{c[:sha]} to pullreq #{owner}/#{repo} -> #{pullreq_id}"
+            info "Added pullreq_commit #{c[:sha]} to #{owner}/#{repo} -> #{pullreq_id}"
           else
             debug "Commit #{c[:sha]} in pullreq #{owner}/#{repo} -> #{pullreq_id} exists"
             exists
@@ -1296,7 +1296,7 @@ module GHTorrent
       fork = retrieve_fork(owner, repo, fork_id)
 
       if fork.nil?
-        warn "Could not retrive fork #{owner}/#{repo} -> #{fork_id}"
+        warn "Could not retrieve fork #{owner}/#{repo} -> #{fork_id}"
         return
       end
 
@@ -1308,7 +1308,7 @@ module GHTorrent
       if r.nil?
         warn "Could not add #{fork_owner}/#{fork_name} as fork of #{owner}/#{repo}"
       else
-        info "Added #{fork_owner}/#{fork_name} as fork of #{owner}/#{repo}"
+        info "Added fork #{fork_owner}/#{fork_name} of #{owner}/#{repo}"
       end
       r
     end
@@ -1449,10 +1449,10 @@ module GHTorrent
         retrieved = retrieve_issue_event(owner, repo, issue_id, event_id)
 
         if retrieved.nil?
-          warn "Could not retrieve issue event #{owner}/#{repo} -> #{issue_id}/#{issue_event_str}"
+          warn "Could not retrieve issue_event #{owner}/#{repo} -> #{issue_id}/#{issue_event_str}"
           return
         elsif retrieved['actor'].nil?
-          warn "Could not find actor for issue event #{owner}/#{repo} -> #{issue_id}/#{issue_event_str}"
+          warn "Could not find issue_event_actor #{owner}/#{repo} -> #{issue_id}/#{issue_event_str}"
           return
         end
 
@@ -1496,7 +1496,7 @@ module GHTorrent
             :ext_ref_id => retrieved[@ext_uniq]
         )
 
-        info "Added issue event #{owner}/#{repo} -> #{issue_id}/#{issue_event_str}"
+        info "Added issue_event #{owner}/#{repo} -> #{issue_id}/#{issue_event_str}"
         @db[:issue_events].first(:issue_id => issue[:id],
                                  :event_id => event_id)
       else
@@ -1566,7 +1566,7 @@ module GHTorrent
         retrieved = retrieve_issue_comment(owner, repo, issue_id, comment_id)
 
         if retrieved.nil?
-          warn "Could not retrieve issue comment #{issue_comment_str}"
+          warn "Could not retrieve issue_comment #{issue_comment_str}"
           return
         end
 
@@ -1580,7 +1580,7 @@ module GHTorrent
             :ext_ref_id => retrieved[@ext_uniq]
         )
 
-        info "Added issue comment #{issue_comment_str}"
+        info "Added issue_comment #{issue_comment_str}"
         @db[:issue_comments].first(:issue_id => issue[:id],
                                    :comment_id => comment_id)
       else
@@ -1626,7 +1626,7 @@ module GHTorrent
         retrieved = retrieve_repo_label(owner, repo, name)
 
         if retrieved.nil?
-          warn "Could not retrieve repo label #{owner}/#{repo} -> #{name}"
+          warn "Could not retrieve repo_label #{owner}/#{repo} -> #{name}"
           return
         end
 
@@ -1636,7 +1636,7 @@ module GHTorrent
             :ext_ref_id => retrieved[@ext_uniq]
         )
 
-        info "Added repo label #{owner}/#{repo} -> #{name}"
+        info "Added repo_label #{owner}/#{repo} -> #{name}"
         @db[:repo_labels].first(:repo_id => currepo[:id], :name => name)
       else
         label
@@ -1696,7 +1696,7 @@ module GHTorrent
             :label_id => label[:id],
             :issue_id => issue[:id],
         )
-        info "Added issue label #{name} to issue #{owner}/#{repo} -> #{issue_id}"
+        info "Added issue_label #{name} to issue #{owner}/#{repo} -> #{issue_id}"
         @db[:issue_labels].first(:label_id => label[:id],
                                  :issue_id => issue[:id])
       else

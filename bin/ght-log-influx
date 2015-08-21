@@ -41,6 +41,49 @@ def parse_data_retrieval_line(line)
   }
 end
 
+def parse_retriever_line(line)
+
+  if line.start_with?("Added")
+    # Added repo hiropong -> googlemaplesson
+    outcome = "success"
+    entity = line.split(/ /)[1]
+  elsif line.start_with?("Could not find")
+    # Could not find commit_comment 12106552. Deleted?
+    outcome = "failure"
+    entity = line.split(/ /)[3]
+  else
+    return {}
+  end
+
+  {
+      :outcome => outcome,
+      :entity => entity
+  }
+
+end
+
+def parse_ghtorrent_line(line)
+
+  if line.start_with?("Added")
+    # Added user hayjohnny2000
+    # Added issue_event etsy/logster -> 1/etsy/logster -> 1/417355
+    outcome = "success"
+    entity = line.split(/ /)[1]
+  elsif line.start_with?("Could not retrieve")
+    # Could not retrieve commit_comment 12106552. Deleted?
+    outcome = "failure"
+    entity = line.split(/ /)[3]
+  else
+    return {}
+  end
+
+  {
+      :outcome => outcome,
+      :entity => entity
+  }
+
+end
+
 def parse_log_line(line)
   begin
     severity, time, progname, stage, msg =
@@ -69,6 +112,10 @@ def parse_log_line(line)
           parse_api_client_line(msg)
         when 'ght_data_retrieval'
           parse_data_retrieval_line(msg)
+        when 'retriever'
+          parse_retriever_line(msg)
+        when 'ghtorrent'
+          parse_ghtorrent_line(msg)
         else
           {}
       end

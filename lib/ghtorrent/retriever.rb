@@ -35,7 +35,7 @@ module GHTorrent
         unq = persister.store(:users, u)
         u[ext_uniq] = unq
         what = user_type(u['type'])
-        info "Added #{what} #{user}"
+        info "Added user #{what} #{user}"
         u
       else
         what = user_type(stored_user.first['type'])
@@ -73,9 +73,11 @@ module GHTorrent
             if not email.nil? and user['email'] == email
               user
             else
+              warn "Could not find user #{email}"
               nil
             end
           else
+            warn "Could not find user #{email}"
             nil
           end
         end
@@ -88,7 +90,7 @@ module GHTorrent
           unq = persister.store(:users, u)
           u[ext_uniq] = unq
           what = user_type(u['type'])
-          info "Added #{what} #{user}"
+          info "Added user #{what} #{user}"
           u
         end
       end
@@ -242,7 +244,7 @@ module GHTorrent
 
         if not exists
           persister.store(:org_members, x)
-          info "Added org member #{org} -> #{x['login']}"
+          info "Added org_member #{org} -> #{x['login']}"
         else
           debug "Org Member #{org} -> #{x['login']} exists"
         end
@@ -273,12 +275,12 @@ module GHTorrent
         r = api_request(ghurl "repos/#{owner}/#{repo}/comments/#{id}")
 
         if r.empty?
-          warn "Could not find commit comment #{id}. Deleted?"
+          warn "Could not find commit_comment #{id}. Deleted?"
           return
         end
 
         persister.store(:commit_comments, r)
-        info "Added commit comment #{r['commit_id']} -> #{r['id']}"
+        info "Added commit_comment #{r['commit_id']} -> #{r['id']}"
         persister.find(:commit_comments, {'commit_id' => sha, 'id' => id}).first
       else
         debug "Commit comment #{comment['commit_id']} -> #{comment['id']} exists"
@@ -394,7 +396,7 @@ module GHTorrent
         r = api_request(ghurl "repos/#{owner}/#{repo}/pulls/comments/#{comment_id}")
 
         if r.empty?
-          warn "Could not find pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id}. Deleted?"
+          warn "Could not find pullreq_comment #{owner}/#{repo} #{pullreq_id}->#{comment_id}. Deleted?"
           return
         end
 
@@ -402,7 +404,7 @@ module GHTorrent
         r['owner'] = owner
         r['pullreq_id'] = pullreq_id.to_i
         persister.store(:pull_request_comments, r)
-        info "Added pullreq comment #{owner}/#{repo} #{pullreq_id}->#{comment_id}"
+        info "Added pullreq_comment #{owner}/#{repo} #{pullreq_id}->#{comment_id}"
         persister.find(:pull_request_comments, {'repo' => repo, 'owner' => owner,
                                          'pullreq_id' => pullreq_id.to_i,
                                          'id' => comment_id}).first
@@ -443,7 +445,7 @@ module GHTorrent
                                           'repo' => repo,
                                           'issue_id' => issue_id,
                                           'id' => x['id']}).empty?
-          info "Added issue event #{owner}/#{repo} #{issue_id}->#{x['id']}"
+          info "Added issue_event #{owner}/#{repo} #{issue_id}->#{x['id']}"
           persister.store(:issue_events, x)
         end
         x
@@ -462,7 +464,7 @@ module GHTorrent
         r = api_request(ghurl "repos/#{owner}/#{repo}/issues/events/#{event_id}")
 
         if r.empty?
-          warn "Could not find issue event #{owner}/#{repo} #{issue_id}->#{event_id}. Deleted?"
+          warn "Could not find issue_event #{owner}/#{repo} #{issue_id}->#{event_id}. Deleted?"
           return
         end
 
@@ -470,7 +472,7 @@ module GHTorrent
         r['owner'] = owner
         r['issue_id'] = issue_id
         persister.store(:issue_events, r)
-        info "Added issue event #{owner}/#{repo} #{issue_id}->#{event_id}"
+        info "Added issue_event #{owner}/#{repo} #{issue_id}->#{event_id}"
         a = persister.find(:issue_events, {'repo' => repo, 'owner' => owner,
                                        'issue_id' => issue_id,
                                        'id' => event_id}).first
@@ -512,7 +514,7 @@ module GHTorrent
         r = api_request(ghurl "repos/#{owner}/#{repo}/issues/comments/#{comment_id}")
 
         if r.empty?
-          warn "Could not find issue comment #{owner}/#{repo} #{issue_id}->#{comment_id}. Deleted?"
+          warn "Could not find issue_comment #{owner}/#{repo} #{issue_id}->#{comment_id}. Deleted?"
           return
         end
 
@@ -520,7 +522,7 @@ module GHTorrent
         r['owner'] = owner
         r['issue_id'] = issue_id
         persister.store(:issue_comments, r)
-        info "Added issue comment #{owner}/#{repo} #{issue_id}->#{comment_id}"
+        info "Added issue_comment #{owner}/#{repo} #{issue_id}->#{comment_id}"
         a = persister.find(:issue_comments, {'repo' => repo, 'owner' => owner,
                                          'issue_id' => issue_id,
                                          'id' => comment_id}).first
@@ -566,7 +568,7 @@ module GHTorrent
           debug "Repository event #{owner}/#{repo} -> #{e['type']}-#{e['id']} already exists"
         else
           persister.store(:events, e)
-          info "Added repository event #{owner}/#{repo} -> #{e['type']}-#{e['id']}"
+          info "Added event for repository #{owner}/#{repo} -> #{e['type']}-#{e['id']}"
         end
       end
 
@@ -662,15 +664,19 @@ module GHTorrent
     end
 
     def repo_bound_item(user, repo, item_id, entity, url, selector,
-        discriminator, order = :asc)
+                        discriminator, order = :asc)
       stored_item = repo_bound_instance(entity, selector, discriminator, item_id)
 
-      if stored_item.empty?
-        repo_bound_items(user, repo, entity, url, selector, discriminator,
-                         item_id, false, order).first
-      else
-        stored_item.first
+      r = if stored_item.empty?
+            repo_bound_items(user, repo, entity, url, selector, discriminator,
+                             item_id, false, order).first
+          else
+            stored_item.first
+          end
+      if r.nil?
+        warn "Could not find #{entity} #{user}/#{repo} -> #{item_id}. Deleted?"
       end
+      r
     end
 
     def repo_bound_instance(entity, selector, discriminator, item_id)
