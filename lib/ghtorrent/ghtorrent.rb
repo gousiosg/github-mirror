@@ -1757,7 +1757,7 @@ module GHTorrent
         repository = ensure_repo(user, repo)
 
         if repository.nil?
-          warn "Could not find repo #{user}/#{repo} for storing commit #{c}"
+          warn "Could not find repo #{user}/#{repo} for storing commit #{c['sha']}"
         end
 
         commits.insert(:sha => c['sha'],
