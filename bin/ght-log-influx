@@ -131,10 +131,10 @@ else
   puts "Reading from STDIN..."
   ARGF.each do |line|
     next if line !~ /^[IDEW]/
-    p = parse_log_line(line)
 
-    next if p.empty?
     begin
+      p = parse_log_line(line)
+      next if p.empty?
       pp p
       influx.write_point(p[:stage], p)
     rescue
