@@ -102,7 +102,7 @@ If event_id is provided, only this event is processed.
 
           channel.acknowledge(headers.delivery_tag, false)
           info "Success processing event. Type: #{data['type']}, ID: #{data['id']}, Time: #{Time.now.to_ms - start.to_ms} ms"
-        rescue Exception => e
+        rescue StandardError => e
           # Give a message a chance to be reprocessed
           if headers.redelivered?
             warn "Error processing event. Type: #{data['type']}, ID: #{data['id']}, Time: #{Time.now.to_ms - start.to_ms} ms"

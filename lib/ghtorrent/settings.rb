@@ -75,7 +75,7 @@ module GHTorrent
         else
           a
         end
-      rescue Exception => e
+      rescue StandardError => e
         if use_default
           DEFAULTS[key]
         else
@@ -99,7 +99,7 @@ module GHTorrent
     end
 
     def settings
-      raise Exception.new('Unimplemented')
+      raise StandardError.new('Unimplemented')
     end
 
   end

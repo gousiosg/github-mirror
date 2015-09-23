@@ -50,7 +50,7 @@ class GHTFixForks < GHTorrent::Command
             end
 
           end
-        rescue Exception => e
+        rescue StandardError => e
           puts "Exception: #{e.message}"
         ensure
           puts "Fixed #{fixed}/#{tried} (examined: #{all}) forks"

@@ -86,7 +86,7 @@ class GHTFixPullReqComments < GHTorrent::Command
         end
         sql_upd += upd
         logger.info("Processed pull request comment: #{id}")
-      rescue Exception => e
+      rescue StandardError => e
         logger.warn("Cannot process comment #{id}: #{e.message}")
         #raise e
       ensure

@@ -55,7 +55,7 @@ class GHTMirrorEvents < GHTorrent::Command
         exchange.publish e['id'], :persistent => true, :routing_key => key
       end
       return new, dupl
-    rescue Exception => e
+    rescue StandardError => e
       STDERR.puts e.message
       STDERR.puts e.backtrace
     end
@@ -93,7 +93,7 @@ class GHTMirrorEvents < GHTorrent::Command
         end
       rescue Interrupt
         stopped = true
-      rescue Exception => e
+      rescue StandardError => e
         @logger.error e
       end
     end

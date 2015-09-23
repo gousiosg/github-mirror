@@ -276,7 +276,7 @@ module GHTorrent
           email = email.split(">")[0]
           name = name.strip unless name.nil?
           email = email.strip unless email.nil?
-        rescue Exception
+        rescue StandardError
           warn "Not a valid email address: #{user}"
           return
         end
@@ -659,7 +659,7 @@ module GHTorrent
                       :commit_id => c[:id]
                   )
                   info "Copied commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} (#{copied} total)"
-                rescue Exception => e
+                rescue StandardError => e
                   warn "Could not copy commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} : #{e.message}"
                 end
               end
@@ -1703,7 +1703,7 @@ module GHTorrent
         total = Time.now.to_ms - start_time.to_ms
         debug "Transaction committed (#{total} ms)"
         result
-      rescue Exception => e
+      rescue StandardError => e
         total = Time.now.to_ms - start_time.to_ms
         warn "Transaction failed (#{total} ms)"
         raise e
@@ -1716,7 +1716,7 @@ module GHTorrent
       if config(:rescue_loops) == 'true'
         begin
           yield block
-        rescue Exception => e
+        rescue StandardError => e
           error e.message
           error e.backtrace.join("\n")
           nil

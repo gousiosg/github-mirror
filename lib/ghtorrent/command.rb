@@ -211,7 +211,7 @@ Standard options:
           sleep(1)
         rescue Interrupt => _
           stopped = true
-        rescue Exception => e
+        rescue StandardError => e
           raise e
         end
       end

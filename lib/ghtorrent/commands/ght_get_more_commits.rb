@@ -106,7 +106,7 @@ Retrieves more commits for the provided repository
             @ght.ensure_commit(repo, c['sha'], user)
           end
         end
-      rescue Exception => e
+      rescue StandardError => e
         warn("Error processing: #{e}")
         warn(e.backtrace.join("\n"))
         if old_head == head

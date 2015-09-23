@@ -75,7 +75,7 @@ in the provided project.
             dbg number, "processing"
             fix_pull_request(pr)
           end
-        rescue Exception => e
+        rescue StandardError => e
           #raise e
           dbg number, e.message
         end

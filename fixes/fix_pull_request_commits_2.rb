@@ -52,7 +52,7 @@ Fixes issues with multiple commits in pull requests
 
             STDERR.write "processed: #{proc} removed #{rm} added #{add} failed #{failed}"
           end
-        rescue Exception => e
+        rescue StandardError => e
           failed += 1
           puts e.message
           #raise e

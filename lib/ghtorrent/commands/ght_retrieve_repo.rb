@@ -103,7 +103,7 @@ An efficient way to get all data for a single repo
 
           send(event['type'], event)
           puts "Processed event #{event['type']}-#{event['id']}"
-        rescue Exception => e
+        rescue StandardError => e
            puts "Could not process event #{event['type']}-#{event['id']}: #{e.message}"
         end
       end

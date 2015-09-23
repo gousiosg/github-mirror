@@ -47,7 +47,7 @@ class GHTFixIssueLabels < GHTorrent::Command
               lbls += added.size
               STDERR.write "\r Processed #{issues} issues, #{lbls} labels"
           end
-        rescue Exception => e
+        rescue StandardError => e
           logger.debug "Could not add labels to issue #{issue['owner']}/#{issue['repo']} -> #{issue['number']}"
           logger.debug "Reason: #{e}"
         end

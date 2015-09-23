@@ -166,7 +166,7 @@ module GHTorrent
             warn request_error_msg(url, e).strip.gsub(/\s+/,' ').gsub("\n", ' ')
             raise e
         end
-      rescue Exception => e
+      rescue StandardError => e
         warn error_msg(url, e).strip.gsub(/\s+/,' ').gsub("\n", ' ')
         raise e
       ensure
@@ -257,7 +257,7 @@ module GHTorrent
 
       result = begin
         yield
-      rescue Exception => e
+      rescue StandardError => e
         raise e
       ensure
         TCPSocket.instance_eval do

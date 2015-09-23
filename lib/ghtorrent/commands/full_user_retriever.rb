@@ -32,7 +32,7 @@ module GHTorrent
         def send_message(function, user)
           begin
             ght.send(function, user)
-          rescue Exception => e
+          rescue StandardError => e
             puts STDERR, e.message
             puts STDERR, e.backtrace
           end

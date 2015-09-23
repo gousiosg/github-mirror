@@ -53,7 +53,7 @@ class GHTRepoRetriever
         warn("Trying to get user #{owner}, attempt #{i}")
         begin
           user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
-        rescue Exception => e
+        rescue StandardError => e
           warn e.message
         end
       end
@@ -104,7 +104,7 @@ class GHTRepoRetriever
       else
         ght.send(function, owner, repo)
       end
-    rescue Exception => e
+    rescue StandardError => e
       warn("Error processing #{function} for #{owner}/#{repo}")
       warn("Exception message #{$!}")
       warn("Exception trace #{e.backtrace.join("\n")}")
