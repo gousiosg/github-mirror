@@ -70,12 +70,6 @@ module GHTorrent
       }
     end
 
-    # Find the record identified by +id+ in +entity+
-    def find_by_ext_ref_id(entity, id)
-      super
-      raise NotImplementedError
-    end
-
     # Count the number of items returned by +query+
     def count(entity, query)
       super

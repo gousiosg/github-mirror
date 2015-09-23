@@ -59,11 +59,6 @@ An efficient way to get all data for a single repo
     @persister
   end
 
-  def ext_uniq
-    @ext_uniq ||= config(:uniq_id)
-    @ext_uniq
-  end
-
   def ghtorrent
     @ghtorrent ||= TransactedGHTorrent.new(settings)
     @ghtorrent

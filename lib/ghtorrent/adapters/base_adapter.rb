@@ -56,13 +56,6 @@ module GHTorrent
       end
     end
 
-    # Find the record identified by +id+ in +entity+
-    def find_by_ext_ref_id(entity, id)
-      unless ENTITIES.include?(entity)
-        raise "Perister: Entity #{entity} not known"
-      end
-    end
-
     # Count the number of entries returned by +query+ without retrieving them.
     # The +query+ can be any query supported by +find+.
     def count(entity, query = {})

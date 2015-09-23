@@ -28,11 +28,6 @@ class GHTRepoRetriever
     ght.logger
   end
 
-  def ext_uniq
-    @ext_uniq ||= config(:uniq_id)
-    @ext_uniq
-  end
-
   def ght
     @ght ||= TransactedGHTorrent.new(@config)
     @ght

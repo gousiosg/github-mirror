@@ -35,11 +35,6 @@ in the provided project.
     @persister
   end
 
-  def ext_uniq
-    @ext_uniq ||= config(:uniq_id)
-    @ext_uniq
-  end
-
   def ght
     @ght ||= GHTorrent::Mirror.new(settings)
     @ght

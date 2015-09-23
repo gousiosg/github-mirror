@@ -18,11 +18,6 @@ class GHTFixIssueLabels < GHTorrent::Command
     @persister
   end
 
-  def ext_uniq
-    @ext_uniq ||= config(:uniq_id)
-    @ext_uniq
-  end
-
 
   def go
     @ght ||= GHTorrent::Mirror.new(settings)

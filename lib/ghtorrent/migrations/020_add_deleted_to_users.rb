@@ -11,7 +11,7 @@ Sequel.migration do
   end
 
   down do
-    puts 'Drop column fake from users'
+    puts 'Drop column deleted from users'
     alter_table :users do
       drop_column :deleted
     end

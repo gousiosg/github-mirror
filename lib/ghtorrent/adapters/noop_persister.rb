@@ -18,11 +18,6 @@ module GHTorrent
       []
     end
 
-    def find_by_ext_ref_id(entity, id)
-      super
-      nil
-    end
-
     def get_id
       0
     end

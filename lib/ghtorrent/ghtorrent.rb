@@ -14,11 +14,10 @@ module GHTorrent
     include GHTorrent::Retriever
     include GHTorrent::Persister
 
-    attr_reader :settings, :persister, :ext_uniq, :logger
+    attr_reader :settings, :persister, :logger
 
     def initialize(settings)
       @settings = settings
-      @ext_uniq = config(:uniq_id)
 
       @retry_on_error = Array.new
       @retry_on_error <<  Mysql2::Error      if defined? Mysql2::Error
@@ -331,8 +330,7 @@ module GHTorrent
                      :fake => false,
                      :deleted => false,
                      :type => user_type(u['type']),
-                     :created_at => date(u['created_at']),
-                     :ext_ref_id => u[@ext_uniq])
+                     :created_at => date(u['created_at']))
 
         info "Added user #{user}"
 
@@ -402,8 +400,7 @@ module GHTorrent
 
         followers.insert(:user_id => followed_id,
                          :follower_id => follower_id,
-                         :created_at => added,
-                         :ext_ref_id => retrieved[@ext_uniq])
+                         :created_at => added)
         info "Added follower #{follower} to #{followed}"
       else
         debug "Follower #{follower} for user #{followed} exists"
@@ -459,8 +456,7 @@ module GHTorrent
                        :login => login,
                        :fake => true,
                        :deleted => false,
-                       :created_at => Time.now,
-                       :ext_ref_id => '')
+                       :created_at => Time.now)
           info "Added user fake #{login} -> #{email}"
           users.first(:login => login)
         else
@@ -473,8 +469,7 @@ module GHTorrent
                          :location => u['location'],
                          :fake => false,
                          :deleted => false,
-                         :created_at => date(u['created_at']),
-                         :ext_ref_id => u[@ext_uniq])
+                         :created_at => date(u['created_at']))
             info "Added user #{u['login']} (#{email}) through search API query"
           else
             in_db.update(:name => u['name'],
@@ -483,8 +478,7 @@ module GHTorrent
                          :location => u['location'],
                          :fake => false,
                          :deleted => false,
-                         :created_at => date(u['created_at']),
-                         :ext_ref_id => u[@ext_uniq])
+                         :created_at => date(u['created_at']))
             debug "User #{u['login']} with email #{email} exists"
           end
           users.first(:login => u['login'])
@@ -534,8 +528,7 @@ module GHTorrent
                    :name => r['name'],
                    :description => r['description'],
                    :language => r['language'],
-                   :created_at => date(r['created_at']),
-                   :ext_ref_id => r[@ext_uniq])
+                   :created_at => date(r['created_at']))
 
       unless r['parent'].nil?
         parent_owner = r['parent']['owner']['login']
@@ -726,8 +719,7 @@ module GHTorrent
         pr_members.insert(
             :user_id => new_user[:id],
             :repo_id => project[:id],
-            :created_at => date(added),
-            :ext_ref_id => retrieved[@ext_uniq]
+            :created_at => date(added)
         )
         info "Added project_member #{repo} -> #{new_member}"
       else
@@ -856,7 +848,6 @@ module GHTorrent
             :line => retrieved['line'],
             :position => retrieved['position'],
             :comment_id => retrieved['id'],
-            :ext_ref_id => retrieved[@ext_uniq],
             :created_at => date(retrieved['created_at'])
         )
         info "Added commit_comment #{owner}/#{repo} -> #{sha}/#{retrieved['id']} by user #{user[:login]}"
@@ -922,8 +913,7 @@ module GHTorrent
         watchers.insert(
             :user_id => new_watcher[:id],
             :repo_id => project[:id],
-            :created_at => date(added),
-            :ext_ref_id => retrieved[@ext_uniq]
+            :created_at => date(added)
         )
         info "Added watcher #{owner}/#{repo} -> #{watcher}"
       else
@@ -967,7 +957,7 @@ module GHTorrent
     end
 
     # Adds a pull request history event
-    def ensure_pull_request_history(id, ts, unq, act, actor)
+    def ensure_pull_request_history(id, ts, act, actor)
       user = unless actor.nil?
                ensure_user(actor, false, false)
              end
@@ -985,7 +975,6 @@ module GHTorrent
       if entry.nil?
         pull_req_history.insert(:pull_request_id => id,
                                 :created_at => ts,
-                                :ext_ref_id => unq,
                                 :action => act,
                                 :actor_id => unless user.nil? then user[:id] end)
         info "Added pullreq_event (#{id}) -> (#{act}) by (#{actor}) timestamp #{ts}"
@@ -1118,8 +1107,7 @@ module GHTorrent
                       :issue_id => pullreq_id,
                       :pull_request => true,
                       :pull_request_id => pull_req[:id],
-                      :created_at => date(retrieved['created_at']),
-                      :ext_ref_id => retrieved[@ext_uniq])
+                      :created_at => date(retrieved['created_at']))
         debug 'Added accompanying_issue for ' + log_msg(retrieved)
       else
         debug 'Accompanying issue for ' + log_msg(retrieved) + ' exists'
@@ -1129,17 +1117,16 @@ module GHTorrent
         # Actions on pull requests
         opener = pull_req_user[:login]
         ensure_pull_request_history(pull_req[:id], date(retrieved['created_at']),
-                       retrieved[@ext_uniq], 'opened', opener)
+                                    'opened', opener)
 
         merger = if retrieved['merged_by'].nil? then actor else retrieved['merged_by']['login'] end
         ensure_pull_request_history(pull_req[:id], date(retrieved['merged_at']),
-                         retrieved[@ext_uniq], 'merged', merger) if (merged && state != 'merged')
+                                    'merged', merger) if (merged && state != 'merged')
 
         closer = if merged then merger else actor end
         ensure_pull_request_history(pull_req[:id], date(retrieved['closed_at']),
-                         retrieved[@ext_uniq], 'closed', closer) if (closed && state != 'closed')
-        ensure_pull_request_history(pull_req[:id], date(created_at), retrieved[@ext_uniq],
-                         state, actor) unless state.nil?
+                                    'closed', closer) if (closed && state != 'closed')
+        ensure_pull_request_history(pull_req[:id], date(created_at), state, actor) unless state.nil?
       end
       ensure_pull_request_commits(owner, repo, pullreq_id) if commits
       ensure_pullreq_comments(owner, repo, pullreq_id) if comments
@@ -1215,8 +1202,7 @@ module GHTorrent
             :position => retrieved['original_position'],
             :body => retrieved['body'][0..254],
             :commit_id => (commit[:id] unless commit.nil?),
-            :created_at => date(retrieved['created_at']),
-            :ext_ref_id => retrieved[@ext_uniq]
+            :created_at => date(retrieved['created_at'])
         )
         info "Added pullreq_comment #{comment_id} for #{owner}/#{repo} -> #{pullreq_id}"
         @db[:pull_request_comments].first(:pull_request_id => pull_req[:id],
@@ -1381,8 +1367,7 @@ module GHTorrent
                      :issue_id => issue_id,
                      :pull_request => if pull_req.nil? then false else true end,
                      :pull_request_id => unless pull_req.nil? then pull_req[:id] end,
-                     :created_at => date(retrieved['created_at']),
-                     :ext_ref_id => retrieved[@ext_uniq])
+                     :created_at => date(retrieved['created_at']))
 
         info "Added issue #{owner}/#{repo} -> #{issue_id}"
       else
@@ -1492,9 +1477,7 @@ module GHTorrent
             :actor_id => unless actor.nil? then actor[:id] end,
             :action => retrieved['event'],
             :action_specific => action_specific,
-            :created_at => date(retrieved['created_at']),
-            :ext_ref_id => retrieved[@ext_uniq]
-        )
+            :created_at => date(retrieved['created_at']))
 
         info "Added issue_event #{owner}/#{repo} -> #{issue_id}/#{issue_event_str}"
         @db[:issue_events].first(:issue_id => issue[:id],
@@ -1576,8 +1559,7 @@ module GHTorrent
             :comment_id => comment_id,
             :issue_id => issue[:id],
             :user_id => unless user.nil? then user[:id] end,
-            :created_at => date(retrieved['created_at']),
-            :ext_ref_id => retrieved[@ext_uniq]
+            :created_at => date(retrieved['created_at'])
         )
 
         info "Added issue_comment #{issue_comment_str}"
@@ -1632,8 +1614,7 @@ module GHTorrent
 
         @db[:repo_labels].insert(
             :repo_id => currepo[:id],
-            :name => name,
-            :ext_ref_id => retrieved[@ext_uniq]
+            :name => name
         )
 
         info "Added repo_label #{owner}/#{repo} -> #{name}"
@@ -1764,8 +1745,7 @@ module GHTorrent
                        :author_id => author[:id],
                        :committer_id => commiter[:id],
                        :project_id => if repository.nil? then nil else repository[:id] end ,
-                       :created_at => date(c['commit']['author']['date']),
-                       :ext_ref_id => c[@ext_uniq]
+                       :created_at => date(c['commit']['author']['date'])
         )
         info "Added commit #{user}/#{repo} -> #{c['sha']} "
         commits.first(:sha => c['sha'])

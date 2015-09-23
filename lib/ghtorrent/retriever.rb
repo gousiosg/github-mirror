@@ -14,10 +14,6 @@ module GHTorrent
     include GHTorrent::APIClient
     include GHTorrent::Logging
 
-    def ext_uniq
-      raise Exception.new("Unimplemented")
-    end
-
     def persister
       raise Exception.new("Unimplemented")
     end
@@ -33,7 +29,6 @@ module GHTorrent
         end
 
         unq = persister.store(:users, u)
-        u[ext_uniq] = unq
         what = user_type(u['type'])
         info "Added user #{what} #{user}"
         u
@@ -88,7 +83,6 @@ module GHTorrent
         else
           u = byemail['user']
           unq = persister.store(:users, u)
-          u[ext_uniq] = unq
           what = user_type(u['type'])
           info "Added user #{what} #{user}"
           u
@@ -173,7 +167,6 @@ module GHTorrent
 
         unq = persister.store(:commits, c)
         info "Added commit #{user}/#{repo} -> #{sha}"
-        c[ext_uniq] = unq
         c
       else
         debug "Commit #{user}/#{repo} -> #{sha} exists"
@@ -210,7 +203,6 @@ module GHTorrent
 
         unq = persister.store(:repos, r)
         info "Added repo #{user} -> #{repo}"
-        r[ext_uniq] = unq
         r
       else
         debug "Repo #{user} -> #{repo} exists"
@@ -449,7 +441,7 @@ module GHTorrent
           persister.store(:issue_events, x)
         end
         x
-      }.map {|y| y[ext_uniq] = '0'; y}
+      }
       a = persister.find(:issue_events, {'owner' => owner, 'repo' => repo,
                                          'issue_id' => issue_id})
       if a.empty? then issue_events else a end
@@ -476,7 +468,7 @@ module GHTorrent
         a = persister.find(:issue_events, {'repo' => repo, 'owner' => owner,
                                        'issue_id' => issue_id,
                                        'id' => event_id}).first
-        if a.nil? then r[ext_uniq] = '0'; r else a end
+        if a.nil? then r else a end
       else
         debug "Issue event #{owner}/#{repo} #{issue_id}->#{event_id} exists"
         event
@@ -499,7 +491,7 @@ module GHTorrent
           persister.store(:issue_comments, x)
         end
         x
-      }.map {|y| y[ext_uniq] = '0'; y}
+      }
       a = persister.find(:issue_comments, {'owner' => owner, 'repo' => repo,
                                            'issue_id' => issue_id})
       if a.empty? then comments else a end
@@ -526,7 +518,7 @@ module GHTorrent
         a = persister.find(:issue_comments, {'repo' => repo, 'owner' => owner,
                                          'issue_id' => issue_id,
                                          'id' => comment_id}).first
-        if a.nil? then r[ext_uniq] = '0'; r else a end
+        if a.nil? then r else a end
       else
         debug "Issue comment #{owner}/#{repo} #{issue_id}->#{comment_id} exists"
         comment
