@@ -210,6 +210,10 @@ module GHTorrent
       end
     end
 
+    def retrieve_languages(owner, repo)
+      paged_api_request ghurl "repos/#{owner}/#{repo}/languages"
+    end
+
     # Retrieve organizations the provided user participates into
     def retrieve_orgs(user)
       url = ghurl "users/#{user}/orgs"

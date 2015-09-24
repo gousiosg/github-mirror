@@ -560,12 +560,35 @@ module GHTorrent
       end
 
       functions = %w(ensure_labels ensure_pull_requests
-       ensure_issues ensure_watchers ensure_forks)
+       ensure_issues ensure_watchers ensure_forks ensure_languages)
 
       functions.each do |x|
         send(x, owner, repo)
       end
 
+    end
+
+    # Get details about the languages used in the repository
+    def ensure_languages(owner, repo)
+      currepo = ensure_repo(owner, repo)
+      langs = retrieve_languages(owner, repo)
+
+      if langs.nil? or langs.empty?
+        warn "Could not find languages for repo #{owner}/#{repo}"
+        return
+      end
+
+      ts = Time.now
+      langs.keys.each do |lang|
+        @db[:project_languages].insert(
+          :project_id => currepo[:id],
+          :language   => lang.downcase,
+          :bytes      => langs[lang],
+          :created_at => ts
+        )
+        info "Added project_language #{owner}/#{repo} -> #{lang} (#{langs[lang]} bytes)"
+      end
+      @db[:project_languages].where(:project_id => currepo[:id]).where(:created_at => ts).all
     end
 
     # Fast path to project forking. Retrieve all commits page by page
