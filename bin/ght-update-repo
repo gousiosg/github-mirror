@@ -3,4 +3,4 @@
 require 'rubygems'
 require 'ghtorrent'
 
-GHTRetrieveUser.run(ARGV)
+GHTUpdateRepo.run(ARGV)

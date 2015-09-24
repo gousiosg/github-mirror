@@ -2,11 +2,12 @@
 
 require 'ghtorrent'
 
-class GHTFixDeleted < GHTorrent::Command
+class GHTUpdateRepo < GHTorrent::Command
 
   include GHTorrent::Settings
   include GHTorrent::Retriever
   include GHTorrent::Persister
+  include GHTorrent::Logging
 
   def prepare_options(options)
     options.banner <<-BANNER
@@ -19,21 +20,12 @@ Updates the deleted field in the project table with current data
 
   def validate
     super
-    Trollop::die "Either takes no arguments or two" if ARGV.size == 1
-  end
-
-  def logger
-    @ght.logger
+    Trollop::die "Takes two arguments" if ARGV.size == 1
   end
 
   def persister
     @persister ||= connect(:mongo, settings)
     @persister
-  end
-
-  def ext_uniq
-    @ext_uniq ||= config(:uniq_id)
-    @ext_uniq
   end
 
   def db
@@ -54,7 +46,7 @@ Updates the deleted field in the project table with current data
        where(:users__login => owner).\
        where(:projects__name => repo).\
        update(:projects__deleted => true)
-    logger.info("Project #{owner}/#{repo} marked as deleted")
+    info("Project #{owner}/#{repo} marked as deleted")
   end
 
   def update_mysql(owner, repo, retrieved)
@@ -73,34 +65,47 @@ Updates the deleted field in the project table with current data
          :projects__description => retrieved['description'],
          :projects__language => retrieved['language'],
          :projects__created_at => date(retrieved['created_at']),
-         :projects__forked_from => unless parent.nil? then parent[:id] end,
-         :projects__ext_ref_id => retrieved[@ext_uniq])
-    logger.debug("Project #{owner}/#{repo} updated")
+         :projects__forked_from => unless parent.nil? then parent[:id] end)
+    debug("Repo #{owner}/#{repo} updated")
+
+    @ght.ensure_languages(owner, repo)
   end
 
   def process_project(owner, name)
     @ght.transaction do
 
-      existing = persister.find(:repos, {'owner.login' => owner, 'name' => name })
+      in_mongo = persister.find(:repos, {'owner.login' => owner, 'name' => name })
       on_github = api_request(ghurl ("repos/#{owner}/#{name}"))
-      retrieved = retrieve_repo(owner, name)
 
-      if existing.empty?
+      unless in_mongo.empty? and on_github.empty?
+        in_mysql = retrieve_repo(owner, name)
+      end
+
+      if in_mongo.empty?
         if on_github.empty?
-          # Project exists in MySQL but not on Github or Mongo
-          # Mark it as deleted
-          set_deleted(owner, name)
+          if in_mysql.nil?
+            # Project does not exist anywhere
+            warn "Repo #{owner}/#{name} does not exist in MySQL"
+          else
+            # Project exists in MySQL but not on Github or Mongo
+            # Mark it as deleted
+            set_deleted(owner, name)
+          end
         else
-          # Project does not exist in Mongo, but exists in MySQL and Github
-          # The retrieval process already added it to Mongo, so update MySQL
-          update_mysql(owner, name, retrieved)
+          # Project does not exist in Mongo, but exists in Github
+          if in_mysql.nil?
+            warn "Repo #{owner}/#{name} does not exist in MySQL"
+          else
+            # The retrieval process already added it to Mongo, so update MySQL
+            update_mysql(owner, name, in_mysql)
+          end
         end
       else
         if on_github.empty?
           # Project was deleted on Github. Mark it as deleted.
           set_deleted(owner, name)
         else
-          update_mysql(owner, name, retrieved)
+          update_mysql(owner, name, in_mysql)
         end
       end
     end
@@ -115,18 +120,7 @@ Updates the deleted field in the project table with current data
       exit(0)
     end
 
-    @ght.transaction do
-      a = db.from(:projects, :users).\
-             where(:projects__owner_id => :users__id).\
-             select(:users__login, :projects__name).\
-             all
-      a.map { |x| [x[:login], x[:name]] }
-    end.each do |p|
-      owner = p[0]
-      name = p[1]
-      process_project(owner, name)
-    end
   end
 end
 
-GHTFixDeleted.run
+GHTUpdateRepo.run
