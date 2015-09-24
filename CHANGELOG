@@ -1,3 +1,19 @@
+= Version 0.11
+	* Retrieve members by processing MemberEvents to counter API change
+	* Removed the request caching layer. Requests are cached in the persister
+	* Change default DB isolation to REPEATABLE READ for stronger isolation
+	* Finer-grained (commit level) transactions when processing forks
+    * More accurate and uniform logging
+    * Tool to push logs to InfluxDB for monitoring
+    * Drop ext_ref_id from all tables
+    * More efficient retrieval of events, 100 in one go
+    * Tool to retrieve all user details and support for marking users deleted
+    * Support for retrieving repo events when using ght-retrieve-repo
+    * Non-recursive retrieval of pull requests leads to 1/3 API calls
+    * Custom rate limits for Github API tokens
+    * Tooling for MySQL dumps in CSV files
+    * General bug fixes and cleanups
+
 = Version 0.10
 	* Base class for multiprocess queue clients
 	* Make retrieval of pull request commits faster
