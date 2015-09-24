@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+# defaults
+user="ghtorrent"
+passwd="ghtorrent"
+host="localhost"
+db="ghtorrent"
+out="dump"
+
+ts=`date +%Y-%m-%d`
+dumpName=`echo mysql-$ts.tar.gz`
+
+usage()
+{
+  echo "Usage: $0 [-u dbuser ] [-p dbpasswd ]"
+  echo "          [-h dbhost] [-d database ] [-o output_dir]"
+  echo "          [-a archive_name ]"
+  echo
+  echo "Dump a MySQL database into CSV files per table"
+  echo "output_dir must be writable by the mysqld user and must be an absolute path"
+  echo "    -u database user (default: $user)"
+  echo "    -p database passwd (default: $passwd)"
+  echo "    -h database host (default: $host)"
+  echo "    -d database (default: $db)"
+  echo "    -o intermediate output dir (default: $out)"
+  echo "    -a archive name (default: $dumpName)"
+}
+
+if [ -z $1 ]
+then
+  usage
+  exit 1
+fi
+
+while getopts "u:p:h:d:o:" o
+do
+  case $o in
+  u)  user=$OPTARG ;;
+  p)  passwd=$OPTARG ;;
+  h)  host=$OPTARG ;;
+  d)  db=$OPTARG ;;
+  o)  out=$OPTARG ;;
+  a)  dumpName=$OPTARG ;;
+  \?)     echo "Invalid option: -$OPTARG" >&2
+    usage
+    exit 1
+    ;;
+  esac
+done
+
+echo "`date` Creating dir $out"
+mkdir -p $out
+
+if [ -z $passwd ]; then
+  mysql="mysql -u $user -s -h $host -D $db"
+else
+  mysql="mysql -u $user --password=$passwd -s -h $host -D $db"
+fi
+
+tables=`echo "show tables" | $mysql`
+
+for table in $tables; do
+  echo "`date`: Dumping table $table"
+  echo "select * into outfile '$out/$table.csv'  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from $table" |$mysql || exit 1
+done
+
+echo "`date` Copying schema and index files"
+curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/indexes.sql" > indexes.sql
+curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/schema.sql" > schema.sql
+cp sql/*.sql sql/README.md sql/ORDER sql/ght-restore-mysql $out || exit 1
+
+echo "`date` Creating archive $dumpName"
+tar cvf $dumpName -C `dirname $out` dump || exit 1
+
+rm -R $out
+#: ft=bash
