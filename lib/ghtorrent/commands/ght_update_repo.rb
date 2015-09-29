@@ -122,5 +122,3 @@ Updates the deleted field in the project table with current data
 
   end
 end
-
-GHTUpdateRepo.run
