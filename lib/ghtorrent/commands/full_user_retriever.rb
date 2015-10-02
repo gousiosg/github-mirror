@@ -3,6 +3,8 @@ module GHTorrent
     # Defines a process to download the full data available for a single user
     module FullUserRetriever
 
+      include GHTorrent::Geolocator
+
       def retrieve_user(login)
         #self.settings = override_config(settings, :mirror_history_pages_back, -1)
 
@@ -27,8 +29,18 @@ module GHTorrent
           end
         end
 
-        user = user_entry[:login]
+        # Update geo location information
+        geo = geolocate(on_github['location'])
 
+        ght.get_db.from(:users).where(:login => login).update(
+            :users__long => geo[:long],
+            :users__lat => geo[:lat],
+            :users__country_code => geo[:country_code],
+            :users__state => geo[:state],
+            :users__city => geo[:city],
+        )
+
+        user = user_entry[:login]
         def send_message(function, user)
           begin
             ght.send(function, user)

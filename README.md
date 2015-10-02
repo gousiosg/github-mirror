@@ -10,7 +10,7 @@ GHTorrent can be used for a variety of purposes, such as:
 * Mirror the Github API event stream and follow links from events to actual data
  to gradually build a [Github index](http://ghtorrent.org/)
 * Create a queriable metadata index for a specific repository
-* Construct a data source for [extracting process analytics](http://www.gousios.gr/blog/ghtorrent-project-statistics/) (see for example [those](http://ghtorrent.org/pullreq-perf/))for one or more repositories
+* Construct a data source for [extracting process analytics](http://www.gousios.gr/blog/ghtorrent-project-statistics/) (see for example [those](http://ghtorrent.org/pullreq-perf/)) for one or more repositories
 
 ## Components
 

@@ -36,7 +36,8 @@ module GHTorrent
         :pull_request_comments => %w(repo owner pullreq_id id),
         :issues                => %w(repo owner number),
         :issue_events          => %w(repo owner issue_id id),
-        :issue_comments        => %w(repo owner issue_id id)
+        :issue_comments        => %w(repo owner issue_id id),
+        :geo_cache             => %w(key)
     }
 
     attr_reader :settings
@@ -137,6 +138,8 @@ module GHTorrent
           get_collection("issue_events")
         when :repo_labels
           get_collection("repo_labels")
+        when :geo_cache
+          get_collection("geo_cache")
       end
     end
 

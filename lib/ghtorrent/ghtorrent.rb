@@ -13,6 +13,7 @@ module GHTorrent
     include GHTorrent::Settings
     include GHTorrent::Retriever
     include GHTorrent::Persister
+    include GHTorrent::Geolocator
 
     attr_reader :settings, :persister, :logger
 
@@ -322,14 +323,20 @@ module GHTorrent
                   end
                 end
 
+        geo = geolocate(u['location'])
+
         users.insert(:login => u['login'],
                      :name => u['name'],
                      :company => u['company'],
                      :email => email,
-                     :location => u['location'],
                      :fake => false,
                      :deleted => false,
                      :type => user_type(u['type']),
+                     :long => geo[:long],
+                     :lat => geo[:lat],
+                     :country_code => geo[:country_code],
+                     :state => geo[:state],
+                     :city => geo[:city],
                      :created_at => date(u['created_at']))
 
         info "Added user #{user}"
@@ -461,12 +468,17 @@ module GHTorrent
           users.first(:login => login)
         else
           in_db = users.first(:login => u['login'])
+          geo = geolocate(u['location'])
           if in_db.nil?
             users.insert(:login => u['login'],
                          :name => u['name'],
                          :company => u['company'],
                          :email => u['email'],
-                         :location => u['location'],
+                         :long => geo[:long],
+                         :lat => geo[:lat],
+                         :country_code => geo[:country_code],
+                         :state => geo[:state],
+                         :city => geo[:city],
                          :fake => false,
                          :deleted => false,
                          :created_at => date(u['created_at']))
@@ -475,7 +487,11 @@ module GHTorrent
             in_db.update(:name => u['name'],
                          :company => u['company'],
                          :email => u['email'],
-                         :location => u['location'],
+                         :long => geo[:long],
+                         :lat => geo[:lat],
+                         :country_code => geo[:country_code],
+                         :state => geo[:state],
+                         :city => geo[:city],
                          :fake => false,
                          :deleted => false,
                          :created_at => date(u['created_at']))

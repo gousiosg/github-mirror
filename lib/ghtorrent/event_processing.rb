@@ -10,7 +10,7 @@ module GHTorrent
           return
         end
 
-        ghtorrent.ensure_commit(url[5], url[7], url[4])
+        ght.ensure_commit(url[5], url[7], url[4])
       end
     end
 
@@ -20,7 +20,7 @@ module GHTorrent
       watcher = data['actor']['login']
       created_at = data['created_at']
 
-      ghtorrent.ensure_watcher(owner, repo, watcher, created_at)
+      ght.ensure_watcher(owner, repo, watcher, created_at)
     end
 
     def FollowEvent(data)
@@ -28,7 +28,7 @@ module GHTorrent
       followed = data['payload']['target']['login']
       created_at = data['created_at']
 
-      ghtorrent.ensure_user_follower(followed, follower, created_at)
+      ght.ensure_user_follower(followed, follower, created_at)
     end
 
     def MemberEvent(data)
@@ -37,10 +37,10 @@ module GHTorrent
       new_member = data['payload']['member']['login']
       date_added = data['created_at']
 
-      ghtorrent.transaction do
-        pr_members = ghtorrent.get_db[:project_members]
-        project = ghtorrent.ensure_repo(owner, repo)
-        new_user = ghtorrent.ensure_user(new_member, false, false)
+      ght.transaction do
+        pr_members = ght.get_db[:project_members]
+        project = ght.ensure_repo(owner, repo)
+        new_user = ght.ensure_user(new_member, false, false)
 
         if project.nil? or new_user.nil?
           return
@@ -59,7 +59,7 @@ module GHTorrent
           pr_members.insert(
               :user_id => new_user[:id],
               :repo_id => project[:id],
-              :created_at => ghtorrent.date(added)
+              :created_at => ght.date(added)
           )
           info "Added project member #{repo} -> #{new_member}"
         else
@@ -75,7 +75,7 @@ module GHTorrent
       id = data['payload']['comment']['id']
       sha = data['payload']['comment']['commit_id']
 
-      ghtorrent.ensure_commit_comment(user, repo, sha, id)
+      ght.ensure_commit_comment(user, repo, sha, id)
     end
 
     def PullRequestEvent(data)
@@ -86,7 +86,7 @@ module GHTorrent
       actor = data['actor']['login']
       created_at = data['created_at']
 
-      ghtorrent.ensure_pull_request(owner, repo, pullreq_id, true, true, true,
+      ght.ensure_pull_request(owner, repo, pullreq_id, true, true, true,
                                     action, actor, created_at)
     end
 
@@ -98,8 +98,8 @@ module GHTorrent
       forkee_owner = data['payload']['forkee']['owner']['login']
       forkee_repo = data['payload']['forkee']['name']
 
-      ghtorrent.ensure_fork(owner, repo, fork_id)
-      ghtorrent.ensure_repo_recursive(forkee_owner, forkee_repo, true)
+      ght.ensure_fork(owner, repo, fork_id)
+      ght.ensure_repo_recursive(forkee_owner, forkee_repo, true)
     end
 
     def PullRequestReviewCommentEvent(data)
@@ -108,7 +108,7 @@ module GHTorrent
       comment_id = data['payload']['comment']['id']
       pullreq_id = data['payload']['comment']['_links']['pull_request']['href'].split(/\//)[-1]
 
-      ghtorrent.ensure_pullreq_comment(owner, repo, pullreq_id, comment_id)
+      ght.ensure_pullreq_comment(owner, repo, pullreq_id, comment_id)
     end
 
     def IssuesEvent(data)
@@ -116,7 +116,7 @@ module GHTorrent
       repo = data['repo']['name'].split(/\//)[1]
       issue_id = data['payload']['issue']['number']
 
-      ghtorrent.ensure_issue(owner, repo, issue_id)
+      ght.ensure_issue(owner, repo, issue_id)
     end
 
     def IssueCommentEvent(data)
@@ -125,7 +125,7 @@ module GHTorrent
       issue_id = data['payload']['issue']['number']
       comment_id = data['payload']['comment']['id']
 
-      ghtorrent.ensure_issue_comment(owner, repo, issue_id, comment_id)
+      ght.ensure_issue_comment(owner, repo, issue_id, comment_id)
     end
 
     def CreateEvent(data)
@@ -133,8 +133,8 @@ module GHTorrent
       repo = data['repo']['name'].split(/\//)[1]
       return unless data['payload']['ref_type'] == 'repository'
 
-      ghtorrent.ensure_repo(owner, repo)
-      ghtorrent.ensure_repo_recursive(owner, repo, false)
+      ght.ensure_repo(owner, repo)
+      ght.ensure_repo_recursive(owner, repo, false)
     end
   end
 end
