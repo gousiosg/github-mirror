@@ -5,6 +5,7 @@ user="ghtorrent"
 passwd="ghtorrent"
 host="localhost"
 db="ghtorrent"
+engine="MyISAM"
 
 usage()
 {
@@ -15,6 +16,8 @@ usage()
   echo "    -p database passwd (default: $passwd)"
   echo "    -h database host (default: $host)"
   echo "    -d database to restore to. Must exist. (default: $db)"
+  echo "    -e db engine: MyISAM for fast import and querying speed"
+  echo "                  InnoDB for normal operations (default: $engine)"
 }
 
 if [ -z $1 ]
@@ -30,7 +33,7 @@ do
   p)  passwd=$OPTARG ;;
   h)  host=$OPTARG ;;
   d)  db=$OPTARG ;;
-  i)  in=$OPTARG ;;
+  e)  engine=$$OPTARG ;;
   \?)     echo "Invalid option: -$OPTARG" >&2
     usage
     exit 1
@@ -65,6 +68,7 @@ fi
 echo "`date` Creating the DB schema"
 cat $dumpDir/schema.sql |
 sed -e "s/\`ghtorrent\`/\`$db\`/" |
+sed -e "s/InnoDB/$engine/"|
 grep -v "^--" |
 $mysql
 
