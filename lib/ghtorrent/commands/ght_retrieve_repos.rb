@@ -8,6 +8,18 @@ require "bunny"
 
 class GHTRetrieveRepos < MultiprocessQueueClient
 
+  include GHTorrent::Commands::FullRepoRetriever
+
+  def prepare_options(options)
+    super(options)
+    supported_options(options)
+  end
+
+  def validate
+    super
+    validate_options
+  end
+
   def clazz
     GHTRepoRetriever
   end
@@ -18,19 +30,11 @@ class GHTRepoRetriever
 
   include GHTorrent::Settings
   include GHTorrent::Retriever
+  include GHTorrent::Commands::FullRepoRetriever
 
   def initialize(config, queue)
     @config = config
     @queue = queue
-  end
-
-  def logger
-    ght.logger
-  end
-
-  def ght
-    @ght ||= TransactedGHTorrent.new(@config)
-    @ght
   end
 
   def settings
@@ -41,78 +45,14 @@ class GHTRepoRetriever
 
     processor = Proc.new do |msg|
       owner, repo = msg.split(/ /)
-
-      # On rare occasions, 2 instances might try to add the same user
-      # at the same time, which might lead to transaction conflicts
-      # Give the script one more opportunity before bailing out
-      user_entry = nil
-      i = 0
-
-      while user_entry.nil? and i < 10 do
-        i += 1
-        warn("Trying to get user #{owner}, attempt #{i}")
-        begin
-          user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
-        rescue StandardError => e
-          warn e.message
-        end
-      end
-
-      if user_entry.nil?
-        warn("Cannot find user #{owner}")
-        next
-      end
-
-      repo_entry = ght.transaction { ght.ensure_repo(owner, repo,
-                                                     recursive = false) }
-
-      if repo_entry.nil?
-        warn("Cannot find repository #{owner}/#{repo}")
-        next
-      end
-
-      debug("Retrieving repo #{owner}/#{repo}")
-
-      retrieval_stages = %w(ensure_commits ensure_forks ensure_pull_requests
-                            ensure_issues ensure_watchers ensure_labels) # ensure_project_members
-
-      retrieval_stages.each do |x|
-        run_retrieval_stage(ght, owner, repo, x)
-      end
-
-      # Repository owner bound data retrieval
-      run_retrieval_stage(ght, owner, repo, 'ensure_user_followers', 
-                          onlyuser = true)
-
-      if user_entry[:type] == 'ORG'
-        run_retrieval_stage(ght, owner, repo, 'ensure_org', onlyuser = true)
-      end
-
-      # Cleanup
-      ght.dispose
-      ght = nil
-      GC.start
+      retrieve_repo(owner, repo)
     end
 
     command.queue_client(@queue, :before, processor)
   end
 
-  def run_retrieval_stage(ght, owner, repo, function, only_user = false)
-    begin
-      if only_user
-        ght.send(function, owner)
-      else
-        ght.send(function, owner, repo)
-      end
-    rescue StandardError => e
-      warn("Error processing #{function} for #{owner}/#{repo}")
-      warn("Exception message #{$!}")
-      warn("Exception trace #{e.backtrace.join("\n")}")
-    end
-  end
-
   def stop
-    warn('Stop flag set, waiting for operations to finish')
+    puts('Stop flag set, waiting for operations to finish')
     @stop = true
   end
 end
