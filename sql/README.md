@@ -21,8 +21,9 @@ Create a MySQL user with permissions to create new schemata, for example:
 ```sql
 create user ghtorrentuser@'localhost' identified by 'ghtorrentpassword';
 create user ghtorrentuser@'*' identified by 'ghtorrentpassword';
-grant all privileges on *.* to 'ghtorrentuser'@'localhost';
-grant all privileges on *.* to 'ghtorrentuser'@'*';
+create database ghtorrent_restore;
+grant all privileges on ghtorrent_restore.* to 'ghtorrentuser'@'localhost';
+grant all privileges on ghtorrent_restore.* to 'ghtorrentuser'@'*';
 ```
 ### Run the restore process
 
