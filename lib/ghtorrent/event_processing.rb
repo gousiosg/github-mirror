@@ -95,15 +95,15 @@ module GHTorrent
     end
 
     def ForkEvent(data)
-      owner = data['repo']['name'].split(/\//)[0]
-      repo = data['repo']['name'].split(/\//)[1]
-      fork_id = data['payload']['forkee']['id']
+#      owner = data['repo']['name'].split(/\//)[0]
+#      repo = data['repo']['name'].split(/\//)[1]
+#      fork_id = data['payload']['forkee']['id']
 
-      forkee_owner = data['payload']['forkee']['owner']['login']
-      forkee_repo = data['payload']['forkee']['name']
+#      forkee_owner = data['payload']['forkee']['owner']['login']
+#      forkee_repo = data['payload']['forkee']['name']
 
-      ght.ensure_fork(owner, repo, fork_id)
-      ght.ensure_repo_recursive(forkee_owner, forkee_repo, true)
+#      ght.ensure_fork(owner, repo, fork_id)
+#      ght.ensure_repo_recursive(forkee_owner, forkee_repo, true)
     end
 
     def PullRequestReviewCommentEvent(data)
