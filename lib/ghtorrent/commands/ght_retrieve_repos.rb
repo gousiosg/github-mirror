@@ -1,4 +1,4 @@
-require 'ghtorrent/ghtorrent'
+require 'ghtorrent/transacted_gh_torrent'
 require 'ghtorrent/settings'
 require 'ghtorrent/logging'
 require 'ghtorrent/command'
@@ -32,13 +32,11 @@ class GHTRepoRetriever
   include GHTorrent::Retriever
   include GHTorrent::Commands::FullRepoRetriever
 
-  def initialize(config, queue)
-    @config = config
-    @queue = queue
-  end
+  attr_accessor :settings
 
-  def settings
-    @config
+  def initialize(config, queue)
+    @settings = config
+    @queue = queue
   end
 
   def run(command)

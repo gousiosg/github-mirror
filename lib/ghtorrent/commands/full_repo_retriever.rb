@@ -1,3 +1,5 @@
+require 'ghtorrent/transacted_gh_torrent'
+
 module GHTorrent
   module Commands
     # Defines a process to download the full data available for a single user
@@ -12,12 +14,21 @@ module GHTorrent
        ensure_issues ensure_watchers ensure_labels ensure_languages) #ensure_project_members
       end
 
+      def settings
+        raise('Unimplemented')
+      end
+
       def options
         raise('Unimplemented')
       end
 
-      def settings
-        raise('Unimplemented')
+      def ght
+        @ghtorrent ||= TransactedGHTorrent.new(settings)
+        @ghtorrent
+      end
+
+      def persister
+        ght.persister
       end
 
       def supported_options(options)
@@ -45,11 +56,6 @@ module GHTorrent
           Trollop::die("Not a valid function: #{options[:only_stage]}") unless stages.include? options[:only_stage]
         end
 
-      end
-
-      def ght
-        @ghtorrent ||= TransactedGHTorrent.new(settings)
-        @ghtorrent
       end
 
       def retrieve_repo(owner, repo)
@@ -87,7 +93,7 @@ module GHTorrent
 
         # Process repo events
         unless options[:no_events_given]
-          events = get_repo_events(owner, repo[:name]).sort { |e| e['id'].to_i }
+          events = get_repo_events(owner, repo).sort { |e| e['id'].to_i }
           events.each do |event|
             begin
               next if @exclude_event_types.include? event['type']

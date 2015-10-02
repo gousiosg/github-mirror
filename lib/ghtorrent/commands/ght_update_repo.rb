@@ -23,13 +23,17 @@ Updates the deleted field in the project table with current data
     Trollop::die "Takes two arguments" if ARGV.size == 1
   end
 
+  def ght
+    @ght ||= GHTorrent::Mirror.new(settings)
+    @ght
+  end
+
   def persister
-    @persister ||= connect(:mongo, settings)
-    @persister
+    ght.persister
   end
 
   def db
-    @db ||= @ght.get_db
+    ght.get_db
   end
 
   def date(arg)
@@ -52,7 +56,7 @@ Updates the deleted field in the project table with current data
   def update_mysql(owner, repo, retrieved)
 
     parent = unless retrieved['parent'].nil?
-               @ght.ensure_repo(retrieved['parent']['owner']['login'],
+               ght.ensure_repo(retrieved['parent']['owner']['login'],
                                 retrieved['parent']['name'])
              end
 
@@ -68,11 +72,11 @@ Updates the deleted field in the project table with current data
          :projects__forked_from => unless parent.nil? then parent[:id] end)
     debug("Repo #{owner}/#{repo} updated")
 
-    @ght.ensure_languages(owner, repo)
+    ght.ensure_languages(owner, repo)
   end
 
   def process_project(owner, name)
-    @ght.transaction do
+    ght.transaction do
 
       in_mongo = persister.find(:repos, {'owner.login' => owner, 'name' => name })
       on_github = api_request(ghurl ("repos/#{owner}/#{name}"))
@@ -113,12 +117,11 @@ Updates the deleted field in the project table with current data
 
   def go
 
-    @ght ||= GHTorrent::Mirror.new(settings)
-
     unless ARGV[1].nil?
       process_project(ARGV[0], ARGV[1])
       exit(0)
     end
 
   end
+
 end
