@@ -43,7 +43,7 @@ class GHTRepoRetriever
 
     processor = Proc.new do |msg|
       owner, repo = msg.split(/ /)
-      retrieve_repo(owner, repo)
+      retrieve_full_repo(owner, repo)
     end
 
     command.queue_client(@queue, :before, processor)
