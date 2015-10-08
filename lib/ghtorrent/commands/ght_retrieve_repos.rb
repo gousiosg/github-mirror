@@ -32,11 +32,12 @@ class GHTRepoRetriever
   include GHTorrent::Retriever
   include GHTorrent::Commands::FullRepoRetriever
 
-  attr_accessor :settings
+  attr_accessor :settings, :options
 
-  def initialize(config, queue)
+  def initialize(config, queue, options)
     @settings = config
     @queue = queue
+    @options = options
   end
 
   def run(command)
@@ -46,7 +47,7 @@ class GHTRepoRetriever
       retrieve_full_repo(owner, repo)
     end
 
-    command.queue_client(@queue, :before, processor)
+    command.queue_client(@queue, GHTorrent::ROUTEKEY_PROJECTS, :before, processor)
   end
 
   def stop

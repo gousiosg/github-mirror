@@ -77,7 +77,8 @@ are also queued, to ensure no additional information is gone missing.
         repo = e['repo']['name'].gsub('/',' ')
         key = "evt.#{e['type']}"
         if @options[:projects_given]
-          exchange.publish repo, :persistent => true, :routing_key => ROUTEKEY_PROJECTS
+          exchange.publish repo, :persistent => true, :routing_key => GHTorrent::ROUTEKEY_PROJECTS
+          debug "Published update to project #{repo}"
           if @events_requeue.include? e['type']
             exchange.publish e['id'], :persistent => true, :routing_key => key
           end

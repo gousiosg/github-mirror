@@ -84,7 +84,7 @@ module GHTorrent
           end
 
           # last update was done too recently (less than 10 days), ignore
-          if repo_entry[:updated_at] > Time.now - 10 * 24 * 60 * 60
+          if not repo_entry[:updated_at].nil? and repo_entry[:updated_at] > Time.now - 10 * 24 * 60 * 60
             warn "Last update too recent (#{Time.at(repo_entry[:updated_at])}) for #{owner}/#{repo}"
             return
           end
