@@ -19,7 +19,7 @@ class GHTUserRetriever
 
   attr_accessor :ght
 
-  def initialize(config, queue)
+  def initialize(config, queue, options)
     @config = config
     @queue = queue
   end

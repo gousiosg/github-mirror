@@ -164,9 +164,10 @@ Standard options:
     # Specify a handler to incoming messages from a connection to a queue.
     #
     # @param queue [String] the queue name to bind to
+    # @param key [String] routing key for msgs for binding the queue to the exchange.
     # @param ack [Symbol] when should acks be send, :before or :after the block returns
     # @param block [Block]: A block accepting one argument (the message)
-    def queue_client(queue, ack = :after, block)
+    def queue_client(queue, key = queue, ack = :after, block)
 
       stopped = false
       while not stopped
@@ -184,8 +185,8 @@ Standard options:
 
           x = ch.topic(config(:amqp_exchange), :durable => true,
                        :auto_delete => false)
-          q   = ch.queue(queue, :durable => true)
-          q.bind(x)
+          q = ch.queue(queue, :durable => true)
+          q.bind(x, :routing_key => key)
 
           q.subscribe(:block => true,
                       :ack => true) do |delivery_info, properties, msg|
@@ -197,7 +198,9 @@ Standard options:
             begin
               block.call(msg)
             ensure
-              ch.acknowledge(delivery_info.delivery_tag)
+              if ack != :before
+                ch.acknowledge(delivery_info.delivery_tag)
+              end
             end
           end
 
