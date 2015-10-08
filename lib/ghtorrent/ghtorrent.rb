@@ -529,7 +529,7 @@ module GHTorrent
                    :description => r['description'],
                    :language => r['language'],
                    :created_at => date(r['created_at']),
-                   :updated_at => Time.now)
+                   :updated_at => Time.at(0))
 
       unless r['parent'].nil?
         parent_owner = r['parent']['owner']['login']
