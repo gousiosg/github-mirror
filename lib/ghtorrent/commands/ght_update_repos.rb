@@ -15,9 +15,10 @@ class GHTRepoUpdater
   include GHTorrent::Logging
   include GHTorrent::Commands::RepoUpdater
 
-  def initialize(config, queue)
+  def initialize(config, queue, options)
     @config = config
     @queue = queue
+    @options = options
   end
 
   def settings

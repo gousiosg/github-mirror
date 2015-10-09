@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require 'ghtorrent'
+require 'ghtorrent/commands/repo_updater'
 
 class GHTUpdateRepo < GHTorrent::Command
 
