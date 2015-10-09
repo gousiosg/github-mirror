@@ -114,7 +114,7 @@ module GHTorrent
           events = get_repo_events(owner, repo).sort { |e| e['id'].to_i }
           events.each do |event|
             begin
-              next if @exclude_event_types.include? event['type']
+              next if not @exclude_event_types.nil? and @exclude_event_types.include? event['type']
               next if options[:events_after_given] and event['id'].to_i <= options[:events_after]
               next if options[:events_before_given] and event['id'].to_i >= options[:events_before]
 
