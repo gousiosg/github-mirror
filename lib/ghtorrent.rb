@@ -18,6 +18,9 @@ module GHTorrent
   ROUTEKEY_TEAM_ADD = "evt.TeamAddEvent"
   ROUTEKEY_WATCH = "evt.WatchEvent"
 
+  # Route key for projects
+  ROUTEKEY_PROJECTS = "evt.projects"
+
 end
 
 # Shared extensions to library methods

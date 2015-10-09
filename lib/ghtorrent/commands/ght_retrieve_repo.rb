@@ -28,6 +28,6 @@ An efficient way to get all data for a single repo
   end
 
   def go
-    retrieve_repo(ARGV[0], ARGV[1])
+    retrieve_full_repo(ARGV[0], ARGV[1])
   end
 end

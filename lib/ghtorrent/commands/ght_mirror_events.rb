@@ -17,14 +17,37 @@ class GHTMirrorEvents < GHTorrent::Command
   include GHTorrent::APIClient
   include GHTorrent::Logging
 
+  def prepare_options(options)
+    options.banner <<-BANNER
+Retrieves events from the GitHup API event timeline and post them to the
+appropriate queue. By default, events are posted to a queue which is
+named after the event type.
+
+If the -p option is provided, only project names for the changed projects
+are submitted to the queue. Selected events, specified by the -e option
+are also queued, to ensure no additional information is gone missing.
+
+#{command_name} [options]
+    BANNER
+    options.opt :projects, 'Only queue project names',
+                :short => 'p', :default => false
+    options.opt :events_requeue, 'Events to requeue', :short => 'q',
+                :default => 'MemberEvent,FollowEvent', :type => String
+  end
+
+  def persister
+    @persister ||= connect(:mongo, @settings)
+    @persister
+  end
+
   def store_count(events)
     stored = Array.new
     new = dupl = 0
     events.each do |e|
-      if @persister.find(:events, {'id' => e['id']}).empty?
+      if persister.find(:events, {'id' => e['id']}).empty?
         stored << e
         new += 1
-        @persister.store(:events, e)
+        persister.store(:events, e)
         info "Added #{e['id']}"
       else
         info "Already got #{e['id']}"
@@ -34,7 +57,7 @@ class GHTMirrorEvents < GHTorrent::Command
     return new, dupl, stored
   end
 
-  # Retrieve events from Github, store them in the DB
+  # Retrieve events from Github, store them in the DB and queue them
   def retrieve(exchange)
     begin
       new = dupl = 0
@@ -51,9 +74,19 @@ class GHTMirrorEvents < GHTorrent::Command
       end
 
       stored.each do |e|
+        repo = e['repo']['name'].gsub('/',' ')
         key = "evt.#{e['type']}"
-        exchange.publish e['id'], :persistent => true, :routing_key => key
+        if @options[:projects_given]
+          exchange.publish repo, :persistent => true, :routing_key => GHTorrent::ROUTEKEY_PROJECTS
+          debug "Published update to project #{repo}"
+          if @events_requeue.include? e['type']
+            exchange.publish e['id'], :persistent => true, :routing_key => key
+          end
+        else
+          exchange.publish e['id'], :persistent => true, :routing_key => key
+        end
       end
+
       return new, dupl
     rescue StandardError => e
       STDERR.puts e.message
@@ -62,8 +95,8 @@ class GHTMirrorEvents < GHTorrent::Command
   end
 
   def go
-    @persister = connect(:mongo, @settings)
 
+    @events_requeue = @options[:events_requeue].split(/,/)
     conn = Bunny.new(:host => config(:amqp_host),
                      :port => config(:amqp_port),
                      :username => config(:amqp_username),
@@ -98,6 +131,7 @@ class GHTMirrorEvents < GHTorrent::Command
       end
     end
   end
+
 end
 
 # vim: set sta sts=2 shiftwidth=2 sw=2 et ai :
