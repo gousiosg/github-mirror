@@ -36,7 +36,7 @@ class GHTUserRetriever
       retrieve_user(user)
     end
 
-    command.queue_client(@queue, :after, processor)
+    command.queue_client(@queue, GHTorrent::ROUTEKEY_PROJECTS, :after, processor)
 
   end
 

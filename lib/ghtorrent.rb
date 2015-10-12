@@ -20,6 +20,8 @@ module GHTorrent
 
   # Route key for projects
   ROUTEKEY_PROJECTS = "evt.projects"
+  # Route key for users
+  ROUTEKEY_USERS = "evt.users"
 
 end
 

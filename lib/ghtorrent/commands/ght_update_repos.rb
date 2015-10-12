@@ -32,7 +32,7 @@ class GHTRepoUpdater
       process_project(owner, repo)
     end
 
-    command.queue_client(@queue, :after, processor)
+    command.queue_client(@queue, GHTorrent::ROUTEKEY_PROJECTS, :after, processor)
 
   end
 
