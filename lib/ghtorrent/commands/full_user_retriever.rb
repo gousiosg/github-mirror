@@ -38,13 +38,17 @@ module GHTorrent
 
         # Update geo location information
         geo = geolocate(on_github['location'])
+ 
+        ght.get_db.from(:users).where(:login => login).update(
+          :users__long => geo['long'].to_f,
+          :users__lat => geo['lat'].to_f,
+          :users__country_code => geo['country_code'],
+          :users__state => geo['state'],
+          :users__city => geo['city'],
+        )
 
         ght.get_db.from(:users).where(:login => login).update(
-            :users__long => geo[:long],
-            :users__lat => geo[:lat],
-            :users__country_code => geo[:country_code],
-            :users__state => geo[:state],
-            :users__city => geo[:city],
+          :users__location => on_github['location']
         )
 
         user = user_entry[:login]

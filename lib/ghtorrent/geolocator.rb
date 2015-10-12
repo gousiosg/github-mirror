@@ -77,6 +77,7 @@ module GHTorrent
           geo[:key] = location
         ensure
           persister.store(:geo_cache, geo)
+          geo = persister.find(:geo_cache, {'key' => location}).first 
           info "Added location key '#{location}' -> #{geo[:status]}"
           taken = Time.now.to_f - ts.to_f
           to_sleep = wait - taken
