@@ -244,6 +244,10 @@ module GHTorrent
                 :login => login,
                 :company => added['company'],
                 :location => added['location'],
+                :geo_latlng => user_geocode(added['location'][0]),
+                :geo_country => user_geocode(added['location'][1]),
+                :geo_state => user_geocode(added['location'][2]),
+                :geo_city => user_geocode(added['location'][3]),
                 :created_at => added['created_at']
             )
           end
@@ -327,6 +331,10 @@ module GHTorrent
                      :company => u['company'],
                      :email => email,
                      :location => u['location'],
+                     :geo_latlng => user_geocode(added['location'][0]),
+                     :geo_country => user_geocode(added['location'][1]),
+                     :geo_state => user_geocode(added['location'][2]),
+                     :geo_city => user_geocode(added['location'][3]),
                      :fake => false,
                      :deleted => false,
                      :type => user_type(u['type']),
@@ -467,6 +475,10 @@ module GHTorrent
                          :company => u['company'],
                          :email => u['email'],
                          :location => u['location'],
+                         :geo_latlng => user_geocode(added['location'][0]),
+                         :geo_country => user_geocode(added['location'][1]),
+                         :geo_state => user_geocode(added['location'][2]),
+                         :geo_city => user_geocode(added['location'][3]),
                          :fake => false,
                          :deleted => false,
                          :created_at => date(u['created_at']))
@@ -476,6 +488,10 @@ module GHTorrent
                          :company => u['company'],
                          :email => u['email'],
                          :location => u['location'],
+                         :geo_latlng => user_geocode(added['location'][0]),
+                         :geo_country => user_geocode(added['location'][1]),
+                         :geo_state => user_geocode(added['location'][2]),
+                         :geo_city => user_geocode(added['location'][3]),
                          :fake => false,
                          :deleted => false,
                          :created_at => date(u['created_at']))
