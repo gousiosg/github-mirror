@@ -14,15 +14,6 @@ class GHTDataRetrieval < GHTorrent::Command
   include GHTorrent::Persister
   include GHTorrent::EventProcessing
 
-  def persister
-    @persister ||= connect(:mongo, settings)
-    @persister
-  end
-
-  def parse(msg)
-    JSON.parse(msg)
-  end
-
   def handlers
     %w(PushEvent WatchEvent FollowEvent MemberEvent CreateEvent
         CommitCommentEvent PullRequestEvent ForkEvent
@@ -43,20 +34,24 @@ If event_id is provided, only this event is processed.
     super
   end
 
-  def logger
-    ghtorrent.logger
-  end
-
-  def ghtorrent
+  def ght
     #@gh ||= GHTorrent::Mirror.new(@settings)
     @gh ||= TransactedGHTorrent.new(settings)
     @gh
   end
 
+  def logger
+    ght.logger
+  end
+
+  def persister
+    ght.persister
+  end
+
   def retrieve_event(evt_id)
     event = persister.get_underlying_connection[:events].find_one('id' => evt_id)
     event.delete '_id'
-    data = parse(event.to_json)
+    data = JSON.parse(event.to_json)
     debug "Processing event: #{data['type']}-#{data['id']}"
     data
   end

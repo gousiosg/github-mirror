@@ -4,6 +4,7 @@ require 'ghtorrent/ghtorrent'
 require 'ghtorrent/settings'
 require 'ghtorrent/command'
 require 'ghtorrent/retriever'
+require 'ghtorrent/commands/full_repo_retriever'
 
 class GHTRetrieveRepo < GHTorrent::Command
 
@@ -16,15 +17,17 @@ An efficient way to get all data for a single repo
 #{command_name} [options] owner repo
 
     BANNER
-    supported_options
+    supported_options(options)
   end
 
   def validate
     super
     validate_options
+    Trollop::die("Missing owner") if ARGV[0].nil?
+    Trollop::die("Missing repo") if ARGV[1].nil?
   end
 
   def go
-    retrieve_repo(owner, repo)
+    retrieve_full_repo(ARGV[0], ARGV[1])
   end
 end

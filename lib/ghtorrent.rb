@@ -18,6 +18,11 @@ module GHTorrent
   ROUTEKEY_TEAM_ADD = "evt.TeamAddEvent"
   ROUTEKEY_WATCH = "evt.WatchEvent"
 
+  # Route key for projects
+  ROUTEKEY_PROJECTS = "evt.projects"
+  # Route key for users
+  ROUTEKEY_USERS = "evt.users"
+
 end
 
 # Shared extensions to library methods
@@ -64,5 +69,6 @@ require 'ghtorrent/commands/ght_retrieve_repos'
 require 'ghtorrent/commands/ght_retrieve_one'
 require 'ghtorrent/commands/ght_retrieve_users'
 require 'ghtorrent/commands/ght_update_repo'
+require 'ghtorrent/commands/ght_update_repos'
 
 # vim: set sta sts=2 shiftwidth=2 sw=2 et ai :

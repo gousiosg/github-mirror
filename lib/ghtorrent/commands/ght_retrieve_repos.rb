@@ -1,4 +1,4 @@
-require 'ghtorrent/ghtorrent'
+require 'ghtorrent/transacted_gh_torrent'
 require 'ghtorrent/settings'
 require 'ghtorrent/logging'
 require 'ghtorrent/command'
@@ -32,23 +32,22 @@ class GHTRepoRetriever
   include GHTorrent::Retriever
   include GHTorrent::Commands::FullRepoRetriever
 
-  def initialize(config, queue)
-    @config = config
-    @queue = queue
-  end
+  attr_accessor :settings, :options
 
-  def settings
-    @config
+  def initialize(config, queue, options)
+    @settings = config
+    @queue = queue
+    @options = options
   end
 
   def run(command)
 
     processor = Proc.new do |msg|
       owner, repo = msg.split(/ /)
-      retrieve_repo(owner, repo)
+      retrieve_full_repo(owner, repo)
     end
 
-    command.queue_client(@queue, :before, processor)
+    command.queue_client(@queue, GHTorrent::ROUTEKEY_PROJECTS, :before, processor)
   end
 
   def stop

@@ -1,3 +1,5 @@
+require 'ghtorrent/transacted_gh_torrent'
+
 module GHTorrent
   module Commands
     # Defines a process to download the full data available for a single user
@@ -12,12 +14,21 @@ module GHTorrent
        ensure_issues ensure_watchers ensure_labels ensure_languages) #ensure_project_members
       end
 
+      def settings
+        raise('Unimplemented')
+      end
+
       def options
         raise('Unimplemented')
       end
 
-      def settings
-        raise('Unimplemented')
+      def ght
+        @ghtorrent ||= TransactedGHTorrent.new(settings)
+        @ghtorrent
+      end
+
+      def persister
+        ght.persister
       end
 
       def supported_options(options)
@@ -47,25 +58,38 @@ module GHTorrent
 
       end
 
-      def ght
-        @ghtorrent ||= TransactedGHTorrent.new(settings)
-        @ghtorrent
-      end
-
-      def retrieve_repo(owner, repo)
+      def retrieve_full_repo(owner, repo)
         self.settings = override_config(settings, :mirror_history_pages_back, 1000)
         user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
 
         if user_entry.nil?
-          Trollop::die "Cannot find user #{owner}"
+          warn "Cannot find user #{owner}"
+          return
         end
 
         user = user_entry[:login]
 
-        repo_entry = ght.transaction { ght.ensure_repo(owner, repo) }
+        # Run this in serializable isolation to ensure that projects
+        # are updated or inserted just once. If serialization fails,
+        # it means that another transaction added/updated the repo.
+        # Just re-running the block should lead to the project being
+        # rejected from further processing due to an updated updated_at field
+        ght.get_db.transaction(:isolation => :serializable,
+                               :retry_on=>[Sequel::SerializationFailure]) do
+          repo_entry = ght.ensure_repo(owner, repo)
 
-        if repo_entry.nil?
-          Trollop::die "Cannot find repository #{owner}/#{repo}"
+          if repo_entry.nil?
+            warn "Cannot find repository #{owner}/#{repo}"
+            return
+          end
+
+          # last update was done too recently (less than 10 days), ignore
+          if not repo_entry[:updated_at].nil? and repo_entry[:updated_at] > Time.now - 10 * 24 * 60 * 60
+            warn "Last update too recent (#{Time.at(repo_entry[:updated_at])}) for #{owner}/#{repo}"
+            return
+          end
+
+          ght.get_db.from(:projects).where(:id => repo_entry[:id]).update(:updated_at => Time.now)
         end
 
         unless options[:no_entities_given]
@@ -87,10 +111,10 @@ module GHTorrent
 
         # Process repo events
         unless options[:no_events_given]
-          events = get_repo_events(owner, repo[:name]).sort { |e| e['id'].to_i }
+          events = get_repo_events(owner, repo).sort { |e| e['id'].to_i }
           events.each do |event|
             begin
-              next if @exclude_event_types.include? event['type']
+              next if not @exclude_event_types.nil? and @exclude_event_types.include? event['type']
               next if options[:events_after_given] and event['id'].to_i <= options[:events_after]
               next if options[:events_before_given] and event['id'].to_i >= options[:events_before]
 

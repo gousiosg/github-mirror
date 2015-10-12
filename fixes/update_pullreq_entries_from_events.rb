@@ -14,7 +14,7 @@ class UpdatePullRequestHistoryEvents
   include GHTorrent::Retriever
   include GHTorrent::Persister
 
-  def initialize(config, queue)
+  def initialize(config, queue, options)
     @config = config
     @queue = queue
   end

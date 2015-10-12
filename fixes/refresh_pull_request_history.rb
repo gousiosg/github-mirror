@@ -17,7 +17,7 @@ class RefreshPullReqHistory
   include GHTorrent::Persister
   include GHTorrent::APIClient
 
-  def initialize(config, queue)
+  def initialize(config, queue, options)
     @config = config
     @queue = queue
   end

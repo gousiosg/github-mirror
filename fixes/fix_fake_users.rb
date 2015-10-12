@@ -13,7 +13,7 @@ class FixFakeUser
   include GHTorrent::Settings
   include GHTorrent::APIClient
 
-  def initialize(config, queue)
+  def initialize(config, queue, options)
     @config = config
     @queue = queue
   end

@@ -70,7 +70,7 @@ curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/schema
 cp sql/*.sql sql/README.md sql/ORDER sql/ght-restore-mysql $out || exit 1
 
 echo "`date` Creating archive $dumpName"
-tar cvf $dumpName -C `dirname $out` dump || exit 1
+tar zcvf $dumpName -C `dirname $out` dump || exit 1
 
 rm -R $out
 #: ft=bash

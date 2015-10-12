@@ -95,7 +95,7 @@ Values in the config.yaml file set with the -c command are overridden.
       pid = Process::fork
 
       if pid.nil?
-        retriever = clazz.new(config, options[:queue])
+        retriever = clazz.new(config, options[:queue], options)
 
         Signal.trap('TERM') {
           retriever.stop
