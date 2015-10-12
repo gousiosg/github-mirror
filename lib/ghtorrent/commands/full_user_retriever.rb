@@ -5,9 +5,16 @@ module GHTorrent
 
       include GHTorrent::Geolocator
 
-      def retrieve_user(login)
-        #self.settings = override_config(settings, :mirror_history_pages_back, -1)
+      def ght
+        raise 'Unimplemented'
+      end
 
+      def persister
+        ght.persister
+      end
+
+      def retrieve_user(login)
+        self.settings = override_config(settings, :mirror_history_pages_back, 1000)
         user_entry = ght.transaction { ght.ensure_user(login, false, false) }
         on_github = api_request(ghurl ("users/#{login}"))
 

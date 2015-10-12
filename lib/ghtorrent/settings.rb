@@ -32,6 +32,7 @@ module GHTorrent
 
         :rescue_loops => 'mirror.rescue_loops',
         :req_limit => 'mirror.req_limit',
+        :geoloc_wait => 'mirror.geoloc_wait',
 
         :logging_level => 'logging.level',
         :logging_uniq => 'logging.uniq',
@@ -61,6 +62,7 @@ module GHTorrent
 
         :rescue_loops => 'true',
         :req_limit => 4998,
+        :geoloc_wait => 2,
 
         :logging_level => 'info',
         :logging_uniq => '',

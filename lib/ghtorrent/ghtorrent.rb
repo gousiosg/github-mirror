@@ -5,6 +5,7 @@ require 'ghtorrent/logging'
 require 'ghtorrent/settings'
 require 'ghtorrent/retriever'
 require 'ghtorrent/persister'
+require 'ghtorrent/geolocator'
 
 module GHTorrent
   class Mirror

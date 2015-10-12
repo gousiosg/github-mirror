@@ -5,6 +5,17 @@ require 'uri'
 module GHTorrent
   module Geolocator
 
+    EMPTY_LOCATION = {
+        :key => nil,
+        :long => nil,
+        :lat => nil,
+        :city => nil,
+        :country => nil,
+        :state => nil,
+        :country_code => nil,
+        :status => :failed
+    }
+
     def persister
       raise Exception.new("Unimplemented")
     end
@@ -25,18 +36,29 @@ module GHTorrent
     # }
     #
     # Uses OSM and aggressive caching
-    def geolocate(location)
-
-      return {:key => location, :status => :failed} if location.strip.empty?
-
+    def geolocate(location, wait = config(:geoloc_wait))
+      return EMPTY_LOCATION if location.nil? or location == ''
       location = location_filter(location)
 
       geo = persister.find(:geo_cache, {'key' => location})
 
-      unless geo.empty?
+      if geo.empty?
         begin
+          ts = Time.now
           url = URI.escape("http://nominatim.openstreetmap.org/search/#{location}?format=json&addressdetails=1&accept_language=en")
-          geocoded = JSON.parse(open(url).read).sort { |x, y| y['importance'] <=> x['importance'] }.first
+          req = open(url)
+          geocoded = JSON.parse(req.read)
+
+          if geocoded.empty?
+            debug "Geolocation request #{url} returned successfully but no location was found"
+            geo = EMPTY_LOCATION
+            geo[:key] = location
+            return geo
+          else
+            debug "Geolocation request #{url} returned #{geocoded.size} places"
+          end
+
+          geocoded = geocoded.sort { |x, y| y['importance'] <=> x['importance'] }.first
 
           geo = {
               :key => location,
@@ -48,14 +70,21 @@ module GHTorrent
               :country_code => geocoded['address']['country_code'],
               :status => :ok
           }
-          info "Added location #{location}"
+          info "Successful geolocation request. Location: #{location}, URL: #{url}"
         rescue
-          warn "Could not find location #{location}"
-          geo = {:key => location, :status => :failed}
+          warn "Failed geolocation request. URL: #{url}"
+          geo = EMPTY_LOCATION
+          geo[:key] = location
         ensure
+          persister.store(:geo_cache, geo)
+          info "Added location key '#{location}' -> #{geo[:status]}"
           taken = Time.now.to_f - ts.to_f
-          sleep(2 - taken) if 2 - taken > 0
+          to_sleep = wait - taken
+          sleep(to_sleep) if to_sleep > 0
         end
+      else
+        geo = geo[0]
+        debug "Location with key '#{location}' exists"
       end
 
       geo
@@ -63,10 +92,11 @@ module GHTorrent
 
     # Standard filtering on all locations used by GHTorrent
     def location_filter(location)
+      return nil if location.nil?
       location.\
         strip.\
-        downcase.\
-        tr('#"<>', '').\
+        downcase.
+        tr('#"<>[]', '').\
         gsub(/^[0-9,\/().:]*/, '').\
         gsub(/ +/, ' ').\
         gsub(/,([a-z]*)/, '\1')
