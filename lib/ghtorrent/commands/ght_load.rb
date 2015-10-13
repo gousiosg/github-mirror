@@ -20,23 +20,29 @@ class GHTLoad < GHTorrent::Command
 
   def prepare_options(options)
     options.banner <<-BANNER
-Loads object ids from a collection to a queue for further processing.
+Loads data from a MongoDB collection or a file to a queue for further processing.
 
-#{command_name} [options] collection
+#{command_name} [options] mongo_collection
+#{command_name} [options] -i input_file
 
 #{command_name} options:
     BANNER
 
-    options.opt :earliest, 'Seconds since epoch of earliest item to load',
+    options.opt :earliest, 'Seconds since epoch of earliest item to load (Mongo mode only)',
                 :short => 'e', :default => 0, :type => :int
-    options.opt :latest, 'Seconds since epoch of latest item to load',
+    options.opt :latest, 'Seconds since epoch of latest item to load (Mongo mode only)',
                 :short => 'x', :default => Time.now.to_i + (60 * 60 * 24 * 360 * 20),
                 :type => :int
+    options.opt :filter,
+                'Filter items by regexp on item attributes: item.attr=regexp (Mongo mode only)',
+                :short => 'f', :type => String, :multi => true
+
+    options.opt :input, 'Input file', :type => String
     options.opt :number, 'Total number of items to load',
                 :short => 'n', :type => :int, :default => 2**48
-    options.opt :filter,
-                'Filter items by regexp on item attributes: item.attr=regexp',
-                :short => 'f', :type => String, :multi => true
+    options.opt :rate, 'Number of items to load per second',
+                :type => :int, :default => 1000
+    options.opt :route_key, 'Routing key to attached to loaded items', :type => String
   end
 
   def validate
@@ -52,12 +58,13 @@ Loads object ids from a collection to a queue for further processing.
       else
         Trollop::die 'A filter can only be a string'
     end
+
+    if options[:file_given]
+      Trollop::die "File does not exist: #{options[:file]}" unless File.exists?(options[:file])
+    end
   end
 
-  def go
-    # Num events read
-    total_read = 0
-
+  def mongo_stream
     puts "Loading events after #{Time.at(options[:earliest])}" if options[:verbose]
     puts "Loading events before #{Time.at(options[:latest])}" if options[:verbose]
     puts "Loading #{options[:number]} items" if options[:verbose]
@@ -80,6 +87,42 @@ Loads object ids from a collection to a queue for further processing.
 
     (puts 'Mongo filter:'; pp what.merge(from)) if options[:verbose]
 
+    persister.get_underlying_connection[:events].find(what.merge(from),
+                                                      :snapshot => true)
+  end
+
+  def mongo_process(e)
+    unq = read_value(e, 'type')
+    if unq.class != String or unq.nil? then
+      raise Exception.new('Unique value can only be a String')
+    end
+
+    [e['id'], "evt.#{e['type']}"]
+  end
+
+  def file_stream
+    File.open(options[:file])
+  end
+
+  def file_process(e)
+    [e, '']
+  end
+
+  def go
+
+    if options[:file_given]
+      @mode = :file
+      alias_method :process, :file_process
+      alias_method :stream, :file_stream
+    else
+      @mode = :mongodb
+      alias_method :process, :mongo_process
+      alias_method :stream, :mongo_stream
+    end
+
+    # Num events read
+    total_read = current_sec_read = 0
+
     conn = Bunny.new(:host => config(:amqp_host),
                      :port => config(:amqp_port),
                      :username => config(:amqp_username),
@@ -87,26 +130,38 @@ Loads object ids from a collection to a queue for further processing.
     conn.start
 
     channel = conn.create_channel
-    puts "Connection to #{config(:amqp_host)} succeded"
+    puts "Connection to #{config(:amqp_host)} succeeded"
 
     exchange = channel.topic(config(:amqp_exchange),
                              :durable => true, :auto_delete => false)
-
     stopped = false
+    ts = Time.now.to_f
     while not stopped
       begin
-        persister.get_underlying_connection[:events].find(what.merge(from),
-                                                          :snapshot => true).each do |e|
-          unq = read_value(e, 'type')
-          if unq.class != String or unq.nil? then
-            raise Exception.new('Unique value can only be a String')
+        stream.each do |e|
+          id, route = process(e)
+
+          if options[:route_key_given]
+            route = options[:route_key]
           end
 
-          exchange.publish e['id'], :persistent => false,
-                           :routing_key => "evt.#{e['type']}"
+          exchange.publish id, :persistent => false, :routing_key => route
 
           total_read += 1
-          puts "Publish id = #{e['id']} #{e['created_at']} (#{total_read} read)" if options.verbose
+          puts "Publish id = #{id} (#{total_read} read)" if options.verbose
+
+          # Basic rate limiting
+          if options[:rate_given]
+            current_sec_read += 1
+            if current_sec_read >= options[:rate]
+              time_diff = Time.now.to_f - ts
+              if time_diff <= 1000
+                puts "Rate limit reached, sleeping for #{1000 - time_diff} ms"
+                sleep(1000 - time_diff)
+              end
+              current_sec_read = 0
+            end
+          end
 
           if total_read >= options[:number]
             puts 'Finished reading, exiting'
