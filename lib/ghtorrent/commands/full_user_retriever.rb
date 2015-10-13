@@ -5,13 +5,19 @@ module GHTorrent
 
       include GHTorrent::Geolocator
 
-      def ght
-        raise 'Unimplemented'
-      end
-
       def persister
         ght.persister
       end
+
+      def settings
+        raise "Unimplemented"
+      end
+
+      def ght
+        @ghtorrent ||= TransactedGHTorrent.new(settings)
+        @ghtorrent
+      end
+
 
       def retrieve_user(login)
         self.settings = override_config(settings, :mirror_history_pages_back, 1000)

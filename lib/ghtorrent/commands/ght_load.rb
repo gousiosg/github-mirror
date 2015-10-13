@@ -37,7 +37,7 @@ Loads data from a MongoDB collection or a file to a queue for further processing
                 'Filter items by regexp on item attributes: item.attr=regexp (Mongo mode only)',
                 :short => 'f', :type => String, :multi => true
 
-    options.opt :input, 'Input file', :type => String
+    options.opt :file, 'Input file', :type => String
     options.opt :number, 'Total number of items to load',
                 :short => 'n', :type => :int, :default => 2**48
     options.opt :rate, 'Number of items to load per second',
@@ -105,19 +105,19 @@ Loads data from a MongoDB collection or a file to a queue for further processing
   end
 
   def file_process(e)
-    [e, '']
+    [e.strip, '']
   end
 
   def go
 
     if options[:file_given]
       @mode = :file
-      alias_method :process, :file_process
-      alias_method :stream, :file_stream
+      alias :process :file_process
+      alias :stream :file_stream
     else
       @mode = :mongodb
-      alias_method :process, :mongo_process
-      alias_method :stream, :mongo_stream
+      alias :process :mongo_process
+      alias :stream :mongo_stream
     end
 
     # Num events read
@@ -135,7 +135,7 @@ Loads data from a MongoDB collection or a file to a queue for further processing
     exchange = channel.topic(config(:amqp_exchange),
                              :durable => true, :auto_delete => false)
     stopped = false
-    ts = Time.now.to_f
+    ts = Time.now
     while not stopped
       begin
         stream.each do |e|
@@ -154,12 +154,13 @@ Loads data from a MongoDB collection or a file to a queue for further processing
           if options[:rate_given]
             current_sec_read += 1
             if current_sec_read >= options[:rate]
-              time_diff = Time.now.to_f - ts
-              if time_diff <= 1000
+              time_diff = (Time.now - ts) * 1000
+              if time_diff <= 1000.0
                 puts "Rate limit reached, sleeping for #{1000 - time_diff} ms"
-                sleep(1000 - time_diff)
+                sleep((1000.0 - time_diff) / 1000)
               end
               current_sec_read = 0
+              ts = Time.now
             end
           end
 
