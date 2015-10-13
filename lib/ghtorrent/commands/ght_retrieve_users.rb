@@ -17,11 +17,10 @@ class GHTUserRetriever
   include GHTorrent::Retriever
   include GHTorrent::Commands::FullUserRetriever
 
-  attr_accessor :ght
-
   def initialize(config, queue, options)
     @config = config
     @queue = queue
+    @options = options
   end
 
   def settings
@@ -31,8 +30,6 @@ class GHTUserRetriever
   def run(command)
 
     processor = Proc.new do |user|
-      @ght ||= TransactedGHTorrent.new(@config)
-
       retrieve_user(user)
     end
 
