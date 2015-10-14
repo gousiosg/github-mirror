@@ -1,7 +1,9 @@
--- Uncomment the following to create the schema
+SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
+
 DROP SCHEMA IF EXISTS `ghtorrent` ;
 CREATE SCHEMA IF NOT EXISTS `ghtorrent` DEFAULT CHARACTER SET utf8 ;
-
 USE `ghtorrent` ;
 
 -- -----------------------------------------------------
@@ -22,7 +24,6 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`users` (
   `deleted` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
   PRIMARY KEY (`id`)  COMMENT '')
 ENGINE = InnoDB
-AUTO_INCREMENT = 9274
 DEFAULT CHARACTER SET = utf8;
 
 -- -----------------------------------------------------
@@ -48,7 +49,6 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`projects` (
     FOREIGN KEY (`forked_from`)
     REFERENCES `ghtorrent`.`projects` (`id`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 1620
 DEFAULT CHARACTER SET = utf8;
 
 -- -----------------------------------------------------
@@ -74,7 +74,6 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`commits` (
     FOREIGN KEY (`project_id`)
     REFERENCES `ghtorrent`.`projects` (`id`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 13835
 DEFAULT CHARACTER SET = utf8;
 
 -- -----------------------------------------------------
@@ -99,7 +98,6 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`commit_comments` (
     FOREIGN KEY (`user_id`)
     REFERENCES `ghtorrent`.`users` (`id`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 456
 DEFAULT CHARACTER SET = utf8;
 
 -- -----------------------------------------------------
@@ -126,15 +124,15 @@ DEFAULT CHARACTER SET = utf8;
 DROP TABLE IF EXISTS `ghtorrent`.`followers` ;
 
 CREATE TABLE IF NOT EXISTS `ghtorrent`.`followers` (
-  `user_id` INT(11) NOT NULL COMMENT '',
   `follower_id` INT(11) NOT NULL COMMENT '',
+  `user_id` INT(11) NOT NULL COMMENT '',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
-  PRIMARY KEY (`user_id`, `follower_id`)  COMMENT '',
-  CONSTRAINT `followers_ibfk_1`
-    FOREIGN KEY (`user_id`)
-    REFERENCES `ghtorrent`.`users` (`id`),
-  CONSTRAINT `followers_ibfk_2`
+  PRIMARY KEY (`follower_id`, `user_id`)  COMMENT '',
+  CONSTRAINT `follower_fk1`
     FOREIGN KEY (`follower_id`)
+    REFERENCES `ghtorrent`.`users` (`id`),
+  CONSTRAINT `follower_fk2`
+    FOREIGN KEY (`user_id`)
     REFERENCES `ghtorrent`.`users` (`id`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
@@ -152,7 +150,6 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`pull_requests` (
   `base_commit_id` INT(11) NOT NULL COMMENT '',
   `pullreq_id` INT(11) NOT NULL COMMENT '',
   `intra_branch` TINYINT(1) NOT NULL COMMENT '',
-  `merged` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
   PRIMARY KEY (`id`)  COMMENT '',
   CONSTRAINT `pull_requests_ibfk_1`
     FOREIGN KEY (`head_repo_id`)
@@ -167,7 +164,6 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`pull_requests` (
     FOREIGN KEY (`base_commit_id`)
     REFERENCES `ghtorrent`.`commits` (`id`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 977
 DEFAULT CHARACTER SET = utf8;
 
 -- -----------------------------------------------------
@@ -180,10 +176,10 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`issues` (
   `repo_id` INT(11) NULL DEFAULT NULL COMMENT '',
   `reporter_id` INT(11) NULL DEFAULT NULL COMMENT '',
   `assignee_id` INT(11) NULL DEFAULT NULL COMMENT '',
-  `issue_id` MEDIUMTEXT NOT NULL COMMENT '',
   `pull_request` TINYINT(1) NOT NULL COMMENT '',
   `pull_request_id` INT(11) NULL DEFAULT NULL COMMENT '',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  `issue_id` INT(11) NOT NULL COMMENT '',
   PRIMARY KEY (`id`)  COMMENT '',
   CONSTRAINT `issues_ibfk_1`
     FOREIGN KEY (`repo_id`)
@@ -198,7 +194,6 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`issues` (
     FOREIGN KEY (`pull_request_id`)
     REFERENCES `ghtorrent`.`pull_requests` (`id`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 1570
 DEFAULT CHARACTER SET = utf8;
 
 -- -----------------------------------------------------
@@ -255,7 +250,6 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`repo_labels` (
     FOREIGN KEY (`repo_id`)
     REFERENCES `ghtorrent`.`projects` (`id`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 401
 DEFAULT CHARACTER SET = utf8;
 
 -- -----------------------------------------------------
@@ -264,8 +258,8 @@ DEFAULT CHARACTER SET = utf8;
 DROP TABLE IF EXISTS `ghtorrent`.`issue_labels` ;
 
 CREATE TABLE IF NOT EXISTS `ghtorrent`.`issue_labels` (
-  `label_id` INT(11) NOT NULL DEFAULT '0' COMMENT '',
-  `issue_id` INT(11) NOT NULL DEFAULT '0' COMMENT '',
+  `label_id` INT(11) NOT NULL COMMENT '',
+  `issue_id` INT(11) NOT NULL COMMENT '',
   PRIMARY KEY (`issue_id`, `label_id`)  COMMENT '',
   CONSTRAINT `issue_labels_ibfk_1`
     FOREIGN KEY (`label_id`)
@@ -303,13 +297,7 @@ DROP TABLE IF EXISTS `ghtorrent`.`project_commits` ;
 CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_commits` (
   `project_id` INT(11) NOT NULL DEFAULT '0' COMMENT '',
   `commit_id` INT(11) NOT NULL DEFAULT '0' COMMENT '',
-  PRIMARY KEY (`project_id`, `commit_id`)  COMMENT '',
-  CONSTRAINT `project_commits_ibfk_1`
-    FOREIGN KEY (`project_id`)
-    REFERENCES `ghtorrent`.`projects` (`id`),
-  CONSTRAINT `project_commits_ibfk_2`
-    FOREIGN KEY (`commit_id`)
-    REFERENCES `ghtorrent`.`commits` (`id`))
+  PRIMARY KEY (`project_id`, `commit_id`)  COMMENT '')
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
 
@@ -395,7 +383,6 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`pull_request_history` (
     FOREIGN KEY (`actor_id`)
     REFERENCES `ghtorrent`.`users` (`id`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 2018
 DEFAULT CHARACTER SET = utf8;
 
 -- -----------------------------------------------------
@@ -421,7 +408,7 @@ DROP TABLE IF EXISTS `ghtorrent`.`schema_info` ;
 
 CREATE TABLE IF NOT EXISTS `ghtorrent`.`schema_info` (
   `version` INT(11) NOT NULL DEFAULT '0' COMMENT '')
-ENGINE = InnoDB
+ENGINE = MyISAM
 DEFAULT CHARACTER SET = utf8;
 
 -- -----------------------------------------------------
@@ -442,4 +429,8 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`watchers` (
     REFERENCES `ghtorrent`.`users` (`id`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
+
+SET SQL_MODE=@OLD_SQL_MODE;
+SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
+SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
