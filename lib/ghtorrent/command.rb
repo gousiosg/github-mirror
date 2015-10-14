@@ -189,7 +189,7 @@ Standard options:
           q.bind(x, :routing_key => key)
 
           q.subscribe(:block => true,
-                      :ack => true) do |delivery_info, properties, msg|
+                      :manual_ack => true) do |delivery_info, properties, msg|
 
             if ack == :before
               ch.acknowledge(delivery_info.delivery_tag)
