@@ -20,7 +20,7 @@ module GHTorrent
 
 
       def retrieve_user(login)
-        self.settings = override_config(settings, :mirror_history_pages_back, 1000)
+        debug "User #{login} update started"
         user_entry = ght.transaction { ght.ensure_user(login, false, false) }
         on_github = api_request(ghurl ("users/#{login}"))
 
@@ -72,7 +72,8 @@ module GHTorrent
         functions.each do |x|
           send_message(x, user)
         end
-
+        
+        debug "User #{login} updated"
       end
     end
   end

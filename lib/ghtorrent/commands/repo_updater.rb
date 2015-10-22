@@ -46,7 +46,7 @@ module GHTorrent
                                     retrieved['parent']['name'])
                  end
 
-        db.from(:projects, :users).\
+       db.from(:projects, :users).\
        where(:projects__owner_id => :users__id).\
        where(:users__login => owner).\
        where(:projects__name => repo).\
