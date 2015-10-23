@@ -142,24 +142,17 @@ Options:
 
   opt :db_server, "InfluxDB server to use", :type => String,
     :short => 's', :default => '127.0.0.1'
-  opt :database, "InfluxDB database to use", :type => String,
-      :short => 'd', :default => 'ghtorrent'
-  opt :db_uname, "Username for the Influx database", :type => String,
-      :short => 'u', :default => 'ghtorrent'
-  opt :db_passwd, "Password for the Influx database", :type => String,
-      :short => 'x', :default => ''
+  opt :db_port, "UDP port the InfluxDB server listens to", :type => Integer,
+      :short => 'x', :default => 4444
 end
 
-unless opts[:db_passwd_given].nil?
-  influx = InfluxDB::Client.new(opts[:database],
-                                :host     => opts[:db_server],
-                                :username => opts[:db_uname],
-                                :password => opts[:db_passwd])
-else
-  influx = InfluxDB::Client.new("ghtorrent",
-                                :host => opts[:db_server])
-end
+influx = InfluxDB::Client.new("ghtorrent",
+                              :udp => {
+                                :host => opts[:db_server],
+                                :port => opts[:db_port]
+                             }, :host => opts[:db_server])
 influx.get_database_list
+puts "Connected to InfluxDB (#{opts[:db_server]}:#{opts[:db_port]})"
 
 if opts[:watch]
   require 'filewatch/tail'
