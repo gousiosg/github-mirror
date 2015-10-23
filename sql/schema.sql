@@ -108,7 +108,6 @@ DROP TABLE IF EXISTS `ghtorrent`.`commit_parents` ;
 CREATE TABLE IF NOT EXISTS `ghtorrent`.`commit_parents` (
   `commit_id` INT(11) NOT NULL COMMENT '',
   `parent_id` INT(11) NOT NULL COMMENT '',
-  PRIMARY KEY (`commit_id`, `parent_id`)  COMMENT '',
   CONSTRAINT `commit_parents_ibfk_1`
     FOREIGN KEY (`commit_id`)
     REFERENCES `ghtorrent`.`commits` (`id`),
@@ -296,8 +295,7 @@ DROP TABLE IF EXISTS `ghtorrent`.`project_commits` ;
 
 CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_commits` (
   `project_id` INT(11) NOT NULL DEFAULT '0' COMMENT '',
-  `commit_id` INT(11) NOT NULL DEFAULT '0' COMMENT '',
-  PRIMARY KEY (`project_id`, `commit_id`)  COMMENT '')
+  `commit_id` INT(11) NOT NULL DEFAULT '0' COMMENT '')
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
 
