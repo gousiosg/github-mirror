@@ -134,7 +134,7 @@ module GHTorrent
         end
 
         # Refresh MongoDb with the latest info from GitHub
-        unless on_github.nil?
+        unless on_github.empty?
           update_mongo(owner, name, on_github)
         end
       end
