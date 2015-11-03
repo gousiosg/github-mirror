@@ -32,10 +32,10 @@ module GHTorrent
 
       def set_deleted(owner, repo)
         db.from(:projects, :users).\
-       where(:projects__owner_id => :users__id).\
-       where(:users__login => owner).\
-       where(:projects__name => repo).\
-       update(:projects__deleted => true)
+        where(:projects__owner_id => :users__id).\
+        where(:users__login => owner).\
+        where(:projects__name => repo).\
+        update(:projects__deleted => true)
         info("Project #{owner}/#{repo} marked as deleted")
       end
 
@@ -62,43 +62,80 @@ module GHTorrent
         ght.ensure_languages(owner, repo)
       end
 
+      def get_project_mysql(owner, repo)
+        db.from(:projects, :users).\
+        where(:projects__owner_id => :users__id).\
+        where(:users__login => owner).\
+        where(:projects__name => repo).first
+      end
+
+      def update_mongo(owner, repo, new_repo)
+        r = persister.\
+            get_underlying_connection[:repos].\
+            remove({'owner.login' => owner, 'name' => repo})
+        persister.\
+            get_underlying_connection[:repos].\
+            insert(new_repo)
+        if r['n'] > 0
+          debug("MongoDB entry for repo #{owner}/#{repo} updated (#{r['n']} records removed)")
+        else
+          debug("Added MongoDB entry for repo #{owner}/#{repo}")
+        end
+      end
+
       def process_project(owner, name)
+        in_mongo = persister.find(:repos, {'owner.login' => owner, 'name' => name })
+        on_github = api_request(ghurl ("repos/#{owner}/#{name}"))
+
         ght.transaction do
 
-          in_mongo = persister.find(:repos, {'owner.login' => owner, 'name' => name })
-          on_github = api_request(ghurl ("repos/#{owner}/#{name}"))
-
           unless in_mongo.empty? and on_github.empty?
-            in_mysql = retrieve_repo(owner, name)
+            in_mysql = get_project_mysql(owner, name)
           end
 
           if in_mongo.empty?
             if on_github.empty?
               if in_mysql.nil?
                 # Project does not exist anywhere
-                warn "Repo #{owner}/#{name} does not exist in MySQL"
+                warn "Repo #{owner}/#{name} does not exist anywhere"
               else
                 # Project exists in MySQL but not on Github or Mongo
                 # Mark it as deleted
                 set_deleted(owner, name)
               end
             else
-              # Project does not exist in Mongo, but exists in Github
               if in_mysql.nil?
-                warn "Repo #{owner}/#{name} does not exist in MySQL"
+                # Project does not exist in MySQL or Mongo, but exists on Github
+                update_mysql(owner, name, on_github)
               else
-                # The retrieval process already added it to Mongo, so update MySQL
-                update_mysql(owner, name, in_mysql)
+                # Project does not exist in Mongo, but exists on Github and MySQL
+                update_mongo(owner, name, on_github)
+                update_mysql(owner, name, on_github)
               end
             end
           else
             if on_github.empty?
-              # Project was deleted on Github. Mark it as deleted.
-              set_deleted(owner, name)
+              if in_mysql.nil?
+                # noop
+              else
+                # Project deleted on Github, but exists in Mongo and Mysql
+                set_deleted(owner, name)
+              end
             else
-              update_mysql(owner, name, in_mysql)
+              if in_mysql.nil?
+                #
+                update_mysql(owner, name, on_github)
+              else
+                # Project exists in Mongo, Mysql and Gitub
+                update_mysql(owner, name, on_github)
+              end
             end
           end
+        end
+
+        # Refresh MongoDb with the latest info from GitHub
+        unless on_github.nil?
+          update_mongo(owner, name, on_github)
         end
       end
     end
