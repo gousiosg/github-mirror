@@ -111,6 +111,7 @@ module GHTorrent
                 # Project does not exist in Mongo, but exists on Github and MySQL
                 update_mongo(owner, name, on_github)
                 update_mysql(owner, name, on_github)
+                return # This is to avoid calling update_mongo again at the end
               end
             end
           else
