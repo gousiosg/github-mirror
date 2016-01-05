@@ -26,14 +26,14 @@ then
   exit 1
 fi
 
-while getopts "u:p:h:d:o:" o
+while getopts "u:p:h:d:e:" o
 do
   case $o in
   u)  user=$OPTARG ;;
   p)  passwd=$OPTARG ;;
   h)  host=$OPTARG ;;
   d)  db=$OPTARG ;;
-  e)  engine=$$OPTARG ;;
+  e)  engine=$OPTARG ;;
   \?)     echo "Invalid option: -$OPTARG" >&2
     usage
     exit 1
