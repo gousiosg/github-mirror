@@ -11,34 +11,48 @@ def parse_api_client_line(line)
   if line.start_with?("Successful")
     # Successful request. URL: https://api.github.com/repos/amizony/self-destructing-task-list/comments/11518274?per_page=100, Remaining: 3949, Total: 423 ms
     remaining, elapsed = line.match(/.*Remaining: ([\d]+), Total: ([\d]+) ms/).captures
-    {
-        :outcome => "success",
-        :elapsed => elapsed.to_i,
-        :remaining => remaining.to_i
-    }
+    [
+      {
+        :outcome  => "success",
+        :metric   => "elapsed",
+        :value    => elapsed.to_i,
+      },
+      {
+        :outcome  => "success",
+        :metric   => "remaining",
+        :value    => remaining.to_i
+      }
+    ]
   elsif line.start_with?("Failed")
     # Failed request. URL: https://api.github.com/repos/mingliang7/hotel/commits?per_page=100, Status code: 409, Status: Conflict, Access: ghtorrent, IP: 0.0.0.0, Remaining: 3332
     code, elapsed = line.match(/.*Status code: ([^,]+), .*Remaining: ([\d]+)/).captures
-    {
+    [
+      {
         :outcome => "error",
-        :error_code => code.to_i,
-        :remaining => remaining.to_i
-    }
+        :metric  => "error_code",
+        :value   => code.to_i
+      },
+      {
+        :outcome  => "error",
+        :metric   => "remaining",
+        :value    => remaining.to_i
+      }
+  ]
   else
-    {}
+    [{}]
   end
 end
 
 def parse_data_retrieval_line(line)
   #Success processing event. Type: PushEvent, ID: 2863181313, Time: 967 ms
-  return {} unless line.start_with?("Success") or line.start_with?("Error")
+  return [{}] unless line.start_with?("Success") or line.start_with?("Error")
   outcome, evt_type, time = line.match(/([^\ ]+) processing event\. Type: ([\D]+)Event, .*, Time: ([\d]+) ms/).captures
 
-  {
-      :outcome => outcome.downcase,
+  [{
+      :outcome  => outcome.downcase,
       :evt_type => evt_type,
-      :elapsed => time.to_i
-  }
+      :value    => time.to_i
+  }]
 end
 
 def parse_retriever_line(line)
@@ -55,10 +69,11 @@ def parse_retriever_line(line)
     return {}
   end
 
-  {
-      :outcome => outcome,
-      :entity => entity
-  }
+  [{
+      :outcome  => outcome,
+      :entity   => entity,
+      :value    => 1
+  }]
 
 end
 
@@ -77,17 +92,18 @@ def parse_ghtorrent_line(line)
     return {}
   end
 
-  {
-      :outcome => outcome,
-      :entity => entity
-  }
+  [{
+    :outcome  => outcome,
+    :entity   => entity,
+    :value    => 1
+  }]
 
 end
 
 def parse_log_line(line)
   begin
     severity, time, progname, stage, msg =
-        line.match(/([A-Z]+), (.+), (.+) -- ([^:]*?): (.*)/).captures
+      line.match(/([A-Z]+), (.+), (.+) -- ([^:]*?): (.*)/).captures
   rescue
     puts "Error parsing line: #{line}"
     return {}
@@ -96,10 +112,8 @@ def parse_log_line(line)
   return {} if severity.downcase == 'debug'
   stage = stage.split(/\./)[0]
   data = {
-      :time => Time.iso8601(time).to_f,
-      :client => progname,
-      :severity => severity,
-      :stage => stage
+    :client => progname,
+    :severity => severity
   }
 
   return {} if msg.nil? or msg.length == 0
@@ -108,76 +122,67 @@ def parse_log_line(line)
   stage_specific =
     begin
       case stage
-        when 'api_client'
-          parse_api_client_line(msg)
-        when 'ght_data_retrieval'
-          parse_data_retrieval_line(msg)
-        when 'retriever'
-          parse_retriever_line(msg)
-        when 'ghtorrent'
-          parse_ghtorrent_line(msg)
-        else
-          {}
+      when 'api_client'
+        parse_api_client_line(msg)
+      when 'ght_data_retrieval'
+        parse_data_retrieval_line(msg)
+      when 'retriever'
+        parse_retriever_line(msg)
+      when 'ghtorrent'
+        parse_ghtorrent_line(msg)
+      else
+        [{}]
       end
     rescue
       puts "Error parsing line: #{msg}"
-      {}
+      [{}]
     end
 
-  return {} if stage_specific.empty?
-  data.merge(stage_specific)
+  return [{}] if stage_specific.empty?
+  stage_specific.map do |ss|
+    tags = ss.merge(data).select{|x| x != :value}
+    {
+      :series     => stage,
+      :tags       => tags,
+      :values     => {'value' => ss[:value]}
+      #:timestamp  => Time.iso8601(time).to_f.to_i * 1000
+    }
+  end
 end
 
 opts = Trollop::options do
   banner <<-END
-  Store GHTorrent log output to InfluxDB. By default reads from STDIN.
-  Can be configured to watch files in directories.
+  Store GHTorrent log output to InfluxDB. Reads from STDIN.
+  Writes to a UDP port only.
 
 Options:
   END
 
-  opt :watch, "Use watch mode", :sort => 'w'
-  opt :watch_pattern, "Pattern for files to watch",
-    :short => 'p', :default => '*.log'
-
   opt :db_server, "InfluxDB server to use", :type => String,
     :short => 's', :default => '127.0.0.1'
   opt :db_port, "UDP port the InfluxDB server listens to", :type => Integer,
-      :short => 'x', :default => 4444
+    :short => 'x', :default => 4444
 end
 
-influx = InfluxDB::Client.new("ghtorrent",
-                              :udp => {
-                                :host => opts[:db_server],
-                                :port => opts[:db_port]
-                             }, :host => opts[:db_server])
-influx.get_database_list
+influx = InfluxDB::Client.new udp: { host: opts[:db_server], port: opts[:db_port]}
+
+#puts influx.list_databases
 puts "Connected to InfluxDB (#{opts[:db_server]}:#{opts[:db_port]})"
 
-if opts[:watch]
-  require 'filewatch/tail'
+puts "Reading from STDIN..."
+ARGF.each do |line|
+  next if line !~ /^[IDEW]/
 
-  t = FileWatch::Tail.new
-  t.tail(opts[:watch_pattern])
+  begin
+    logs = parse_log_line(line)
+    next if logs.empty?
 
-  t.subscribe do |path, line|
-    p = parse_log_line(line)
-    next if p.empty?
+    logs.each do |p|
+      puts p.select{|x| x != :series}
+      influx.write_point(p[:series], p.select{|x| x != :series})
 
-    pp p
-    #influx.write_point(p[:stage], p)
-  end
-else
-  puts "Reading from STDIN..."
-  ARGF.each do |line|
-    next if line !~ /^[IDEW]/
-
-    begin
-      p = parse_log_line(line)
-      next if p.empty?
-      pp p
-      influx.write_point(p[:stage], p)
-    rescue
     end
+  rescue StandardError => e
+    puts "#{e.message}"
   end
 end
