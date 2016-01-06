@@ -65,12 +65,15 @@ for table in $tables; do
 done
 
 echo "`date` Copying schema and index files"
-curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/indexes.sql" > indexes.sql
-curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/schema.sql" > schema.sql
-cp sql/*.sql sql/README.md sql/ORDER sql/ght-restore-mysql $out || exit 1
+curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/indexes.sql" > $out/indexes.sql
+curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/schema.sql" > $out/schema.sql
+curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/ght-restore-mysql" > $out/ght-restore-mysql
+curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/README.md" > $out/README.md
+curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/ORDER" > $out/ORDER
 
 echo "`date` Creating archive $dumpName"
-tar zcvf $dumpName -C `dirname $out` dump || exit 1
+cd `dirname $out`
+tar zcvf $dumpName `basename $out` || exit 1
 
 rm -R $out
 #: ft=bash
