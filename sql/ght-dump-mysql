@@ -6,6 +6,7 @@ passwd="ghtorrent"
 host="localhost"
 db="ghtorrent"
 out="dump"
+skipArchive=false
 
 ts=`date +%Y-%m-%d`
 dumpName=`echo mysql-$ts.tar.gz`
@@ -23,6 +24,7 @@ usage()
   echo "    -h database host (default: $host)"
   echo "    -d database (default: $db)"
   echo "    -o intermediate output dir (default: $out)"
+  echo "    -c skip creating .tar.gz archive (default: $skipArchive)"
   echo "    -a archive name (default: $dumpName)"
 }
 
@@ -32,7 +34,7 @@ then
   exit 1
 fi
 
-while getopts "u:p:h:d:o:" o
+while getopts "u:p:h:d:o:c" o
 do
   case $o in
   u)  user=$OPTARG ;;
@@ -41,6 +43,7 @@ do
   d)  db=$OPTARG ;;
   o)  out=$OPTARG ;;
   a)  dumpName=$OPTARG ;;
+  c)  skipArchive=true ;;
   \?)     echo "Invalid option: -$OPTARG" >&2
     usage
     exit 1
@@ -71,9 +74,11 @@ curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/ght-re
 curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/README.md" > $out/README.md
 curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/ORDER" > $out/ORDER
 
-echo "`date` Creating archive $dumpName"
-cd `dirname $out`
-tar zcvf $dumpName `basename $out` || exit 1
+if [ $skipArchive = false ]; then
+  echo "`date` Creating archive $dumpName"
+  cd `dirname $out`
+  tar zcvf $dumpName `basename $out` || exit 1
+  rm -R $out
+fi
 
-rm -R $out
 #: ft=bash
