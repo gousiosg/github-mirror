@@ -2,11 +2,12 @@
 
 # defaults
 user="ghtorrent"
-passwd="ghtorrent"
+passwd=""
 host="localhost"
 db="ghtorrent"
 out="dump"
 skipArchive=false
+skipTables=""
 
 ts=`date +%Y-%m-%d`
 dumpName=`echo mysql-$ts.tar.gz`
@@ -15,7 +16,7 @@ usage()
 {
   echo "Usage: $0 [-u dbuser ] [-p dbpasswd ]"
   echo "          [-h dbhost] [-d database ] [-o output_dir]"
-  echo "          [-a archive_name ]"
+  echo "          [-a archive_name ] [-f skip_tables] [-c skip_archive]"
   echo
   echo "Dump a MySQL database into CSV files per table"
   echo "output_dir must be writable by the mysqld user and must be an absolute path"
@@ -23,7 +24,9 @@ usage()
   echo "    -p database passwd (default: $passwd)"
   echo "    -h database host (default: $host)"
   echo "    -d database (default: $db)"
+  echo ""
   echo "    -o intermediate output dir (default: $out)"
+  echo "    -f file with table names to skip (default: $skipTables)"
   echo "    -c skip creating .tar.gz archive (default: $skipArchive)"
   echo "    -a archive name (default: $dumpName)"
 }
@@ -34,7 +37,7 @@ then
   exit 1
 fi
 
-while getopts "u:p:h:d:o:c" o
+while getopts "u:p:h:d:o:cf:" o
 do
   case $o in
   u)  user=$OPTARG ;;
@@ -44,6 +47,7 @@ do
   o)  out=$OPTARG ;;
   a)  dumpName=$OPTARG ;;
   c)  skipArchive=true ;;
+  f)  skipTables=$OPTARG ;;
   \?)     echo "Invalid option: -$OPTARG" >&2
     usage
     exit 1
@@ -60,11 +64,22 @@ else
   mysql="mysql -u $user --password=$passwd -s -h $host -D $db"
 fi
 
+if [ ! -z $skipTables ]; then
+  tablesToSkip=`cat $skipTables`
+else
+  tablesToSkip=""
+fi
+
 tables=`echo "show tables" | $mysql`
 
 for table in $tables; do
-  echo "`date`: Dumping table $table"
-  echo "select * into outfile '$out/$table.csv'  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from $table" |$mysql || exit 1
+
+  if [[ $tablesToSkip =~ $table ]]; then
+    echo "`date`: Skipping table $table"
+  else
+    echo "`date`: Dumping table $table"
+    echo "select * into outfile '$out/$table.csv'  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from $table" |$mysql || exit 1
+  fi
 done
 
 echo "`date` Copying schema and index files"
