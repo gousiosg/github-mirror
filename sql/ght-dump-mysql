@@ -64,17 +64,11 @@ else
   mysql="mysql -u $user --password=$passwd -s -h $host -D $db"
 fi
 
-if [ ! -z $skipTables ]; then
-  tablesToSkip=`cat $skipTables`
-else
-  tablesToSkip=""
-fi
-
 tables=`echo "show tables" | $mysql`
 
 for table in $tables; do
 
-  if [[ $tablesToSkip =~ $table ]]; then
+  if [ `grep ^$table$ $skipTables` ]; then
     echo "`date`: Skipping table $table"
   else
     echo "`date`: Dumping table $table"
