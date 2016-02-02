@@ -60,7 +60,6 @@ module GHTorrent
       end
 
       def retrieve_full_repo(owner, repo)
-        self.settings = override_config(settings, :mirror_history_pages_back, 1000)
         user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
 
         if user_entry.nil?

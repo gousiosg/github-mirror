@@ -51,7 +51,7 @@ module GHTorrent
 
         :mirror_urlbase => 'https://api.github.com/',
         :mirror_persister => 'noop',
-        :mirror_history_pages_back => 1,
+        :mirror_history_pages_back => 10,
         :user_agent => 'ghtorrent',
 
         :github_username => 'foo',

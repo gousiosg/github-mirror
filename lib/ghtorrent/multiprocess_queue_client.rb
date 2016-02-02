@@ -86,7 +86,6 @@ Values in the config.yaml file set with the -c command are overridden.
             newcfg = override_config(newcfg, :github_token, token)
         end
 
-        newcfg = override_config(newcfg, :mirror_history_pages_back, 100000)
         newcfg
       end
     end.flatten.select { |x| !x.nil? }
