@@ -120,21 +120,27 @@ module GHTorrent
       end
     end
 
+    def access_token_in_use
+      if (@token.nil? or @token.empty?) then @username else @token end
+    end
+
     def request_error_msg(url, exception)
-      <<-MSG
+      msg = <<-MSG
             Failed request. URL: #{url}, Status code: #{exception.io.status[0]},
             Status: #{exception.io.status[1]},
-            Access: #{if (@token.nil? or @token.empty?) then @username else @token end},
+            Access: #{access_token_in_use},
             IP: #{@attach_ip}, Remaining: #{@remaining}
       MSG
+      msg.strip.gsub(/\s+/, ' ').gsub("\n", ' ')
     end
 
     def error_msg(url, exception)
-      <<-MSG
+      msg = <<-MSG
             Failed request. URL: #{url}, Exception: #{exception.message},
             Access: #{if (@token.nil? or @token.empty?) then @username else @token end},
             IP: #{@attach_ip}, Remaining: #{@remaining}
       MSG
+      msg.strip.gsub(/\s+/, ' ').gsub("\n", ' ')
     end
 
     # Do the actual request and return the result object
@@ -149,25 +155,27 @@ module GHTorrent
 
         contents
       rescue OpenURI::HTTPError => e
-          @remaining = e.io.meta['x-ratelimit-remaining'].to_i
-          @reset = e.io.meta['x-ratelimit-reset'].to_i
+        @remaining = e.io.meta['x-ratelimit-remaining'].to_i
+        @reset = e.io.meta['x-ratelimit-reset'].to_i
 
-          case e.io.status[0].to_i
+        case e.io.status[0].to_i
           # The following indicate valid Github return codes
           when 400, # Bad request
-              401, # Unauthorized
               403, # Forbidden
               404, # Not found
               422 then # Unprocessable entity
-            total = Time.now.to_ms - start_time.to_ms
-            warn request_error_msg(url, e).strip.gsub(/\s+/,' ').gsub("\n", ' ')
-           return nil
+            warn request_error_msg(url, e)
+            return nil
+          when 401 # Unauthorized
+            warn request_error_msg(url, e)
+            warn "Unauthorised request with uname/token: #{access_token_in_use}"
+            raise e
           else # Server error or HTTP conditions that Github does not report
-            warn request_error_msg(url, e).strip.gsub(/\s+/,' ').gsub("\n", ' ')
+            warn request_error_msg(url, e)
             raise e
         end
       rescue StandardError => e
-        warn error_msg(url, e).strip.gsub(/\s+/,' ').gsub("\n", ' ')
+        warn error_msg(url, e)
         raise e
       ensure
         # The exact limit is only enforced upon the first @reset
