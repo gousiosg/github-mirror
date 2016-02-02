@@ -36,27 +36,26 @@ module GHTorrent
         where(:users__login => owner).\
         where(:projects__name => repo).\
         update(:projects__deleted => true)
-        info("Project #{owner}/#{repo} marked as deleted")
+        info("Repo #{owner}/#{repo} marked as deleted")
       end
 
       def update_mysql(owner, repo, retrieved)
 
         parent = unless retrieved['parent'].nil?
                    ght.ensure_repo(retrieved['parent']['owner']['login'],
-                                    retrieved['parent']['name'])
+                                   retrieved['parent']['name'])
                  end
 
-       db.from(:projects, :users).\
-       where(:projects__owner_id => :users__id).\
-       where(:users__login => owner).\
-       where(:projects__name => repo).\
-       update(
-                :projects__url => retrieved['url'],
-                :projects__description => retrieved['description'],
-                :projects__language => retrieved['language'],
-                :projects__created_at => date(retrieved['created_at']),
-                :projects__updated_at => Time.now,
-                :projects__forked_from => unless parent.nil? then parent[:id] end)
+        db.from(:projects, :users).\
+        where(:projects__owner_id => :users__id).\
+        where(:users__login => owner).\
+        where(:projects__name => repo).\
+        update(:projects__url         => retrieved['url'],
+               :projects__description => retrieved['description'],
+               :projects__language    => retrieved['language'],
+               :projects__created_at  => date(retrieved['created_at']),
+               :projects__updated_at  => Time.now,
+               :projects__forked_from => unless parent.nil? then parent[:id] end)
         debug("Repo #{owner}/#{repo} updated")
 
         ght.ensure_languages(owner, repo)

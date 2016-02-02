@@ -8,7 +8,8 @@ class GHTUpdateRepo < GHTorrent::Command
 
   def prepare_options(options)
     options.banner <<-BANNER
-Updates the deleted field in the project table with current data
+Updates repo entries in MongoDB and MySQL with fresh data. Marks the project
+as deleted if it cannot be accessed on GitHub.
 
 #{command_name} owner repo
 

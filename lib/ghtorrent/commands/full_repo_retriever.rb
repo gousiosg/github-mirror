@@ -36,7 +36,7 @@ module GHTorrent
         options.opt :no_events, 'Skip retrieving events', :default => false
         options.opt :no_entities, 'Skip retrieving entities', :default => false
 
-        options.opt :only_stage, "Only do the provided stage of entity retrieval (one of: #{stages.join(',')})",
+        options.opt :only_stage, "Only do the provided stage of entity retrieval (one of: #{stages.join(', ')})",
                     :type => String
         options.opt :exclude_events, 'Comma separated list of event types to exclude from processing',
                     :type => String
@@ -85,7 +85,9 @@ module GHTorrent
           end
 
           # last update was done too recently (less than 10 days), ignore
-          if not repo_entry[:updated_at].nil? and repo_entry[:updated_at] > Time.now - 10 * 24 * 60 * 60 and not options[:force_given]
+          if not repo_entry[:updated_at].nil? \
+            and repo_entry[:updated_at] > (Time.now - 10 * 24 * 60 * 60) \
+            and not options[:force_given]
             warn "Last update too recent (#{Time.at(repo_entry[:updated_at])}) for #{owner}/#{repo}"
             return
           end
