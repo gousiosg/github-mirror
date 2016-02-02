@@ -26,7 +26,7 @@ Retrieves more commits for the provided repository
     options.opt :num, 'Number of commits to retrieve',
                 :short => 'n', :default => 1024 * 1024 * 1024, :type => :int
     options.opt :full, 'Retrieve all commits, starting from the latest available.
-                        If not set, will start from latest stored commit',
+If not set, will start from latest stored commit',
                 :short => 'f', :default => false, :type => :boolean
     options.opt :upto, 'Get all commits up to the provided timestamp',
                 :short => 'x', :default => 0, :type => :int
@@ -65,11 +65,17 @@ Retrieves more commits for the provided repository
 
     repo = repo_entry[:name]
 
-    head = if options[:full] == false
-             @ght.get_db.from(:commits).\
-                      where(:commits__project_id => repo_entry[:id]).\
+    head = unless options[:full_given]
+             first_commit = @ght.get_db.from(:project_commits, :commits).\
+                      where(:project_commits__project_id => :commits__id).\
+                      where(:project_commits__project_id => repo_entry[:id]).\
                       order(:created_at).\
-                      first[:sha]
+                      first
+             if first_commit.nil?
+               nil
+             else
+               first_commit[:sha]
+             end
            else
              nil
            end
