@@ -101,7 +101,15 @@ Loads data from a MongoDB collection or a file to a queue for further processing
   end
 
   def file_stream
-    File.open(options[:file])
+    if File.exists? @last_load_file
+      last = File.open(@last_load_file, &:readline)
+      lines = File.open(options[:file]).readlines
+      idx = lines.find_index{|i| i == last}
+      puts "Skipping #{idx + 1} lines up to #{last.strip}. Remove #{@last_load_file} to avoid."
+      lines[idx..-1]
+    else
+      File.open(options[:file])
+    end
   end
 
   def file_process(e)
@@ -114,10 +122,12 @@ Loads data from a MongoDB collection or a file to a queue for further processing
       @mode = :file
       alias :process :file_process
       alias :stream :file_stream
+      @last_load_file = "#{options[:file]}.lastload"
     else
       @mode = :mongodb
       alias :process :mongo_process
       alias :stream :mongo_stream
+      @last_load_file = "events.lastload"
     end
 
     # Num events read
@@ -157,6 +167,7 @@ Loads data from a MongoDB collection or a file to a queue for further processing
               time_diff = (Time.now - ts) * 1000
               if time_diff <= 60 * 1000.0
                 puts "Rate limit reached, sleeping for #{60 * 1000 - time_diff} ms"
+                File.open(@last_load_file,'w'){|f| f.puts id}
                 sleep((60 * 1000.0 - time_diff) / 1000)
               end
               current_min_read = 0
@@ -164,9 +175,13 @@ Loads data from a MongoDB collection or a file to a queue for further processing
             end
           end
 
+          if total_read % 1000 == 0
+            File.open(@last_load_file,'w'){|f| f.puts id}
+          end
+
           if total_read >= options[:number]
             puts 'Finished reading, exiting'
-            return 
+            return
           end
         end
         stopped = true
