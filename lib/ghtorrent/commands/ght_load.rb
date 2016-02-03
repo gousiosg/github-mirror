@@ -41,7 +41,7 @@ Loads data from a MongoDB collection or a file to a queue for further processing
     options.opt :number, 'Total number of items to load',
                 :short => 'n', :type => :int, :default => 2**48
     options.opt :rate, 'Number of items to load per second',
-                :type => :int, :default => 1000
+                :type => :float, :default => 1000.0
     options.opt :route_key, 'Routing key to attached to loaded items', :type => String
   end
 
@@ -121,7 +121,7 @@ Loads data from a MongoDB collection or a file to a queue for further processing
     end
 
     # Num events read
-    total_read = current_sec_read = 0
+    total_read = current_min_read = 0
 
     conn = Bunny.new(:host => config(:amqp_host),
                      :port => config(:amqp_port),
@@ -152,14 +152,14 @@ Loads data from a MongoDB collection or a file to a queue for further processing
 
           # Basic rate limiting
           if options[:rate_given]
-            current_sec_read += 1
-            if current_sec_read >= options[:rate]
+            current_min_read += 1
+            if current_min_read >= options[:rate] * 60
               time_diff = (Time.now - ts) * 1000
-              if time_diff <= 1000.0
-                puts "Rate limit reached, sleeping for #{1000 - time_diff} ms"
-                sleep((1000.0 - time_diff) / 1000)
+              if time_diff <= 60 * 1000.0
+                puts "Rate limit reached, sleeping for #{60 * 1000 - time_diff} ms"
+                sleep((60 * 1000.0 - time_diff) / 1000)
               end
-              current_sec_read = 0
+              current_min_read = 0
               ts = Time.now
             end
           end
