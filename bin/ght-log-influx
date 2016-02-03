@@ -100,6 +100,29 @@ def parse_ghtorrent_line(line)
 
 end
 
+def parse_repo_updater_line(line)
+  unless line.match(/Repo .* updated/).nil?
+    return [{ :action => :updated, :value => 1 }]
+  end
+
+  unless line.match(/marked as deleted/).nil?
+    return [{ :action => :deleted, :value => 1 }]
+  end
+
+  [{}]
+end
+
+def parse_full_user_retriever_line(line)
+  unless line.match(/User .* updated/).nil?
+    return [{ :action => :updated, :value => 1 }]
+  end
+  unless line.match(/marked as deleted/).nil?
+    return [{ :action => :deleted, :value => 1 }]
+  end
+
+  [{}]
+end
+
 def parse_log_line(line)
   begin
     severity, time, progname, stage, msg =
@@ -130,6 +153,10 @@ def parse_log_line(line)
         parse_retriever_line(msg)
       when 'ghtorrent'
         parse_ghtorrent_line(msg)
+      when 'repo_updater'
+        parse_repo_updater_line(msg)
+      when 'full_user_retriever'
+        parse_full_user_retriever_line(msg)
       else
         [{}]
       end
@@ -145,7 +172,6 @@ def parse_log_line(line)
       :series     => stage,
       :tags       => tags,
       :values     => {'value' => ss[:value]}
-      #:timestamp  => Time.iso8601(time).to_f.to_i * 1000
     }
   end
 end
@@ -178,11 +204,12 @@ ARGF.each do |line|
     next if logs.empty?
 
     logs.each do |p|
-      puts p.select{|x| x != :series}
+      puts p
       influx.write_point(p[:series], p.select{|x| x != :series})
 
     end
   rescue StandardError => e
+    puts e.backtrace
     puts "#{e.message}"
   end
 end
