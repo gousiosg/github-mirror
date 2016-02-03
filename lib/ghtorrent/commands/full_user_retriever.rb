@@ -62,7 +62,7 @@ module GHTorrent
 
         # Update geo location information
         geo = geolocate(on_github['location'])
- 
+
         ght.get_db.from(:users).where(:login => login).update(
           # Geolocation info
           :users__long         => geo['long'].to_f,
@@ -95,8 +95,8 @@ module GHTorrent
         functions.each do |x|
           send_message(x, user)
         end
-        
-        debug "User #{login} updated"
+
+        info "User #{login} updated"
       end
     end
   end
