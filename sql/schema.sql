@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`users` (
   `type` VARCHAR(255) NOT NULL DEFAULT 'USR' COMMENT '',
   `fake` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
   `deleted` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
+  `long` DECIMAL(11,8) COMMENT '',
+  `lat` DECIMAL(10,8) COMMENT '',
+  `country_code` CHAR(3) COMMENT '',
+  `state` VARCHAR(255) COMMENT '',
+  `city` VARCHAR(255) COMMENT '',
   PRIMARY KEY (`id`)  COMMENT '')
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
