@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`projects` (
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
   `forked_from` INT(11) NULL DEFAULT NULL COMMENT '',
   `deleted` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
+  `updated_at` TIMESTAMP NOT NULL DEFAULT '1970-01-01 01:01:01' COMMENT '',
   PRIMARY KEY (`id`)  COMMENT '',
   CONSTRAINT `projects_ibfk_1`
     FOREIGN KEY (`owner_id`)
@@ -321,6 +322,20 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_members` (
   CONSTRAINT `project_members_ibfk_2`
     FOREIGN KEY (`user_id`)
     REFERENCES `ghtorrent`.`users` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
+
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`project_languages`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`project_languages` ;
+
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_languages` (
+  `project_id` INT(11) NOT NULL COMMENT '',
+  `language` VARCHAR(255) NULL DEFAULT NULL COMMENT '',
+  `bytes` INT(11) COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  PRIMARY KEY (`project_id`, `language`)  COMMENT '')
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
 
