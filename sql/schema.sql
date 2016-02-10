@@ -335,7 +335,9 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_languages` (
   `language` VARCHAR(255) NULL DEFAULT NULL COMMENT '',
   `bytes` INT(11) COMMENT '',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
-  PRIMARY KEY (`project_id`, `language`)  COMMENT '')
+  CONSTRAINT `project_languages_ibfk_1`
+    FOREIGN KEY (`project_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
 
