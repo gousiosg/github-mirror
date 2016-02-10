@@ -1,6 +1,7 @@
 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
+SET @OLD_TIME_ZONE=@@session.time_zone;
 
 DROP SCHEMA IF EXISTS `ghtorrent` ;
 CREATE SCHEMA IF NOT EXISTS `ghtorrent` DEFAULT CHARACTER SET utf8 ;
@@ -36,6 +37,7 @@ DEFAULT CHARACTER SET = utf8;
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `ghtorrent`.`projects` ;
 
+SET time_zone='+0:00';
 CREATE TABLE IF NOT EXISTS `ghtorrent`.`projects` (
   `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '',
   `url` VARCHAR(255) NULL DEFAULT NULL COMMENT '',
@@ -46,7 +48,7 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`projects` (
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
   `forked_from` INT(11) NULL DEFAULT NULL COMMENT '',
   `deleted` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
-  `updated_at` TIMESTAMP NOT NULL DEFAULT '1970-01-01 01:01:01' COMMENT '',
+  `updated_at` TIMESTAMP NOT NULL DEFAULT '1970-01-01 00:00:01' COMMENT '',
   PRIMARY KEY (`id`)  COMMENT '',
   CONSTRAINT `projects_ibfk_1`
     FOREIGN KEY (`owner_id`)
@@ -56,6 +58,7 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`projects` (
     REFERENCES `ghtorrent`.`projects` (`id`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
+SET time_zone=@OLD_TIME_ZONE;
 
 -- -----------------------------------------------------
 -- Table `ghtorrent`.`commits`
