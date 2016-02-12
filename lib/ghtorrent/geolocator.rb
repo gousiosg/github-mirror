@@ -76,9 +76,17 @@ module GHTorrent
           geo = EMPTY_LOCATION
           geo[:key] = location
         ensure
-          persister.store(:geo_cache, geo)
-          geo = persister.find(:geo_cache, {'key' => location}).first 
-          info "Added location key '#{location}' -> #{geo[:status]}"
+          in_db_geo = persister.find(:geo_cache, {'key' => location}).first 
+
+          if in_db_geo.nil?
+	    begin
+              persister.store(:geo_cache, geo)
+            rescue StandardError => e
+              warn "Could not save location #{location} -> #{geo}: #{e.message}"
+            end
+	  end
+
+	  info "Added location key '#{location}' -> #{geo[:status]}"
           taken = Time.now.to_f - ts.to_f
           to_sleep = wait - taken
           sleep(to_sleep) if to_sleep > 0
