@@ -307,10 +307,10 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_commits` (
   `commit_id` INT(11) NOT NULL DEFAULT '0' COMMENT '',
   CONSTRAINT `project_commits_ibfk_1`
     FOREIGN KEY (`project_id`)
-    REFERENCES `ghtorrent16_2`.`projects` (`id`),
+    REFERENCES `ghtorrent`.`projects` (`id`),
   CONSTRAINT `project_commits_ibfk_2`
     FOREIGN KEY (`commit_id`)
-    REFERENCES `ghtorrent16_2`.`commits` (`id`))
+    REFERENCES `ghtorrent`.`commits` (`id`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
 
