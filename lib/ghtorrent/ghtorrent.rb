@@ -24,6 +24,7 @@ module GHTorrent
       @retry_on_error = Array.new
       @retry_on_error <<  Mysql2::Error      if defined? Mysql2::Error
       @retry_on_error <<  SQLite3::Exception if defined? SQLite3::Exception
+      @retry_on_error <<  PG::Error if defined? PG::Error
     end
 
     def dispose
@@ -37,7 +38,7 @@ module GHTorrent
 
       Sequel.single_threaded = true
       @db = Sequel.connect(config(:sql_url), :encoding => 'utf8')
-      #@db.loggers << @logger
+      #@db.loggers << Logger.new(STDOUT)
       if @db.tables.empty?
         dir = File.join(File.dirname(__FILE__), 'migrations')
         puts "Database empty, running migrations from #{dir}"
@@ -546,7 +547,7 @@ module GHTorrent
                    :description => r['description'],
                    :language => r['language'],
                    :created_at => date(r['created_at']),
-                   :updated_at => 0) 
+                   :updated_at => Time.at(0))
 
       unless r['parent'].nil?
         parent_owner = r['parent']['owner']['login']
