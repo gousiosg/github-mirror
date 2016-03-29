@@ -60,7 +60,6 @@ require 'ghtorrent/multiprocess_queue_client'
 # Commands
 require 'ghtorrent/commands/ght_data_retrieval'
 require 'ghtorrent/commands/ght_mirror_events'
-require 'ghtorrent/commands/ght_get_more_commits'
 require 'ghtorrent/commands/ght_load'
 require 'ghtorrent/commands/ght_retrieve_repo'
 require 'ghtorrent/commands/ght_retrieve_user'
