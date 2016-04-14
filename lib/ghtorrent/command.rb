@@ -43,18 +43,6 @@ module GHTorrent
                                                      command.options[:addr])
         end
 
-        unless command.options[:username].nil?
-          command.settings = command.override_config(command.settings,
-                                                     :github_username,
-                                                     command.options[:username])
-        end
-
-        unless command.options[:password].nil?
-          command.settings = command.override_config(command.settings,
-                                                     :github_passwd,
-                                                     command.options[:password])
-        end
-
         unless command.options[:token].nil?
           command.settings = command.override_config(command.settings,
                                                      :github_token,
@@ -104,9 +92,7 @@ Standard options:
         opt :verbose, 'verbose mode', :short => 'v'
         opt :addr, 'IP address to use for performing requests', :short => 'a',
             :type => String
-        opt :username, 'Username at Github', :short => 's', :type => String
-        opt :password, 'Password at Github', :type => String
-        opt :token, 'OAuth Github token (use instead of username/password)',
+        opt :token, 'GitHub OAuth token',
             :type => String, :short => 't'
         opt :req_limit, 'Request limit for provided account (in reqs/hour)',
             :type => Integer, :short => 'l'

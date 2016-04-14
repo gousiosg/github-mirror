@@ -120,15 +120,19 @@ module GHTorrent
       end
     end
 
-    def access_token_in_use
-      if (@token.nil? or @token.empty?) then @username else @token end
+    def fmt_token(token)
+      if token.nil? or token.empty?
+        '<empty-token>'
+      else
+        token[0..10]
+      end
     end
 
     def request_error_msg(url, exception)
       msg = <<-MSG
             Failed request. URL: #{url}, Status code: #{exception.io.status[0]},
             Status: #{exception.io.status[1]},
-            Access: #{access_token_in_use},
+            Access: #{fmt_token(@token)},
             IP: #{@attach_ip}, Remaining: #{@remaining}
       MSG
       msg.strip.gsub(/\s+/, ' ').gsub("\n", ' ')
@@ -137,7 +141,7 @@ module GHTorrent
     def error_msg(url, exception)
       msg = <<-MSG
             Failed request. URL: #{url}, Exception: #{exception.message},
-            Access: #{if (@token.nil? or @token.empty?) then @username else @token end},
+            Access: #{fmt_token(@token)},
             IP: #{@attach_ip}, Remaining: #{@remaining}
       MSG
       msg.strip.gsub(/\s+/, ' ').gsub("\n", ' ')
@@ -168,7 +172,7 @@ module GHTorrent
             return nil
           when 401 # Unauthorized
             warn request_error_msg(url, e)
-            warn "Unauthorised request with uname/token: #{access_token_in_use}"
+            warn "Unauthorised request with token: #{@token}"
             raise e
           else # Server error or HTTP conditions that Github does not report
             warn request_error_msg(url, e)
@@ -196,36 +200,24 @@ module GHTorrent
       end
     end
 
-    def auth_method(username, token)
-      if token.nil? or token.empty?
-        if username.nil? or username.empty?
-          :none
-        else
-          :username
-        end
-      else
-        :token
-      end
+    def auth_method(token)
+      return :token unless token.nil? or token.empty?
+      return :none
     end
 
     def do_request(url)
       @attach_ip  ||= config(:attach_ip)
       @token      ||= config(:github_token)
-      @username   ||= config(:github_username)
-      @passwd     ||= config(:github_passwd)
       @user_agent ||= config(:user_agent)
       @remaining  ||= 5000
       @reset      ||= Time.now.to_i + 3600
-      @auth_type  ||= auth_method(@username, @token)
+      @auth_type  ||= auth_method(@token)
       @req_limit  ||= config(:req_limit)
 
       open_func ||=
           case @auth_type
             when :none
               lambda {|url| open(url, 'User-Agent' => @user_agent)}
-            when :username
-              lambda {|url| open(url, 'User-Agent' => @user_agent,
-                                 :http_basic_authentication => [@username, @passwd])}
             when :token
               # As per: https://developer.github.com/v3/auth/#via-oauth-tokens
               lambda {|url| open(url, 'User-Agent' => @user_agent,
