@@ -41,6 +41,7 @@ TOKEN NUM_PROCS
 
 TOKEN: A GitHub OAuth token
 NUM_PROCS: Number of processes to spawn for this TOKEN
+LIMIT: Restrict number of requests/hr for this token
 
 Values in the config.yaml file set with the -c command are overridden.
 
@@ -63,11 +64,12 @@ Values in the config.yaml file set with the -c command are overridden.
       next if line =~ /^#/
       line.strip.split(/ /)[0]
 
-      token, instances = line.strip.split(/ /)
+      token, instances, limit = line.strip.split(/ /)
 
       (1..instances.to_i).map do |i|
         newcfg = self.settings.clone
         newcfg = override_config(newcfg, :github_token, token)
+        newcfg = override_config(newcfg, :req_limit, limit)
 
         newcfg
       end
