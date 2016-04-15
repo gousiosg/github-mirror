@@ -15,12 +15,6 @@ module GHTorrent
     include GHTorrent::Settings
     include GHTorrent::Logging
 
-    # This is to fix an annoying bug in JRuby's SSL not being able to
-    # verify a valid certificate.
-    if defined? JRUBY_VERSION
-      OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
-    end
-
     # A paged request. Used when the result can expand to more than one
     # result pages.
     def paged_api_request(url, pages = config(:mirror_history_pages_back),

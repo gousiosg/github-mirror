@@ -1,0 +1,85 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'ghtorrent'
+
+class MassHarvester < GHTorrent::Command
+
+  include GHTorrent::Settings
+  include GHTorrent::Logging
+  include GHTorrent::Retriever
+  include GHTorrent::APIClient
+  include GHTorrent::Logging
+
+  def prepare_options(options)
+    options.banner <<-BANNER
+Use the "https://api.github.com/{users,repositories}" API end point to collect
+all GitHub users or repositories and add the non-existing ones to the database.
+
+#{command_name} [options]
+    BANNER
+
+    options.opt :users, 'Retrieve all users', :short => 's', :default => false
+    options.opt :repos, 'Retrieve all repos', :short => 'r', :default => false
+  end
+
+  def collect(url, &block)
+
+    if File.exists? @last_load_file
+      last = File.open(@last_load_file, 'r') { |f| f.readline.strip }
+      unless last.nil?
+        url = last
+      end
+    end
+
+    url = ensure_max_per_page(url)
+    data = api_request_raw(url)
+    items = parse_request_result(data)
+
+    return [] if data.nil?
+
+    if block_given?
+      items.each { |item| block.call(item) }
+    else
+      items.each { |item| puts item }
+    end
+
+    unless data.meta['link'].nil?
+      links = parse_links(data.meta['link'])
+
+      unless links['next'].nil?
+        File.open(@last_load_file, 'w') { |f| f.puts links['next'] }
+        collect(links['next'], &block)
+      end
+    end
+  end
+
+  def ght
+    @ght ||= TransactedGHTorrent.new(@settings)
+    @ght
+  end
+
+  def go
+    @last_load_file = "mass-harvester.lasturl"
+
+    if @options[:users_given]
+      collect(ghurl('users')) do |user|
+        ght.transaction do
+          ght.ensure_user(user['login'], false, false)
+        end
+      end
+    elsif @options[:repos_given]
+      collect(ghurl('repositories')) do |repo|
+        ght.transaction do
+          ght.ensure_repo(repo['owner']['login'], repo['name'], false)
+        end
+      end
+    else
+      STDERR.puts 'No -s or -p option given. Terminating'
+      exit(1)
+    end
+
+  end
+end
+
+MassHarvester.run

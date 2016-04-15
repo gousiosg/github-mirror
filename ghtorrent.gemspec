@@ -4,7 +4,7 @@ require File.expand_path('../lib/version', __FILE__)
 Gem::Specification.new do |s|
   s.name          = 'ghtorrent'
   s.version       = GHTorrent::VERSION
-  s.date          = Time.now.strftime('%Y-%m-%d') 
+  s.date          = Time.now.strftime('%Y-%m-%d')
   s.summary       = 'Mirror and process Github data'
   s.description   = 'A library and a collection of associated programs
                     to mirror and process Github data'
@@ -22,14 +22,14 @@ Gem::Specification.new do |s|
                              '[A-Z]*',
                              'spec/**/*'].to_a
   s.required_ruby_version = '~> 2.0'
-  
+
   s.add_runtime_dependency 'mongo', '~> 1.12', '>= 1.12.0'
   s.add_runtime_dependency 'bson_ext', '~> 1.9', '>= 1.9.0'
   s.add_runtime_dependency 'trollop', '~> 2.0', '>= 2.0.0'
   s.add_runtime_dependency 'sequel', '~> 4.5', '>= 4.5.0'
   s.add_runtime_dependency 'bunny', '~> 1.0', '>= 1.0.0'
 
-  s.add_development_dependency 'influxdb', '0.1.9' 
+  s.add_development_dependency 'influxdb', '0.1.9'
 
   begin
     require 'changelog'
