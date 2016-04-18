@@ -555,7 +555,13 @@ module GHTorrent
 
         parent = ensure_repo(parent_owner, parent_repo)
 
-        repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => parent[:id])
+        if parent.nil?
+          warn "Could not find repo #{parent_owner}/#{parent_repo}, parent of: #{user}/#{repo}"
+          repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => -1)
+        else
+          repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => parent[:id])
+          info "Repo #{user}/#{repo} is a fork of #{parent_owner}/#{parent_repo}"
+        end
 
         info "Repo #{user}/#{repo} is a fork from #{parent_owner}/#{parent_repo}"
       end
