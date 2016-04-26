@@ -168,6 +168,10 @@ module GHTorrent
             warn request_error_msg(url, e)
             warn "Unauthorised request with token: #{@token}"
             raise e
+          when 451 # DCMA takedown
+            warn request_error_msg(url, e)
+            warn "Repo was taken down (DCMA)"
+            return nil
           else # Server error or HTTP conditions that Github does not report
             warn request_error_msg(url, e)
             raise e
