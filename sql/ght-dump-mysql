@@ -11,6 +11,7 @@ skipTables=""
 
 ts=`date +%Y-%m-%d`
 dumpName=`echo mysql-$ts.tar.gz`
+userPrvName=`echo users-private-$ts`
 
 usage()
 {
@@ -91,7 +92,7 @@ if [ $skipArchive = false ]; then
   cd `dirname $out`
   tar zcvf $dumpName --exclude='users-private.csv' `basename $out` || exit 1
   gzip $out/users-private.csv
-  mv $out/users-private.csv.gz .
+  mv $out/users-private.csv.gz `echo $userPrvName`.csv.gz
   rm -R $out
 fi
 
