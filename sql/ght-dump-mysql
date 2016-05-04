@@ -73,10 +73,9 @@ for table in $tables; do
     echo "`date`: Dumping table users"
     echo "select id,login,company,created_at,type,fake,deleted,lat,country_code,state,city,location into outfile '$out/users.csv' CHARACTER SET UTF8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from users" |$mysql || exit 1
     echo "select login,name,email into outfile '$out/users-private.csv' CHARACTER SET UTF8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from users" |$mysql || exit 1
-    echo "`date`: Skipping table $table"
   else
     echo "`date`: Dumping table $table"
-    echo "select * into outfile '$out/$table.csv'  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from $table" |$mysql || exit 1
+    echo "select * into outfile '$out/$table.csv' CHARACTER SET UTF8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from $table" |$mysql || exit 1
   fi
 done
 
