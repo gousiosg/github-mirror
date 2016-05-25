@@ -54,16 +54,12 @@ module GHTorrent
 
     def store(entity, data = {})
       super
-      rescue_connection_failure do
-        get_entity(entity).insert(data).to_s
-      end
+      mongo[entity].insert_one(data).to_s
     end
 
     def find(entity, query = {})
       super
-      result = rescue_connection_failure do
-        get_entity(entity).find(query)
-      end
+      result = mongo[entity].find(query)
 
       result.to_a.map { |r|
         r[@uniq] = r['_id'].to_s;
@@ -74,15 +70,14 @@ module GHTorrent
     # Count the number of items returned by +query+
     def count(entity, query)
       super
-      rescue_connection_failure do
-        get_entity(entity).count(:query => query)
-      end
+      mongo[entity].count(:query => query)
     end
 
     def del(entity, query)
       super
-      raise Exception 'No filter was specified. Cowardily refusing to remove all entries' if query == {}
-      get_entity(entity).remove(query)
+      raise StandardError 'No filter was specified. Cowardily refusing to remove all entries' if query == {}
+      r = mongo[entity].delete_many(query)
+      r.n
     end
 
     def get_underlying_connection
@@ -91,118 +86,70 @@ module GHTorrent
 
     def close
       unless @mongo.nil?
-        @mongo.close if @mongo.class == Mongo::ReplSetConnection
-        @mongo.connection.close if @mongo.class == Mongo::Connection
-
+        @mongo.disconnect!
         @mongo = nil
       end
     end
 
     private
 
-    def get_collection(col)
-      mongo.collection(col.to_s)
-    end
-
-    def get_entity(entity)
-      case entity
-        when :users
-          get_collection("users")
-        when :commits
-          get_collection("commits")
-        when :repos
-          get_collection("repos")
-        when :followers
-          get_collection("followers")
-        when :org_members
-          get_collection("org_members")
-        when :events
-          get_collection("events")
-        when :commit_comments
-          get_collection("commit_comments")
-        when :repo_collaborators
-          get_collection("repo_collaborators")
-        when :watchers
-          get_collection("watchers")
-        when :pull_requests
-          get_collection("pull_requests")
-        when :forks
-          get_collection("forks")
-        when :pull_request_comments
-          get_collection("pull_request_comments")
-        when :issues
-          get_collection("issues")
-        when :issue_comments
-          get_collection("issue_comments")
-        when :issue_events
-          get_collection("issue_events")
-        when :repo_labels
-          get_collection("repo_labels")
-        when :geo_cache
-          get_collection("geo_cache")
-      end
-    end
-
     def mongo
-      if @mongo.nil?
+      return @mongo.database unless @mongo.nil?
 
-        replicas = config(:mongo_replicas)
+      uname = config(:mongo_username)
+      passwd = config(:mongo_passwd)
+      host = config(:mongo_host)
+      port = config(:mongo_port)
+      db = config(:mongo_db)
 
-        @mongo = if replicas.nil?
-                   Mongo::Connection.new(config(:mongo_host),
-                                         config(:mongo_port))\
-                                    .db(config(:mongo_db))\
+      replicas = config(:mongo_replicas)
+      replicas = if replicas.nil? then
+                   ''
                  else
-                   repl_arr = replicas.strip.split(/ /).map{|x| "#{x}:#{config(:mongo_port)}"}
-                   repl_arr << "#{config(:mongo_host)}:#{config(:mongo_port)}"
-                   Mongo::ReplSetConnection.new(repl_arr, :read => :secondary)\
-                                           .db(config(:mongo_db))
+                   ',' + replicas.strip.gsub(' ', ',')
                  end
 
-        unless config(:mongo_username).nil?
-          @mongo.authenticate(config(:mongo_username), config(:mongo_passwd))
-        end
-        stats = @mongo.stats
-        #init_db(@mongo) if stats['collections'] < ENTITIES.size + 2
-        #init_db(@mongo) if stats['indexes'] < IDXS.keys.size + ENTITIES.size
+      constring = if uname.nil?
+                    "mongodb://#{host}:#{port}#{replicas}/#{db}"
+                  else
+                    "mongodb://#{uname}:#{passwd}@#{host}:#{port}#{replicas}/#{db}"
+                  end
 
-        @mongo
-      else
-        @mongo
+      Mongo::Logger.logger.level = Logger::WARN
+      @mongo = Mongo::Client.new(constring)
+
+      dbs = @mongo.list_databases
+      if dbs.find { |x| x['name'] == db }.nil?
+        init_db(@mongo.database)
       end
+
+      @mongo.database
+
     end
 
     def init_db(mongo)
-      ENTITIES.each {|x| mongo.collection(x.to_s)}
+      ENTITIES.each do |x|
+        if mongo.list_collections.find { |c| c['name'] == x.to_s }.nil?
+          STDERR.puts "Creating collection #{x}"
+          mongo[x].create
+        end
+      end
 
       # Ensure that the necessary indexes exist
-      IDXS.each do |k,v|
-        col = get_entity(k)
+      IDXS.each do |k, v|
+        col = mongo[k.intern]
         name = v.join('_1_') + '_1'
-        exists = col.index_information.find {|k,v| k == name}
+        exists = col.indexes.find { |k, v| k == name }
 
-        idx_fields = v.reduce({}){|acc, x| acc.merge({x => 1})}
+        idx_fields = v.reduce({}) { |acc, x| acc.merge({x => 1}) }
         if exists.nil?
-          col.create_index(idx_fields, :background => true)
+          col.indexes.create_one(idx_fields, :background => true)
           STDERR.puts "Creating index on #{col}(#{v})"
         else
           STDERR.puts "Index on #{col}(#{v}) exists"
         end
-
       end
     end
 
-    def rescue_connection_failure(max_retries=60)
-      retries = 0
-      begin
-        yield
-      rescue Mongo::ConnectionFailure => ex
-        retries += 1
-        raise ex if retries > max_retries
-        sleep(0.5)
-        @mongo.refresh if @mongo.class == Mongo::ReplSetConnection
-        retry
-      end
-    end
   end
 end

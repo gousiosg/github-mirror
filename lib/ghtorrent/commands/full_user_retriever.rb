@@ -18,17 +18,14 @@ module GHTorrent
         @ghtorrent
       end
 
-      def update_mongo(login, new_user)
-        r = persister.\
-            get_underlying_connection[:users].\
-            remove({'login' => login})
-        persister.\
-            get_underlying_connection[:users].\
-            insert(new_user)
-        if r['n'] > 0
-          debug("MongoDB entry for user #{login} updated (#{r['n']} records removed)")
+      def update_persister(login, new_user)
+        r = persister.del(:users, {'login' => login})
+        persister.store(:users, new_user)
+
+        if r > 0
+          debug "Persister entry for user #{login} updated, #{r} records removed"
         else
-          debug("Added MongoDB entry for user #{login}")
+          debug "Added persister entry from user #{login}"
         end
       end
 
@@ -55,9 +52,9 @@ module GHTorrent
           end
         end
 
-        # Refresh MongoDb with the latest info from GitHub
+        # Refresh the persister with the latest info from GitHub
         unless on_github.empty?
-          update_mongo(login, on_github)
+          update_persister(login, on_github)
         end
 
         # Update geo location information

@@ -63,7 +63,7 @@ in the provided project.
                {}
              end
 
-    col = persister.get_underlying_connection.collection(:pull_requests.to_s)
+    col = persister.get_underlying_connection[:pull_requests]
     col.find(filter, {:timeout => false}) do |cursor|
       cursor.each do |pr|
         @owner = pr['base']['repo']['owner']['login']

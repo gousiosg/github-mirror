@@ -69,16 +69,12 @@ module GHTorrent
       end
 
       def update_mongo(owner, repo, new_repo)
-        r = persister.\
-            get_underlying_connection[:repos].\
-            remove({'owner.login' => owner, 'name' => repo})
-        persister.\
-            get_underlying_connection[:repos].\
-            insert(new_repo)
-        if r['n'] > 0
-          debug("MongoDB entry for repo #{owner}/#{repo} updated (#{r['n']} records removed)")
+        r = persister.del(:repos, {'owner.login' => owner, 'name' => repo})
+        persister.store(:repos, new_repo)
+        if r > 0
+          debug("Persister entry for repo #{owner}/#{repo} updated (#{r} records removed)")
         else
-          debug("Added MongoDB entry for repo #{owner}/#{repo}")
+          debug("Added persister entry for repo #{owner}/#{repo}")
         end
       end
 

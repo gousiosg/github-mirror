@@ -20,7 +20,7 @@ class GHTFixForks < GHTorrent::Command
 
   def go
     @ght ||= GHTorrent::Mirror.new(settings)
-    col = persister.get_underlying_connection.collection(:repos.to_s)
+    col = persister.get_underlying_connection[:repos]
     fixed = tried = all = 0
     col.find({"parent" => {"$exists" => 1}}, {:timeout => false}) do |cursor|
       cursor.each do |x|

@@ -21,7 +21,7 @@ class GHTFixIssueLabels < GHTorrent::Command
 
   def go
     @ght ||= GHTorrent::Mirror.new(settings)
-    col = persister.get_underlying_connection.collection(:issues.to_s)
+    col = persister.get_underlying_connection[:issues]
 
     #repos = @ght.get_db.from(:projects, :users)\
     #                   .where(:projects__owner_id => :users__id)\

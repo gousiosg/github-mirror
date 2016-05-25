@@ -49,7 +49,7 @@ If event_id is provided, only this event is processed.
   end
 
   def retrieve_event(evt_id)
-    event = persister.get_underlying_connection[:events].find_one('id' => evt_id)
+    event = persister.find(:events, {'id' => evt_id}).first
     event.delete '_id'
     data = JSON.parse(event.to_json)
     debug "Processing event: #{data['type']}-#{data['id']}"

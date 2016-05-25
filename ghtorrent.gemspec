@@ -22,8 +22,7 @@ Gem::Specification.new do |s|
                              'spec/**/*'].to_a
   s.required_ruby_version = '~> 2.0'
 
-  s.add_runtime_dependency 'mongo', '~> 1.12', '>= 1.12.0'
-  s.add_runtime_dependency 'bson_ext', '~> 1.9', '>= 1.9.0'
+  s.add_runtime_dependency 'mongo', '~> 2.2', '>= 2.2.0'
   s.add_runtime_dependency 'trollop', '~> 2.0', '>= 2.0.0'
   s.add_runtime_dependency 'sequel', '~> 4.5', '>= 4.5.0'
   s.add_runtime_dependency 'bunny', '~> 1.0', '>= 1.0.0'

@@ -64,6 +64,8 @@ module GHTorrent
       end
     end
 
+    # Delete the entities matched by the query and return the
+    # number of entities deleted
     def del(entity, query = {})
       if bsearch(ENTITIES, entity).nil?
         raise "Perister: Entity #{entity} not known"

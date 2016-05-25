@@ -29,7 +29,7 @@ class GHTFixPullReqComments < GHTorrent::Command
 
   def go
     db
-    col = persister.get_underlying_connection.collection(:pull_request_comments.to_s)
+    col = persister.get_underlying_connection[:pull_request_comments]
 
     processed = duplicates = no_pullreq_id = sql_upd = 0
     col.distinct('id').each do |id|
