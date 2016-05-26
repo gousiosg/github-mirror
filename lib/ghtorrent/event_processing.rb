@@ -1,6 +1,10 @@
 module GHTorrent
   module EventProcessing
 
+    def persister
+      raise 'Unimplemented'
+    end
+
     def ght
       raise 'Unimplemented'
     end
@@ -18,12 +22,38 @@ module GHTorrent
       end
     end
 
-    def WatchEvent(data)
-      owner = data['repo']['name'].split(/\//)[0]
-      repo = data['repo']['name'].split(/\//)[1]
-      watcher = data['actor']['login']
-      created_at = data['created_at']
+    def WatchEvent(e)
+      owner      = e['repo']['name'].split(/\//)[0]
+      repo       = e['repo']['name'].split(/\//)[1]
+      watcher    = e['actor']['login']
+      created_at = e['created_at']
 
+      watcher_db = ght.ensure_user(watcher, false, false)
+
+      watcher_entry = {
+          'login'               => watcher,
+          'id'                  => e['actor']['id'],
+          'avatar_url'          => e['actor']['avatar_url'],
+          'gravatar_id'         => e['actor']['gravatar_id'],
+          'url'                 => e['actor']['url'],
+          'html_url'            => "https://github.com/#{watcher}",
+          'followers_url'       => "https://api.github.com/users/#{watcher}/followers",
+          'following_url'       => "https://api.github.com/users/#{watcher}/following{/other_user}",
+          'gists_url'           => "https://api.github.com/users/#{watcher}/gists{/gist_id}",
+          'starred_url'         => "https://api.github.com/users/#{watcher}/starred{/owner}{/repo}",
+          'subscriptions_url'   => "https://api.github.com/users/#{watcher}/subscriptions",
+          'organizations_url'   => "https://api.github.com/users/#{watcher}/orgs",
+          'repos_url'           => "https://api.github.com/users/#{watcher}/repos",
+          'events_url'          => "https://api.github.com/users/#{watcher}/events{/privacy}",
+          'received_events_url' => "https://api.github.com/users/#{watcher}/received_events",
+          'type'                => watcher_db[:type],
+          'site_admin'          => false,
+          'created_at'          => created_at,
+          'owner'               => owner,
+          'repo'                => repo
+      }
+
+      persister.upsert(:watchers, {'owner' => owner, 'repo' => repo, 'login' => watcher}, watcher_entry)
       ght.ensure_watcher(owner, repo, watcher, created_at)
     end
 
