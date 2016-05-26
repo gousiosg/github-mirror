@@ -23,7 +23,7 @@ class GHTFixPullReqComments < GHTorrent::Command
   end
 
   def db
-    @db ||= ght.get_db
+    @db ||= ght.db
     @db
   end
 

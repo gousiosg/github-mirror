@@ -63,7 +63,7 @@ class RefreshPullReqHistory
       col.delete_one({'owner' => owner, 'repo' => repo, 'number' => pull_req.to_i})
       col.insert_one(retrieved)
 
-      @ght.get_db.from(:pull_request_history, :pull_requests, :users, :projects)\
+      @ght.db.from(:pull_request_history, :pull_requests, :users, :projects)\
                  .where(:pull_requests__id => :pull_request_history__pull_request_id)\
                  .where(:users__id => :projects__owner_id)\
                  .where(:projects__id => :pull_requests__base_repo_id)\

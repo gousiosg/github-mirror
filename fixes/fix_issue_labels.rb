@@ -34,7 +34,7 @@ class GHTFixIssueLabels < GHTorrent::Command
     #    logger.debug "Could not get labels for repo #{repo[:login]}/#{repo[:name]}"
     #  end
     #end
-    @ght.get_db
+    @ght.db
     issues = lbls = 0
     col.find({'labels' => {'$ne' => '[]'}}, {:timeout => false}) do |cursor|
       cursor.each do |issue|

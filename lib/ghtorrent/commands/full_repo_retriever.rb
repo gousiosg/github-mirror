@@ -74,8 +74,8 @@ module GHTorrent
         # it means that another transaction added/updated the repo.
         # Just re-running the block should lead to the project being
         # rejected from further processing due to an updated updated_at field
-        ght.get_db.transaction(:isolation => :serializable,
-                               :retry_on=>[Sequel::SerializationFailure]) do
+        ght.db.transaction(:isolation => :serializable,
+                           :retry_on  =>[Sequel::SerializationFailure]) do
           repo_entry = ght.ensure_repo(owner, repo)
 
           if repo_entry.nil?
@@ -91,7 +91,7 @@ module GHTorrent
             return
           end
 
-          ght.get_db.from(:projects).where(:id => repo_entry[:id]).update(:updated_at => Time.now)
+          ght.db.from(:projects).where(:id => repo_entry[:id]).update(:updated_at => Time.now)
         end
 
         unless options[:no_entities_given]

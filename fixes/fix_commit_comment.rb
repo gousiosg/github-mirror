@@ -42,7 +42,7 @@ overriden when entry is written in MongoDB
   end
 
   def db
-    @db ||= ght.get_db
+    @db ||= ght.db
     @db
   end
 

@@ -42,7 +42,7 @@ module GHTorrent
       date_added = data['created_at']
 
       ght.transaction do
-        pr_members = ght.get_db[:project_members]
+        pr_members = ght.db[:project_members]
         project = ght.ensure_repo(owner, repo)
         new_user = ght.ensure_user(new_member, false, false)
 

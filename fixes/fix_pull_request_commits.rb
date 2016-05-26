@@ -84,7 +84,7 @@ in the provided project.
   end
 
   def db
-    @db ||= ght.get_db
+    @db ||= ght.db
     @db
   end
 

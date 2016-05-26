@@ -110,7 +110,7 @@ class TransactedGHTorrent < GHTorrent::Mirror
   end
 
   def check_transaction(&block)
-    if get_db.in_transaction?
+    if db.in_transaction?
       yield block
     else
       transaction do

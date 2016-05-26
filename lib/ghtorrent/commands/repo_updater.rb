@@ -15,7 +15,7 @@ module GHTorrent
       end
 
       def db
-        @db ||= ght.get_db
+        ght.db
       end
 
       def ght

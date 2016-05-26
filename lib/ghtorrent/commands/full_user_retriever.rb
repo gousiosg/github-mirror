@@ -40,7 +40,7 @@ module GHTorrent
             exit
           else
             ght.transaction do
-              ght.get_db.from(:users).where(:login => login).update(:users__deleted => true)
+              ght.db.from(:users).where(:login => login).update(:users__deleted => true)
             end
             warn "User #{login} marked as deleted"
             return
@@ -60,7 +60,7 @@ module GHTorrent
         # Update geo location information
         geo = geolocate(on_github['location'])
 
-        ght.get_db.from(:users).where(:login => login).update(
+        ght.db.from(:users).where(:login => login).update(
           # Geolocation info
           :users__long         => geo['long'].to_f,
           :users__lat          => geo['lat'].to_f,
