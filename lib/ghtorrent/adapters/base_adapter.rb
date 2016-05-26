@@ -72,6 +72,14 @@ module GHTorrent
       end
     end
 
+    # Add or update the entry matched by the query and return
+    # the number of entities added or updated
+    def upsert(entity, query = {}, new_entry)
+      if bsearch(ENTITIES, entity).nil?
+        raise "Perister: Entity #{entity} not known"
+      end
+    end
+
     # Get a raw connection to the underlying data store. The connection is
     # implementaiton dependent.
     def get_underlying_connection

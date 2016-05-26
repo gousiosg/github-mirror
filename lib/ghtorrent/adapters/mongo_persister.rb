@@ -80,6 +80,13 @@ module GHTorrent
       r.n
     end
 
+    def upsert(entity, query = {}, new_entry)
+      super
+      r = del(entity, query)
+      store(entity, new_entry)
+      r
+    end
+
     def get_underlying_connection
       mongo
     end

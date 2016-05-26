@@ -18,6 +18,12 @@ module GHTorrent
       []
     end
 
+    def upsert(entity, query = {})
+      super
+      #Nothing to see here
+      []
+    end
+
     def get_id
       0
     end
