@@ -1043,6 +1043,38 @@ module GHTorrent
       end
     end
 
+    # Checks whether a pull request concerns two branches of the same
+    # repository
+    def pr_is_intra_branch(req)
+      return false unless pr_has_head_repo(req)
+
+      if req['head']['repo']['owner']['login'] ==
+          req['base']['repo']['owner']['login'] and
+          req['head']['repo']['full_name'] == req['base']['repo']['full_name']
+        true
+      else
+        false
+      end
+    end
+
+    # Checks if the pull request has a head repo specified
+    def pr_has_head_repo(req)
+      not req['head']['repo'].nil?
+    end
+
+    # Produces a log message
+    def pr_log_msg(req)
+      head = if pr_has_head_repo(req)
+               req['head']['repo']['full_name']
+             else
+               '(head deleted)'
+             end
+
+      <<-eos.gsub(/\s+/, ' ').strip
+            pull_req #{req['number']}
+      #{head} -> #{req['base']['repo']['full_name']}
+      eos
+    end
 
     ##
     # Process a pull request
@@ -1056,39 +1088,6 @@ module GHTorrent
       if project.nil?
         warn "Could not find repo #{owner}/#{repo} for retrieving pull request #{pullreq_id}"
         return
-      end
-
-      # Checks whether a pull request concerns two branches of the same
-      # repository
-      def is_intra_branch(req)
-        return false unless has_head_repo(req)
-
-        if req['head']['repo']['owner']['login'] ==
-            req['base']['repo']['owner']['login'] and
-            req['head']['repo']['full_name'] == req['base']['repo']['full_name']
-          true
-        else
-          false
-        end
-      end
-
-      # Checks if the pull request has a head repo specified
-      def has_head_repo(req)
-        not req['head']['repo'].nil?
-      end
-
-      # Produces a log message
-      def log_msg(req)
-        head = if has_head_repo(req)
-                 req['head']['repo']['full_name']
-               else
-                 '(head deleted)'
-               end
-
-        <<-eos.gsub(/\s+/, ' ').strip
-            pull_req #{req['number']}
-            #{head} -> #{req['base']['repo']['full_name']}
-        eos
       end
 
       retrieved = retrieve_pull_request(owner, repo, pullreq_id)
@@ -1105,14 +1104,14 @@ module GHTorrent
                                   retrieved['base']['sha'],
                                   retrieved['base']['repo']['owner']['login'])
 
-      if is_intra_branch(retrieved)
+      if pr_is_intra_branch(retrieved)
         head_repo = base_repo
         head_commit = ensure_commit(retrieved['base']['repo']['name'],
                                     retrieved['head']['sha'],
                                     retrieved['base']['repo']['owner']['login'])
-        debug log_msg(retrieved) + ' is intra-branch'
+        debug pr_log_msg(retrieved) + ' is intra-branch'
       else
-        head_repo = if has_head_repo(retrieved)
+        head_repo = if pr_has_head_repo(retrieved)
                       ensure_repo(retrieved['head']['repo']['owner']['login'],
                                   retrieved['head']['repo']['name'])
                     end
@@ -1138,11 +1137,11 @@ module GHTorrent
             :head_commit_id => if not head_commit.nil? then head_commit[:id] end,
             :base_commit_id => base_commit[:id],
             :pullreq_id => pullreq_id,
-            :intra_branch => is_intra_branch(retrieved)
+            :intra_branch => pr_is_intra_branch(retrieved)
         )
-        info 'Added ' + log_msg(retrieved)
+        info 'Added ' + pr_log_msg(retrieved)
       else
-        debug log_msg(retrieved) + ' exists'
+        debug pr_log_msg(retrieved) + ' exists'
       end
 
       pull_req = pulls_reqs.first(:base_repo_id => project[:id],
@@ -1161,9 +1160,9 @@ module GHTorrent
                       :pull_request => true,
                       :pull_request_id => pull_req[:id],
                       :created_at => date(retrieved['created_at']))
-        debug 'Added accompanying_issue for ' + log_msg(retrieved)
+        debug 'Added accompanying_issue for ' + pr_log_msg(retrieved)
       else
-        debug 'Accompanying issue for ' + log_msg(retrieved) + ' exists'
+        debug 'Accompanying issue for ' + pr_log_msg(retrieved) + ' exists'
       end
 
       if history
@@ -1181,22 +1180,16 @@ module GHTorrent
                                     'closed', closer) if (closed && state != 'closed')
         ensure_pull_request_history(pull_req[:id], date(created_at), state, actor) unless state.nil?
       end
-      ensure_pull_request_commits(owner, repo, pullreq_id) if commits
-      ensure_pullreq_comments(owner, repo, pullreq_id) if comments
+      ensure_pull_request_commits(owner, repo, pullreq_id, pull_req) if commits
+      ensure_pullreq_comments(owner, repo, pullreq_id, pull_req) if comments
       ensure_issue_comments(owner, repo, pullreq_id, pull_req[:id]) if comments
 
       pull_req
     end
 
-    def ensure_pullreq_comments(owner, repo, pullreq_id)
-      currepo = ensure_repo(owner, repo)
-
-      if currepo.nil?
-        warn "Could not find repository #{owner}/#{repo} for retrieving pull req comments"
-        return
-      end
-
-      pull_req = ensure_pull_request(owner, repo, pullreq_id, false, false, false)
+    def ensure_pullreq_comments(owner, repo, pullreq_id, pr_obj = nil)
+      pull_req = pr_obj
+      pull_req = ensure_pull_request(owner, repo, pullreq_id, false, false, false) if pr_obj.nil?
 
       if pull_req.nil?
         warn "Could not find pull_req #{owner}/#{repo} -> #{pullreq_id}"
@@ -1212,16 +1205,17 @@ module GHTorrent
           acc
         end
       end.map { |x|
-        save{ensure_pullreq_comment(owner, repo, pullreq_id, x['id'])}
+        save{ensure_pullreq_comment(owner, repo, pullreq_id, x['id'], pr_obj)}
       }.select{|x| !x.nil?}
     end
 
-    def ensure_pullreq_comment(owner, repo, pullreq_id, comment_id)
+    def ensure_pullreq_comment(owner, repo, pullreq_id, comment_id, pr_obj = nil)
       # Commit retrieval is set to false to ensure that no duplicate work
       # is done on retrieving a pull request. This has the side effect that
       # commits might not be retrieved if a pullreqcomment event gets processed
       # before the pullreq event, until the pullreq event has been processed
-      pull_req = ensure_pull_request(owner, repo, pullreq_id, false, false, false)
+      pull_req = pr_obj
+      pull_req = ensure_pull_request(owner, repo, pullreq_id, false, false, false) if pr_obj.nil?
 
       if pull_req.nil?
         warn "Could not find pull req #{owner}/#{repo} -> #{pullreq_id} for retrieving comment #{comment_id}"
@@ -1266,8 +1260,9 @@ module GHTorrent
       end
     end
 
-    def ensure_pull_request_commits(owner, repo, pullreq_id)
-      pullreq = ensure_pull_request(owner, repo, pullreq_id, false, false, false)
+    def ensure_pull_request_commits(owner, repo, pullreq_id, pr_obj)
+      pullreq = pr_obj
+      pullreq = ensure_pull_request(owner, repo, pullreq_id, false, false, false) if pr_obj.nil?
 
       if pullreq.nil?
         warn "Could not find pull request #{owner}/#{repo} -> #{pullreq_id} for retrieving commits"
@@ -1580,8 +1575,7 @@ module GHTorrent
 
     ##
     # Retrieve and process +comment_id+ for an +issue_id+
-    def ensure_issue_comment(owner, repo, issue_id, comment_id,
-        pull_req_id = nil)
+    def ensure_issue_comment(owner, repo, issue_id, comment_id, pull_req_id = nil)
       issue = if pull_req_id.nil?
                 ensure_issue(owner, repo, issue_id, false, false, false)
               else

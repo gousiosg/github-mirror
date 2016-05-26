@@ -43,9 +43,9 @@ class TransactedGHTorrent < GHTorrent::Mirror
     end
   end
 
-  def ensure_pullreq_comment(owner, repo, pullreq_id, comment_id)
+  def ensure_pullreq_comment(owner, repo, pullreq_id, comment_id, pr_obj = nil)
     check_transaction do
-      super(owner, repo, pullreq_id, comment_id)
+      super(owner, repo, pullreq_id, comment_id, pr_obj)
     end
   end
 

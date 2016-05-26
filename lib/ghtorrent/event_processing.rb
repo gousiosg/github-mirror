@@ -120,6 +120,14 @@ module GHTorrent
       actor = data['actor']['login']
       created_at = data['created_at']
 
+      pr = data['payload']['pull_request']
+      pr['owner'] = owner
+      pr['repo'] = repo
+
+      persister.upsert(:pull_requests,
+                       {'owner' => owner, 'repo' => repo, 'number' => pullreq_id},
+                       pr)
+
       ght.ensure_pull_request(owner, repo, pullreq_id, true, true, true,
                                     action, actor, created_at)
     end
