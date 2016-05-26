@@ -544,7 +544,7 @@ module GHTorrent
       repos.insert(:url => r['url'],
                    :owner_id => curuser[:id],
                    :name => r['name'],
-                   :description => r['description'],
+                   :description => unless r['description'].nil? then r['description'][0..254] else nil end,
                    :language => r['language'],
                    :created_at => date(r['created_at']),
                    :updated_at => Time.at(86400))
@@ -562,8 +562,6 @@ module GHTorrent
           repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => parent[:id])
           info "Repo #{user}/#{repo} is a fork of #{parent_owner}/#{parent_repo}"
         end
-
-        info "Repo #{user}/#{repo} is a fork from #{parent_owner}/#{parent_repo}"
       end
 
       info "Added repo #{user}/#{repo}"
