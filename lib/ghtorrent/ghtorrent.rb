@@ -941,17 +941,22 @@ module GHTorrent
         return
       end
 
-      watchers = @db[:watchers]
+      watchers = db[:watchers]
       watcher_exist = watchers.first(:user_id => new_watcher[:id],
                                      :repo_id => project[:id])
 
+      retrieved = retrieve_watcher(owner, repo, watcher)
+
+      created_at = case
+                     when (not date_added.nil?)
+                       date_added
+                     when (not retrieved.nil? and not retrieved['created_at'].nil?)
+                       retrieved['created_at']
+                     else
+                       max(project[:created_at], new_watcher[:created_at])
+                   end
+
       if watcher_exist.nil?
-        added = if date_added.nil?
-                  max(project[:created_at], new_watcher[:created_at])
-                else
-                  date_added
-                end
-        retrieved = retrieve_watcher(owner, repo, watcher)
 
         if retrieved.nil?
           warn "Could not retrieve watcher #{watcher} of repo #{owner}/#{repo}"
@@ -961,22 +966,24 @@ module GHTorrent
         watchers.insert(
             :user_id => new_watcher[:id],
             :repo_id => project[:id],
-            :created_at => date(added)
+            :created_at => date(created_at)
         )
         info "Added watcher #{owner}/#{repo} -> #{watcher}"
       else
         debug "Watcher #{owner}/#{repo} -> #{watcher} exists"
       end
 
-      unless date_added.nil?
+      w = watchers.first(:user_id => new_watcher[:id],
+                     :repo_id => project[:id])
+
+      if w[:created_at]  < Time.parse(created_at)
         watchers.filter(:user_id => new_watcher[:id],
                         :repo_id => project[:id])\
-                  .update(:created_at => date(date_added))
+                .update(:created_at => date(created_at))
         info "Updated watcher #{owner}/#{repo} -> #{watcher}, created_at -> #{date_added}"
       end
 
-      watchers.first(:user_id => new_watcher[:id],
-                     :repo_id => project[:id])
+      w
     end
 
     ##
