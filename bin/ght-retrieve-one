@@ -1,6 +1,0 @@
-#!/usr/bin/env ruby
-
-require 'rubygems'
-require 'ghtorrent'
-
-GHTRetrieveOne.run(ARGV)
