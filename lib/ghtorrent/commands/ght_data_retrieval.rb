@@ -35,7 +35,6 @@ If event_id is provided, only this event is processed.
   end
 
   def ght
-    #@gh ||= GHTorrent::Mirror.new(@settings)
     @gh ||= TransactedGHTorrent.new(settings)
     @gh
   end
@@ -64,7 +63,9 @@ If event_id is provided, only this event is processed.
       if event.nil?
         warn "No event with id: #{ARGV[0]}"
       else
+        start = Time.now
         send(event['type'], event)
+        info "Success processing event. Type: #{event['type']}, ID: #{event['id']}, Time: #{Time.now.to_ms - start.to_ms} ms"
       end
       return
     end

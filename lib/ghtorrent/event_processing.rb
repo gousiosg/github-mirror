@@ -1,6 +1,8 @@
 module GHTorrent
   module EventProcessing
 
+    include GHTorrent::Retriever
+
     def persister
       raise 'Unimplemented'
     end
@@ -20,6 +22,44 @@ module GHTorrent
 
         ght.ensure_commit(url[5], url[7], url[4])
       end
+
+      # Take care of pushes with more than 20 commits
+      # Retrieve commits after the until we find one that is registered with the current repo
+      if data['payload']['commits'].size >= 20
+        info "PushEvent #{data['id']} has >= 20 commits."
+
+        owner        = data['repo']['name'].split(/\//)[0]
+        repo         = data['repo']['name'].split(/\//)[1]
+        last_sha     = data['payload']['commits'].last['url'].split(/\//)[7]
+        push_commits = data['payload']['commits'].map { |x| x['sha'] }
+
+        while true
+          commits = retrieve_commits(repo, last_sha, owner, 1)
+          return if commits.size <= 1 and commits[0]['sha'] == last_sha
+
+          commits.each do |c|
+            url = c['url'].split(/\//)
+            next if push_commits.include? url[7]
+
+            sha_not_exist = ght.db.from(:commits, :project_commits, :projects, :users).\
+                            where(:projects__id => :project_commits__project_id).\
+                            where(:commits__id => :project_commits__commit_id).\
+                            where(:projects__owner_id => :users__id).\
+                            where(:projects__name => url[5]).\
+                            where(:users__login => url[4]).\
+                            where(:commits__sha => url[7]).all.empty?
+
+            if not sha_not_exist
+              debug "Commit #{url[7]} already registered with #{url[4]}/#{url[5]}."
+              return
+            end
+
+            ght.ensure_commit(url[5], url[7], url[4])
+            last_sha = url[7]
+          end
+        end
+      end
+
     end
 
     def WatchEvent(e)
