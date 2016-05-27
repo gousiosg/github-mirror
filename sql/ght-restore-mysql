@@ -81,7 +81,7 @@ for f in $dumpDir/*.csv ; do
 done
 
 # 3. Create indexes
-if [ ! -e $dumpDir/schema.sql ]; then
+if [ ! -e $dumpDir/indexes.sql ]; then
   echo "Cannot find $dumpDir/indexes.sql to create DB indexes"
   exit 1
 fi
