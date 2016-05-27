@@ -90,7 +90,7 @@ If event_id is provided, only this event is processed.
 
       info "Binding handler #{h} to routing key evt.#{h}"
 
-      queue.subscribe(:ack => true) do |headers, properties, msg|
+      queue.subscribe(:manual_ack => true) do |headers, properties, msg|
         start = Time.now
         begin
           data = retrieve_event(msg)
