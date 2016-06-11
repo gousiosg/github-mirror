@@ -85,8 +85,10 @@ module GHTorrent
     #         starts from what the project considers as master branch.
     # [return_retrieved] Should retrieved commits be returned? If not, memory is
     #                    saved while processing them.
-    def ensure_commits(user, repo, sha = nil, return_retrieved = false)
+    # [pages] Number of commits to retrieve. A negative number means retrieve all
+    def ensure_commits(user, repo, sha = nil, return_retrieved = false, num_commits = -1)
 
+      num_retrieved = 0
       commits = ['foo'] # Dummy entry for simplifying the loop below
       commit_acc = []
       until commits.empty?
@@ -107,9 +109,14 @@ module GHTorrent
           commit_acc = commit_acc << retrieved
         end
 
+        num_retrieved += retrieved.size
+        if num_commits > 0 and num_retrieved >= num_commits
+          break
+        end
+
       end
 
-      commit_acc.select{|x| !x.nil?}
+      commit_acc.flatten.select{|x| !x.nil?}
     end
 
     ##
@@ -561,6 +568,12 @@ module GHTorrent
         else
           repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => parent[:id])
           info "Repo #{user}/#{repo} is a fork of #{parent_owner}/#{parent_repo}"
+
+          forked_commit = ensure_forked_commit(user, repo)
+          unless forked_commit.nil?
+            repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_commit_id => forked_commit[:id])
+            info "Repo #{user}/#{repo} was forked at #{parent_owner}/#{parent_repo}:#{forked_commit[:sha]}"
+          end
         end
       end
 
@@ -713,6 +726,58 @@ module GHTorrent
       ensure
         watchdog.exit
       end
+    end
+
+    # Retrieve and return the commit at which the provided fork was forked at
+    def ensure_forked_commit(owner, repo)
+
+      fork = ensure_repo(owner, repo, false)
+
+      if fork[:forked_from].nil?
+        warn "Repo #{owner}/#{repo} is not a fork"
+        return nil
+      end
+
+      # Return commit if already specified
+      unless fork[:forked_commit_id].nil?
+        commit = db[:commits].where(:id => fork[:forked_commit_id]).first
+        return commit unless commit.nil?
+      end
+
+      parent = db.from(:projects, :users).\
+                where(:projects__owner_id => :users__id).\
+                where(:projects__id => fork[:forked_from]).\
+                select(:users__login, :projects__name).first
+
+      if parent.nil?
+        warn "Unknown parent for repo #{owner}/#{repo}"
+        return nil
+      end
+
+      times = 1
+      found = false
+      forked_sha = nil
+      while not found and times <= 100
+        forked_commits = ensure_commits(owner, repo, 'master',
+                                        return_retrieved = true,
+                                        commits          = (10 * times))
+
+        parent_commits = ensure_commits(parent[:login], parent[:name], 'master',
+                                        return_retrieved = true, commits = 10 * times)
+
+        forked_commits.each do |c|
+          common_commits = parent_commits.select { |pc| pc[:sha] == c[:sha] }
+          unless common_commits.empty?
+            forked_sha = common_commits.first[:sha]
+            found      = true
+            break
+          end
+        end
+        times += 1
+      end
+
+      db[:project_commits].where(:project_commits__project_id => fork[:id]).delete
+      db[:commits].where(:sha => forked_sha).first
     end
 
     ##

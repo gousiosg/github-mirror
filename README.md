@@ -9,7 +9,7 @@ GHTorrent can be used for a variety of purposes, such as:
 
 * Mirror the Github API event stream and follow links from events to actual data
  to gradually build a [Github index](http://ghtorrent.org/)
-* Create a queriable metadata index for a specific repository
+* Create a queriable metadata database for a specific repository
 * Construct a data source for [extracting process analytics](http://www.gousios.gr/blog/ghtorrent-project-statistics/) (see for example [those](http://ghtorrent.org/pullreq-perf/)) for one or more repositories
 
 ## Components
@@ -31,10 +31,10 @@ the retriever in order to update an SQL database (see [schema](http://ghtorrent.
 
 The Persister and GHTorrent components have configurable back ends:
 
-* **Persister:** Either uses MongoDB > 2.0 (`mongo` driver) or no persister (`noop` driver)
+* **Persister:** Either uses MongoDB > 3.0 (`mongo` driver) or no persister (`noop` driver)
 * **GHTorrent:** GHTorrent is tested mainly with MySQL and SQLite, but can theoretically be used with any SQL database compatible with [Sequel](http://sequel.rubyforge.org/rdoc/files/doc/opening_databases_rdoc.html). Your milaege may vary.
 
-For distributed mirroring you also need RabbitMQ >= 3
+For distributed mirroring you also need RabbitMQ >= 3.3
 
 ## Installation
 

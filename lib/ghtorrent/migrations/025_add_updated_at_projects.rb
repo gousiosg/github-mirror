@@ -10,7 +10,7 @@ Sequel.migration do
 
     if defined?(Sequel::SQLite)
       add_column :projects, :updated_at, DateTime,
-                 :null => false, :default => 0
+                 :null => false, :default => 56400
     else
       add_column :projects, :updated_at, DateTime,
                  :null => false, :default => Sequel::CURRENT_TIMESTAMP
