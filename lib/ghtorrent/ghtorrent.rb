@@ -211,58 +211,58 @@ module GHTorrent
       # with any account in Github.
       login = githubuser['login'] unless githubuser.nil?
 
-      if login.nil?
-        ensure_user("#{name}<#{email}>", false, false)
-      else
-        dbuser = users.first(:login => login)
-        byemail = users.first(:email => email)
-        if dbuser.nil?
-          # We do not have the user in the database yet. Add him
-          added = ensure_user(login, false, false)
+      return ensure_user("#{name}<#{email}>", false, false) if login.nil?
 
-          # A commit user can be found by email but not
-          # by the user name he used to commit. This probably means that the
-          # user has probably changed his user name. Treat the user's by-email
-          # description as valid.
-          if added.nil? and not byemail.nil?
-            warn "Found user #{byemail[:login]} with same email #{email} as non existing user #{login}. Assigning user #{login} to #{byemail[:login]}"
-            return users.first(:login => byemail[:login])
-          end
+      dbuser = users.first(:login => login)
+      byemail = users.first(:email => email)
 
-          # This means that the user's login has been associated with a
-          # Github user by the time the commit was done (and hence Github was
-          # able to associate the commit to an account), but afterwards the
-          # user has deleted his account (before GHTorrent processed it).
-          # On absense of something better to do, try to find the user by email
-          # and return a "fake" user entry.
-          if added.nil?
-            warn "User account for user #{login} deleted from Github"
-            return ensure_user("#{name}<#{email}>", false, false)
-          end
+      if dbuser.nil?
+        # We do not have the user in the database yet
+        added = ensure_user(login, false, false)
 
-          if byemail.nil?
-            users.filter(:login => login).update(:name => name) if added[:name].nil?
-            users.filter(:login => login).update(:email => email) if added[:email].nil?
-          else
-            # There is a previous entry for the user, currently identified by
-            # email. This means that the user has updated his account and now
-            # Github is able to associate his commits with his git credentials.
-            # As the previous entry might have already associated records, just
-            # delete the new one and update the existing with any extra data.
-            users.filter(:login => login).delete
-            users.filter(:email => email).update(
-                :login => login,
-                :company => added['company'],
-                :location => added['location'],
-                :created_at => added['created_at']
-            )
-          end
-        else
-          users.filter(:login => login).update(:name => name) if dbuser[:name].nil?
-          users.filter(:login => login).update(:email => email) if dbuser[:email].nil?
+        # A commit user can be found by email but not
+        # by the user name he used to commit. This probably means that the
+        # user has probably changed his user name. Treat the user's by-email
+        # description as valid.
+        if added.nil? and not byemail.nil?
+          warn "Found user #{byemail[:login]} with same email #{email} as non existing user #{login}. Assigning user #{login} to #{byemail[:login]}"
+          return users.first(:login => byemail[:login])
         end
-        users.first(:login => login)
+
+        # This means that the user's login has been associated with a
+        # Github user by the time the commit was done (and hence Github was
+        # able to associate the commit to an account), but afterwards the
+        # user has deleted his account (before GHTorrent processed it).
+        # On absense of something better to do, try to find the user by email
+        # and return a "fake" user entry.
+        if added.nil?
+          warn "User account for user #{login} deleted from Github"
+          return ensure_user("#{name}<#{email}>", false, false)
+        end
+
+        if byemail.nil?
+          users.filter(:login => login).update(:name => name) if added[:name].nil?
+          users.filter(:login => login).update(:email => email) if added[:email].nil?
+        else
+          # There is a previous entry for the user, currently identified by
+          # email. This means that the user has updated his account and now
+          # Github is able to associate his commits with his git credentials.
+          # As the previous entry might have already associated records, just
+          # delete the new one and update the existing with any extra data.
+          users.filter(:login => login).delete
+          users.filter(:email => email).update(
+              :login => login,
+              :company => added['company'],
+              :location => added['location'],
+              :created_at => added['created_at']
+          )
+        end
+      else
+        users.filter(:login => login).update(:name => name) if dbuser[:name].nil?
+        users.filter(:login => login).update(:email => email) if dbuser[:email].nil?
       end
+      users.first(:login => login)
+
     end
 
     ##
