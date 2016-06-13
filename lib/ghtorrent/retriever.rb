@@ -577,6 +577,24 @@ module GHTorrent
       persister.find(:events, {'id' => id})
     end
 
+    # Retrieve diff between to branches. If either branch name is not provided
+    # the branch name is resolved to the corresponding default branch
+    def retrieve_master_branch_diff(owner, repo, branch, parent_owner, parent_repo, parent_branch)
+      branch   = retrieve_default_branch(owner, repo) if branch.nil?
+      parent_branch = retrieve_default_branch(parent_owner, parent_repo) if parent_branch.nil?
+
+      cmp_url = "https://api.github.com/repos/#{parent_owner}/#{parent_repo}/compare/#{parent_branch}...#{owner}:#{branch}"
+      api_request(cmp_url)
+    end
+
+    # Retrieve the default branch for a repo. If nothing is retrieve, 'master' is returned
+    def retrieve_default_branch(owner, repo)
+      retrieved = retrieve_repo(owner, repo)
+      master_branch = 'master'
+      master_branch = retrieved['default_branch'] unless retrieved.nil?
+      master_branch
+    end
+
     private
 
     def restricted_page_request(url, pages)

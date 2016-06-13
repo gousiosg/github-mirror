@@ -51,6 +51,13 @@ mirror:
   # Time to wait between geo location API requests
   geoloc_wait: 2
 
+  # Strategy for fork commits:
+  #  'all': Retrieve all commits for all forks
+  #  'fork_point': Retrieve all commits up to the fork point (remaining ones are shared with parent)
+  #  'none': Retrieve no commits for forks
+  # Default is 'fork_point'
+  fork_commits: fork_point
+
 mongo:
   host: 127.0.0.1      # Mongo's IP addr
   port: 27017          # Mongo's port

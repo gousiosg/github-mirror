@@ -579,7 +579,7 @@ module GHTorrent
 
       info "Added repo #{user}/#{repo}"
 
-      ensure_repo_recursive(owner, repo, !r['parent'].nil?) if recursive
+      ensure_repo_recursive(user, repo, !r['parent'].nil?) if recursive
 
       repos.first(:owner_id => curuser[:id], :name => repo)
     end
@@ -642,90 +642,79 @@ module GHTorrent
       parent = ensure_repo(parent_owner, parent_repo)
 
       if parent.nil?
-        warn "Could not find repo #{owner}/#{repo}, parent of #{owner}/#{repo}"
+        warn "Could not find repo #{parent_owner}/#{parent_repo}, parent of #{owner}/#{repo}"
         return
       end
 
-      watchdog = Thread.new do
-        slept = 0
-        while true do
-          debug "In ensure_fork_commits (#{owner}/#{repo} fork from #{parent_owner}/#{parent_repo}) for #{slept} seconds"
-          sleep 1
-          slept += 1
+      fork_commit = ensure_forked_commit(owner, repo)
+
+      if fork_commit.nil? or fork_commit.empty?
+        warn "Cannot find fork commit for repo #{owner}/#{repo}"
+        return
+      end
+
+      strategy = case
+                   when config(:fork_commits).match(/all/i)
+                     :all
+                   when config(:fork_commits).match(/fork_point/i)
+                     :fork_point
+                   when config(:fork_commits).match(/none/i)
+                     :none
+                   else
+                     :fork_point
+                 end
+
+      debug "Retrieving commits for fork #{owner}/#{repo}: strategy is #{strategy}"
+      return if strategy == :none
+
+      # Retrieve commits up to fork point (fork_commit strategy)
+      info "Retrieving commits for #{owner}/#{repo} until fork commit #{fork_commit[:sha]}"
+      master_branch = retrieve_default_branch(parent_owner, parent_repo)
+      diff          = retrieve_master_branch_diff(owner, repo, master_branch, parent_owner, parent_repo, master_branch)
+
+      if diff.nil?
+        warn "Could not find branch differences between #{owner}/#{repo}:#{master_branch} and  #{parent_owner}/#{parent_repo}:#{master_branch}"
+        return
+      end
+
+      commits_to_retrieve = diff['ahead_by'].to_i
+
+      sha       = master_branch
+      retrieved = 0
+      while commits_to_retrieve > 0 and retrieved < commits_to_retrieve
+        commits = retrieve_commits(repo, sha, owner, 1)
+        for c in commits
+          ensure_commit(repo, c['sha'], owner)
+          retrieved += 1
+          sha = c['sha']
+          break if retrieved > commits_to_retrieve and c['sha'] == fork_commit[:sha]
         end
       end
-      begin
-        info "Retrieving commits for #{owner}/#{repo} until we reach a commit shared with the parent"
 
-        sha = nil
-      # Refresh the latest commits for the parent.
-        retrieve_commits(parent_repo, sha, parent_owner, 1).each do |c|
-          sha = c['sha']
-          ensure_commit(parent_repo, sha, parent_owner)
-        end
-
-        sha = nil
-        found = false
-        while not found
-          processed = 0
-          commits = retrieve_commits(repo, sha, owner, 1)
-
-          # If only one commit has been retrieved (and this is the same as
-          # the commit since which we query commits from) this mean that
-          # there are no more commits.
-          if commits.size == 1 and commits[0]['sha'] == sha
-            info "Could not find shared commit and no more commits for #{owner}/#{repo}"
-            break
-          end
-
-          for c in commits
-            processed += 1
-            exists_in_parent =
-                !db.from(:project_commits, :commits).\
-                         where(:project_commits__commit_id => :commits__id).\
-                         where(:project_commits__project_id => parent[:id]).\
-                         where(:commits__sha => c['sha']).first.nil?
-
-            sha = c['sha']
-            if exists_in_parent
-              found = true
-              info "Found commit #{sha} shared with parent, switching to copying commits"
-              break
-            else
-              ensure_commit(repo, sha, owner)
-            end
-          end
-
-          if processed == 0
-            warn "Could not find commits for #{owner}/#{repo}, repo deleted?"
-            break
-          end
-        end
-
-        if found
-          shared_commit = db[:commits].first(:sha => sha)
-          copied = 0
-          db.from(:project_commits, :commits).\
+      if strategy == :all
+        shared_commit = db[:commits].first(:sha => fork_commit[:sha])
+        copied        = 0
+        to_copy = db.from(:project_commits, :commits).\
                   where(:project_commits__commit_id => :commits__id).\
                   where(:project_commits__project_id => parent[:id]).\
                   where('commits.created_at < ?', shared_commit[:created_at]).\
-                  select(:commits__id, :commits__sha).\
-              each do |c|
-                copied += 1
-                begin
-                  db[:project_commits].insert(
-                      :project_id => currepo[:id],
-                      :commit_id => c[:id]
-                  )
-                  info "Copied commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} (#{copied} total)"
-                rescue StandardError => e
-                  warn "Could not copy commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} : #{e.message}"
-                end
-              end
+                  select(:commits__id)
+
+        to_copy.each do |c|
+          copied += 1
+          begin
+            db[:project_commits].insert(
+                :project_id => c[:id],
+                :commit_id  => currepo[:id]
+            )
+            debug "Copied commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} (#{copied} total)"
+          rescue StandardError => e
+            warn "Could not copy commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} : #{e.message}"
+          end
         end
-      ensure
-        watchdog.exit
+        info "Finished copying commits from #{parent_owner}/#{parent_repo} -> #{owner}/#{repo}: #{copied} total"
       end
+
     end
 
     # Retrieve and return the commit at which the provided fork was forked at
@@ -754,17 +743,10 @@ module GHTorrent
         return nil
       end
 
-      # Make sure the parent repo exists
-      ensure_repo(parent[:login], parent[:name], false)
-
-      # Trying to get the master branch name for parent
-      retrieved = retrieve_repo(parent[:login], parent[:name])
-      master_branch = 'master'
-      master_branch = retrieved['default_branch'] unless retrieved.nil?
+      default_branch = retrieve_default_branch(parent[:login], parent[:name])
 
       # Retrieve diff between parent and fork master branch
-      cmp_url = "https://api.github.com/repos/#{parent[:login]}/#{parent[:name]}/compare/#{master_branch}...#{owner}:#{master_branch}"
-      cmp = api_request(cmp_url)
+      cmp = retrieve_master_branch_diff(owner, repo, default_branch, parent[:login], parent[:name], default_branch)
       debug "Fork #{owner}/#{repo} is #{cmp['ahead_by']} commits ahead and #{cmp['behind_by']} commits behind #{parent[:login]}/#{parent[:name]}"
 
       forked_sha = cmp['merge_base_commit']['sha']
@@ -1396,7 +1378,7 @@ module GHTorrent
       fork_owner = fork['full_name'].split(/\//)[0]
       fork_name = fork['full_name'].split(/\//)[1]
 
-      r = ensure_repo(fork_owner, fork_name)
+      r = ensure_repo(fork_owner, fork_name, true)
 
       if r.nil?
         warn "Could not add #{fork_owner}/#{fork_name} as fork of #{owner}/#{repo}"
