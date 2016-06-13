@@ -754,29 +754,23 @@ module GHTorrent
         return nil
       end
 
-      times = 1
-      found = false
-      forked_sha = nil
-      while not found and times <= 100
-        forked_commits = ensure_commits(owner, repo, 'master',
-                                        return_retrieved = true,
-                                        commits          = (10 * times))
+      # Make sure the parent repo exists
+      ensure_repo(parent[:login], parent[:name], false)
 
-        parent_commits = ensure_commits(parent[:login], parent[:name], 'master',
-                                        return_retrieved = true, commits = 10 * times)
+      # Trying to get the master branch name for parent
+      retrieved = retrieve_repo(parent[:login], parent[:name])
+      master_branch = 'master'
+      master_branch = retrieved['default_branch'] unless retrieved.nil?
 
-        forked_commits.each do |c|
-          common_commits = parent_commits.select { |pc| pc[:sha] == c[:sha] }
-          unless common_commits.empty?
-            forked_sha = common_commits.first[:sha]
-            found      = true
-            break
-          end
-        end
-        times += 1
-      end
+      # Retrieve diff between parent and fork master branch
+      cmp_url = "https://api.github.com/repos/#{parent[:login]}/#{parent[:name]}/compare/#{master_branch}...#{owner}:#{master_branch}"
+      cmp = api_request(cmp_url)
+      debug "Fork #{owner}/#{repo} is #{cmp['ahead_by']} commits ahead and #{cmp['behind_by']} commits behind #{parent[:login]}/#{parent[:name]}"
 
-      db[:project_commits].where(:project_commits__project_id => fork[:id]).delete
+      forked_sha = cmp['merge_base_commit']['sha']
+      debug "Fork commit for #{owner}/#{repo} is #{forked_sha}"
+
+      ensure_commit(parent[:name], forked_sha, parent[:login])
       db[:commits].where(:sha => forked_sha).first
     end
 
