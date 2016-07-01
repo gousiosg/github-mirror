@@ -24,6 +24,7 @@ create user ghtorrentuser@'*' identified by 'ghtorrentpassword';
 create database ghtorrent_restore;
 grant all privileges on ghtorrent_restore.* to 'ghtorrentuser'@'localhost';
 grant all privileges on ghtorrent_restore.* to 'ghtorrentuser'@'*';
+grant file on *.* to 'ghtorrentuser'@'localhost';
 ```
 ### Run the restore process
 
