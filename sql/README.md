@@ -15,6 +15,14 @@ wget http://ghtorrent.org/downloads/mysql.latest.tar.gz
 tar zxvf mysql.latest.tar.gz
 ```
 
+If you have a reliable internet connection you can avoid the overhead of
+storing the compressed file.
+
+```bash
+curl http://ghtorrent.org/downloads/mysql.latest.tar.gz |
+tar zxvf -
+```
+
 ### Create a MySQL user
 Create a MySQL user with permissions to create new schemata, for example:
 
@@ -24,6 +32,7 @@ create user ghtorrentuser@'*' identified by 'ghtorrentpassword';
 create database ghtorrent_restore;
 grant all privileges on ghtorrent_restore.* to 'ghtorrentuser'@'localhost';
 grant all privileges on ghtorrent_restore.* to 'ghtorrentuser'@'*';
+grant file on *.* to 'ghtorrentuser'@'localhost';
 ```
 ### Run the restore process
 
