@@ -58,6 +58,10 @@ mirror:
   # Default is 'fork_point'
   fork_commits: fork_point
 
+  # Whether or not you would like to store data in the pull_request_commits collection in Mongo.
+  # Default is 'false'
+  store_pull_request_commits: false
+
 mongo:
   host: 127.0.0.1      # Mongo's IP addr
   port: 27017          # Mongo's port

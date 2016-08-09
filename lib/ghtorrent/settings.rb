@@ -23,6 +23,7 @@ module GHTorrent
         :mirror_history_pages_back => 'mirror.history_pages_back',
         :uniq_id => 'mirror.uniq_id',
         :user_agent => 'mirror.user_agent',
+        :store_pull_request_commits => 'mirror.store_pull_request_commits',
 
         :github_token => 'mirror.token',
 
@@ -52,6 +53,7 @@ module GHTorrent
         :mirror_persister => 'noop',
         :mirror_history_pages_back => 10,
         :user_agent => 'ghtorrent',
+        :store_pull_request_commits => 'false',
 
         :github_token => '',
 

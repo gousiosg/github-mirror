@@ -5,7 +5,7 @@ module GHTorrent
     ENTITIES = [:users, :commits, :followers, :repos, :events, :org_members,
         :commit_comments, :repo_collaborators, :watchers, :pull_requests,
         :forks, :pull_request_comments, :issue_comments, :issues, :issue_events,
-        :repo_labels, :geo_cache
+        :repo_labels, :geo_cache, :pull_request_commits
     ].sort
 
     # Stores +data+ into +entity+. Returns a unique key for the stored entry.

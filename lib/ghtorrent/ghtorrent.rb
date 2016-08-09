@@ -1221,7 +1221,7 @@ module GHTorrent
                                     'closed', closer) if (closed && state != 'closed')
         ensure_pull_request_history(pull_req[:id], date(created_at), state, actor) unless state.nil?
       end
-      ensure_pull_request_commits(owner, repo, pullreq_id, pull_req) if commits
+      ensure_pull_request_commits(owner, repo, pullreq_id, pull_req, retrieved) if commits
       ensure_pullreq_comments(owner, repo, pullreq_id, pull_req) if comments
       ensure_issue_comments(owner, repo, pullreq_id, pull_req[:id]) if comments
 
@@ -1301,7 +1301,7 @@ module GHTorrent
       end
     end
 
-    def ensure_pull_request_commits(owner, repo, pullreq_id, pr_obj)
+    def ensure_pull_request_commits(owner, repo, pullreq_id, pr_obj, retrieved_pull)
       pullreq = pr_obj
       pullreq = ensure_pull_request(owner, repo, pullreq_id, false, false, false) if pr_obj.nil?
 
@@ -1315,6 +1315,12 @@ module GHTorrent
         head_repo_owner = c['url'].split(/\//)[4]
         head_repo_name = c['url'].split(/\//)[5]
         x = ensure_commit(head_repo_name, c['sha'], head_repo_owner)
+        if config(:store_pull_request_commits) == true
+          pull_commit = retrieve_pull_request_commit(retrieved_pull, repo, c['sha'], owner)
+          if pull_commit.nil?
+            warn "Could not find pull request commit with sha -> #{c['sha']}"
+          end
+        end
         acc << x unless x.nil?
         acc
       }.map do |c|

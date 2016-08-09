@@ -153,6 +153,29 @@ module GHTorrent
       persister.find(:followers, {'login' => user})
     end
 
+    def retrieve_pull_request_commit(pr_obj, repo, sha, user)
+      pull_commit = persister.find(:pull_request_commits, {'sha' => "#{sha}"})
+
+      if pull_commit.empty?
+        commit = retrieve_commit(repo, sha, user)
+
+        unless commit.nil?
+          commit.delete(nil)
+          commit.delete(:_id)
+          commit.delete('_id')
+          commit['pull_request_id'] = pr_obj[:id]
+          persister.store(:pull_request_commits, commit)
+          info "Added commit #{user}/#{repo} -> #{sha} with pull_id #{pr_obj['id']}"
+          commit
+        else
+          return
+        end
+      else
+        debug "Pull request commit #{user}/#{repo} -> #{sha} exists for pull id #{pr_obj['id']}"
+        pull_commit.first
+      end
+    end
+
     # Retrieve a single commit from a repo
     def retrieve_commit(repo, sha, user)
       commit = persister.find(:commits, {'sha' => "#{sha}"})
