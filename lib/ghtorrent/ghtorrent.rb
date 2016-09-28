@@ -88,6 +88,15 @@ module GHTorrent
     # [pages] Number of commits to retrieve. A negative number means retrieve all
     def ensure_commits(user, repo, sha = nil, return_retrieved = false, num_commits = -1)
 
+      currepo = ensure_repo(user, repo)
+      unless currepo[:forked_from].nil? or currepo[:forked_commit_id].nil?
+        r            = retrieve_repo(user, repo)
+        parent_owner = r['parent']['owner']['login']
+        parent_repo  = r['parent']['name']
+        ensure_fork_commits(user, repo, parent_owner, parent_repo)
+        return
+      end
+
       num_retrieved = 0
       commits = ['foo'] # Dummy entry for simplifying the loop below
       commit_acc = []
@@ -569,7 +578,7 @@ module GHTorrent
           repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => parent[:id])
           info "Repo #{user}/#{repo} is a fork of #{parent_owner}/#{parent_repo}"
 
-          forked_commit = ensure_forked_commit(user, repo)
+          forked_commit = ensure_fork_point(user, repo)
           unless forked_commit.nil?
             repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_commit_id => forked_commit[:id])
             info "Repo #{user}/#{repo} was forked at #{parent_owner}/#{parent_repo}:#{forked_commit[:sha]}"
@@ -579,23 +588,14 @@ module GHTorrent
 
       info "Added repo #{user}/#{repo}"
 
-      ensure_repo_recursive(user, repo, !r['parent'].nil?) if recursive
+      ensure_repo_recursive(user, repo) if recursive
 
       repos.first(:owner_id => curuser[:id], :name => repo)
     end
 
-    def ensure_repo_recursive(owner, repo, is_fork)
+    def ensure_repo_recursive(owner, repo)
 
-      if is_fork
-        r = retrieve_repo(owner, repo)
-        parent_owner = r['parent']['owner']['login']
-        parent_repo = r['parent']['name']
-        ensure_fork_commits(owner, repo, parent_owner, parent_repo)
-      else
-        ensure_commits(owner, repo)
-      end
-
-      functions = %w(ensure_labels ensure_pull_requests
+      functions = %w(ensure_commits ensure_labels ensure_pull_requests
        ensure_issues ensure_watchers ensure_forks ensure_languages)
 
       functions.each do |x|
@@ -646,13 +646,6 @@ module GHTorrent
         return
       end
 
-      fork_commit = ensure_forked_commit(owner, repo)
-
-      if fork_commit.nil? or fork_commit.empty?
-        warn "Cannot find fork commit for repo #{owner}/#{repo}"
-        return
-      end
-
       strategy = case
                    when config(:fork_commits).match(/all/i)
                      :all
@@ -664,35 +657,45 @@ module GHTorrent
                      :fork_point
                  end
 
+      fork_commit = ensure_fork_point(owner, repo)
+
+      if fork_commit.nil? or fork_commit.empty?
+        warn "Cannot find fork commit for repo #{owner}/#{repo}. Retrieving all commits."
+        return ensure_commits(owner, repo)
+      end
+
       debug "Retrieving commits for fork #{owner}/#{repo}: strategy is #{strategy}"
       return if strategy == :none
 
-      # Retrieve commits up to fork point (fork_commit strategy)
-      info "Retrieving commits for #{owner}/#{repo} until fork commit #{fork_commit[:sha]}"
-      master_branch = retrieve_default_branch(parent_owner, parent_repo)
-      diff          = retrieve_master_branch_diff(owner, repo, master_branch, parent_owner, parent_repo, master_branch)
+      if strategy == :fork_point
+        # Retrieve commits up to fork point (fork_commit strategy)
+        info "Retrieving commits for #{owner}/#{repo} until fork commit #{fork_commit[:sha]}"
+        master_branch = retrieve_default_branch(parent_owner, parent_repo)
+        diff          = retrieve_master_branch_diff(owner, repo, master_branch, parent_owner, parent_repo, master_branch)
 
-      if diff.nil?
-        warn "Could not find branch differences between #{owner}/#{repo}:#{master_branch} and  #{parent_owner}/#{parent_repo}:#{master_branch}"
-        return
-      end
+        if diff.nil?
+          warn "Could not find branch differences between #{owner}/#{repo}:#{master_branch} and  #{parent_owner}/#{parent_repo}:#{master_branch}"
+          return
+        end
 
-      commits_to_retrieve = diff['ahead_by'].to_i
+        commits_to_retrieve = diff['ahead_by'].to_i
 
-      sha       = master_branch
-      retrieved = 0
-      while commits_to_retrieve > 0 and retrieved < commits_to_retrieve
-        commits = retrieve_commits(repo, sha, owner, 1)
-        for c in commits
-          ensure_commit(repo, c['sha'], owner)
-          retrieved += 1
-          sha = c['sha']
-          break if retrieved > commits_to_retrieve and c['sha'] == fork_commit[:sha]
+        sha       = master_branch
+        retrieved = 0
+        while commits_to_retrieve > 0 and retrieved < commits_to_retrieve
+          commits = retrieve_commits(repo, sha, owner, 1)
+          for c in commits
+            ensure_commit(repo, c['sha'], owner)
+            retrieved += 1
+            sha = c['sha']
+            break if retrieved >= commits_to_retrieve and c['sha'] == fork_commit[:sha]
+          end
         end
       end
 
       if strategy == :all
-        shared_commit = db[:commits].first(:sha => fork_commit[:sha])
+
+        shared_commit = db[:commits].first(:sha => fork_commit)
         copied        = 0
         to_copy = db.from(:project_commits, :commits).\
                   where(:project_commits__commit_id => :commits__id).\
@@ -704,8 +707,8 @@ module GHTorrent
           copied += 1
           begin
             db[:project_commits].insert(
-                :project_id => c[:id],
-                :commit_id  => currepo[:id]
+                :project_id => currepo[:id],
+                :commit_id  => c[:id]
             )
             debug "Copied commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} (#{copied} total)"
           rescue StandardError => e
@@ -718,7 +721,7 @@ module GHTorrent
     end
 
     # Retrieve and return the commit at which the provided fork was forked at
-    def ensure_forked_commit(owner, repo)
+    def ensure_fork_point(owner, repo)
 
       fork = ensure_repo(owner, repo, false)
 
@@ -747,7 +750,15 @@ module GHTorrent
 
       # Retrieve diff between parent and fork master branch
       cmp = retrieve_master_branch_diff(owner, repo, default_branch, parent[:login], parent[:name], default_branch)
-      debug "Fork #{owner}/#{repo} is #{cmp['ahead_by']} commits ahead and #{cmp['behind_by']} commits behind #{parent[:login]}/#{parent[:name]}"
+      if cmp.empty?
+        # This means that the are no common ancestors between the repos
+        # This can apparently happen when the parent repo was renamed or force-pushed
+        # example: https://github.com/openzipkin/zipkin/compare/master...aa1wi:master
+        warn "No common ancestor between #{parent[:login]}/#{parent[:name]} and #{owner}/#{repo}"
+        return nil
+      else
+        debug "Fork #{owner}/#{repo} is #{cmp['ahead_by']} commits ahead and #{cmp['behind_by']} commits behind #{parent[:login]}/#{parent[:name]}"
+      end
 
       forked_sha = cmp['merge_base_commit']['sha']
       debug "Fork commit for #{owner}/#{repo} is #{forked_sha}"
@@ -1375,8 +1386,9 @@ module GHTorrent
         return
       end
 
-      fork_owner = fork['full_name'].split(/\//)[0]
-      fork_name = fork['full_name'].split(/\//)[1]
+      fork_name = if fork['full_name'].nil? then fork['url'].split(/\//)[4..5].join('/') else fork['full_name'] end
+      fork_owner = fork_name.split(/\//)[0]
+      fork_name = fork_name.split(/\//)[1]
 
       r = ensure_repo(fork_owner, fork_name, true)
 
