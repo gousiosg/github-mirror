@@ -577,7 +577,7 @@ module GHTorrent
       persister.find(:events, {'id' => id})
     end
 
-    # Retrieve diff between to branches. If either branch name is not provided
+    # Retrieve diff between two branches. If either branch name is not provided
     # the branch name is resolved to the corresponding default branch
     def retrieve_master_branch_diff(owner, repo, branch, parent_owner, parent_repo, parent_branch)
       branch   = retrieve_default_branch(owner, repo) if branch.nil?
@@ -606,7 +606,7 @@ module GHTorrent
     end
 
     def repo_bound_items(user, repo, entity, urls, selector, discriminator,
-        item_id = nil, refresh = false, order = :asc)
+        item_id = nil, refresh = false, order = :asc, media_type = '')
 
        urls.each do |url|
         total_pages = num_pages(ghurl url)
@@ -618,7 +618,7 @@ module GHTorrent
                      end
 
         page_range.each do |page|
-          items = api_request(ghurl(url, page))
+          items = api_request(ghurl(url, page), media_type)
 
           items.each do |x|
             x['repo'] = repo
@@ -629,7 +629,7 @@ module GHTorrent
             exists = !instances.empty?
 
             unless exists
-              x = api_request(x['url'])
+              x = api_request(x['url'], media_type)
               x['repo'] = repo
               x['owner'] = user
               persister.store(entity, x)
@@ -678,12 +678,12 @@ module GHTorrent
     end
 
     def repo_bound_item(user, repo, item_id, entity, url, selector,
-                        discriminator, order = :asc)
+                        discriminator, order = :asc, media_type = '')
       stored_item = repo_bound_instance(entity, selector, discriminator, item_id)
 
       r = if stored_item.empty?
             repo_bound_items(user, repo, entity, url, selector, discriminator,
-                             item_id, false, order).first
+                             item_id, false, order, media_type).first
           else
             stored_item.first
           end

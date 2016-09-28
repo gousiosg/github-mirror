@@ -48,9 +48,9 @@ module GHTorrent
 
 
     # A normal request. Returns a hash or an array of hashes representing the
-    # parsed JSON result.
-    def api_request(url)
-      parse_request_result api_request_raw(ensure_max_per_page(url))
+    # parsed JSON result. The media type
+    def api_request(url, media_type = '')
+      parse_request_result api_request_raw(ensure_max_per_page(url), media_type)
     end
 
     # Determine the number of pages contained in a multi-page API response
@@ -142,12 +142,12 @@ module GHTorrent
     end
 
     # Do the actual request and return the result object
-    def api_request_raw(url)
+    def api_request_raw(url, media_type = '')
 
       begin
         start_time = Time.now
 
-        contents = do_request(url)
+        contents = do_request(url, media_type)
         total = Time.now.to_ms - start_time.to_ms
         info "Successful request. URL: #{url}, Remaining: #{@remaining}, Total: #{total} ms"
 
@@ -203,7 +203,7 @@ module GHTorrent
       return :none
     end
 
-    def do_request(url)
+    def do_request(url, media_type)
       @attach_ip  ||= config(:attach_ip)
       @token      ||= config(:github_token)
       @user_agent ||= config(:user_agent)
@@ -211,15 +211,18 @@ module GHTorrent
       @reset      ||= Time.now.to_i + 3600
       @auth_type  ||= auth_method(@token)
       @req_limit  ||= config(:req_limit)
+      media_type = 'application/json' unless media_type.size > 0
 
       open_func ||=
           case @auth_type
             when :none
-              lambda {|url| open(url, 'User-Agent' => @user_agent)}
+              lambda {|url| open(url, 'User-Agent' => @user_agent,
+                                      'Accept' => media_type)}
             when :token
               # As per: https://developer.github.com/v3/auth/#via-oauth-tokens
               lambda {|url| open(url, 'User-Agent' => @user_agent,
-                                 'Authorization' => "token #{@token}") }
+                                      'Authorization' => "token #{@token}",
+                                      'Accept' => media_type)}
           end
 
       result = if @attach_ip.nil? or @attach_ip.eql? '0.0.0.0'
