@@ -46,6 +46,8 @@ module GHTorrent
                                    retrieved['parent']['name'])
                  end
 
+        fork_point = ght.ensure_fork_point(owner, repo)
+
         db.from(:projects, :users).\
         where(:projects__owner_id => :users__id).\
         where(:users__login => owner).\
@@ -55,7 +57,8 @@ module GHTorrent
                :projects__language    => retrieved['language'],
                :projects__created_at  => date(retrieved['created_at']),
                :projects__updated_at  => Time.now,
-               :projects__forked_from => unless parent.nil? then parent[:id] end)
+               :projects__forked_from => unless parent.nil? then parent[:id] end,
+               :projects__forked_commit_id => unless fork_point.nil? then fork_point[:id] end)
         info("Repo #{owner}/#{repo} updated")
 
         ght.ensure_languages(owner, repo)
