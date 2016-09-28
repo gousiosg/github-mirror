@@ -220,6 +220,14 @@ module GHTorrent
       # with any account in Github.
       login = githubuser['login'] unless githubuser.nil?
 
+      # web-flow is a special user reserved for web-based commits:
+      # https://api.github.com/users/web-flow
+      # We do not follow the process below as this user's email
+      # (noreply@github.com) clashes other existing users' emails.
+      if login == 'web-flow'
+        return ensure_user_byuname('web-flow')
+      end
+
       return ensure_user("#{name}<#{email}>", false, false) if login.nil?
 
       dbuser = users.first(:login => login)
