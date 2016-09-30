@@ -89,7 +89,7 @@ module GHTorrent
     def ensure_commits(user, repo, sha = nil, return_retrieved = false, num_commits = -1)
 
       currepo = ensure_repo(user, repo)
-      unless currepo[:forked_from].nil? or currepo[:forked_commit_id].nil?
+      unless currepo[:forked_from].nil?
         r            = retrieve_repo(user, repo)
         parent_owner = r['parent']['owner']['login']
         parent_repo  = r['parent']['name']
@@ -587,10 +587,6 @@ module GHTorrent
           info "Repo #{user}/#{repo} is a fork of #{parent_owner}/#{parent_repo}"
 
           forked_commit = ensure_fork_point(user, repo)
-          unless forked_commit.nil?
-            repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_commit_id => forked_commit[:id])
-            info "Repo #{user}/#{repo} was forked at #{parent_owner}/#{parent_repo}:#{forked_commit[:sha]}"
-          end
         end
       end
 
@@ -679,24 +675,24 @@ module GHTorrent
         # Retrieve commits up to fork point (fork_commit strategy)
         info "Retrieving commits for #{owner}/#{repo} until fork commit #{fork_commit[:sha]}"
         master_branch = retrieve_default_branch(parent_owner, parent_repo)
-        diff          = retrieve_master_branch_diff(owner, repo, master_branch, parent_owner, parent_repo, master_branch)
 
-        if diff.nil?
-          warn "Could not find branch differences between #{owner}/#{repo}:#{master_branch} and  #{parent_owner}/#{parent_repo}:#{master_branch}"
-          return
-        end
-
-        commits_to_retrieve = diff['ahead_by'].to_i
-
-        sha       = master_branch
-        retrieved = 0
-        while commits_to_retrieve > 0 and retrieved < commits_to_retrieve
+        sha   = master_branch
+        found = false
+        while not found
           commits = retrieve_commits(repo, sha, owner, 1)
+
+          # This means we retrieved the last page again
+          if commits.size == 1 and commits[0]['sha'] == sha
+            break
+          end
+
           for c in commits
             ensure_commit(repo, c['sha'], owner)
-            retrieved += 1
             sha = c['sha']
-            break if retrieved >= commits_to_retrieve and c['sha'] == fork_commit[:sha]
+            if c['sha'] == fork_commit[:sha]
+              found = true
+              break
+            end
           end
         end
       end
@@ -757,21 +753,49 @@ module GHTorrent
       default_branch = retrieve_default_branch(parent[:login], parent[:name])
 
       # Retrieve diff between parent and fork master branch
-      cmp = retrieve_master_branch_diff(owner, repo, default_branch, parent[:login], parent[:name], default_branch)
-      if cmp.empty?
+      diff = retrieve_master_branch_diff(owner, repo, default_branch, parent[:login], parent[:name], default_branch)
+      if diff.empty?
         # This means that the are no common ancestors between the repos
         # This can apparently happen when the parent repo was renamed or force-pushed
         # example: https://github.com/openzipkin/zipkin/compare/master...aa1wi:master
         warn "No common ancestor between #{parent[:login]}/#{parent[:name]} and #{owner}/#{repo}"
         return nil
       else
-        debug "Fork #{owner}/#{repo} is #{cmp['ahead_by']} commits ahead and #{cmp['behind_by']} commits behind #{parent[:login]}/#{parent[:name]}"
+        debug "Fork #{owner}/#{repo} is #{diff['ahead_by']} commits ahead and #{diff['behind_by']} commits behind #{parent[:login]}/#{parent[:name]}"
       end
 
-      forked_sha = cmp['merge_base_commit']['sha']
+      if diff['ahead_by'].to_i > 0
+        # This means that the fork has diverged, and we need to search through the fork
+        # commit graph for the earliest commit that is shared with the parent. GitHub's
+        # diff contains a list of divergent commits. We are sorting those by date
+        # and select the earliest one. We do date sort instead of graph walking as this
+        # would be prohibetively slow if the commits for the parent did not exist.
+        earliest_diverging = diff['commits'].sort_by{|x| x['commit']['author']['date']}.first
+
+        # Make sure that all likely fork points exist for the parent project
+        # and select the latest of them.
+        # https://github.com/gousiosg/github-mirror/compare/master...pombredanne:master
+        likely_fork_point = earliest_diverging['parents'].\
+            map{ |x| ensure_commit(parent[:name], x['sha'], parent[:login])}.\
+            select{|x| !x.nil?}.\
+            sort_by { |x| x[:created_at]}.\
+            last
+
+        forked_sha  = likely_fork_point[:sha]
+      else
+        # This means that the fork has not diverged.
+        forked_sha = diff['merge_base_commit']['sha']
+      end
+
+      forked_commit = ensure_commit(repo, forked_sha, owner);
+
       debug "Fork commit for #{owner}/#{repo} is #{forked_sha}"
 
-      ensure_commit(parent[:name], forked_sha, parent[:login])
+      unless forked_commit.nil?
+        db[:projects].filter(:id => fork[:id]).update(:forked_commit_id => forked_commit[:id])
+        info "Repo #{owner}/#{repo} was forked at #{parent[:login]}/#{parent[:name]}:#{forked_sha}"
+      end
+
       db[:commits].where(:sha => forked_sha).first
     end
 
