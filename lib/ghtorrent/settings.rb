@@ -30,12 +30,15 @@ module GHTorrent
 
         :rescue_loops => 'mirror.rescue_loops',
         :req_limit => 'mirror.req_limit',
-        :geoloc_wait => 'mirror.geoloc_wait',
         :fork_commits => 'mirror.fork_commits',
 
         :logging_level => 'logging.level',
         :logging_uniq => 'logging.uniq',
-        :logging_file => 'logging.file'
+        :logging_file => 'logging.file',
+
+        :geolocation_service => 'geolocation.service',
+        :geolocation_wait => 'geolocation.wait',
+        :geolocation_bing_key => 'geolocation.bing_key'
     }
 
     DEFAULTS = {
@@ -59,12 +62,15 @@ module GHTorrent
 
         :rescue_loops => 'true',
         :req_limit => 4998,
-        :geoloc_wait => 2,
         :fork_commits => 'fork_point',
 
         :logging_level => 'info',
         :logging_uniq => '',
-        :logging_file => 'stdout'
+        :logging_file => 'stdout',
+
+        :geolocation_service => 'osm',
+        :geolocation_wait => '2',
+        :geolocation_bing_key => ''
     }
 
     def config(key, use_default = true)
