@@ -567,6 +567,11 @@ module GHTorrent
         return
       end
 
+      if r['owner']['login'] != curuser[:login]
+        info "Repo changed owner from #{curuser[:login]} to #{r['owner']['login']}"
+        curuser = ensure_user(r['owner']['login'], false, false)
+      end
+
       repos.insert(:url => r['url'],
                    :owner_id => curuser[:id],
                    :name => r['name'],
