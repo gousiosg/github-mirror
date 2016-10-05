@@ -85,11 +85,13 @@ module GHTorrent
     #         starts from what the project considers as master branch.
     # [return_retrieved] Should retrieved commits be returned? If not, memory is
     #                    saved while processing them.
-    # [pages] Number of commits to retrieve. A negative number means retrieve all
-    def ensure_commits(user, repo, sha = nil, return_retrieved = false, num_commits = -1)
+    # [num_commits] Number of commit to retrieve
+    # [fork_all] Retrieve all commits even if a repo is a fork
+    def ensure_commits(user, repo, sha: nil, return_retrieved: false,
+                       num_commits: -1, fork_all: false)
 
       currepo = ensure_repo(user, repo)
-      unless currepo[:forked_from].nil?
+      unless currepo[:forked_from].nil? or fork_all
         r            = retrieve_repo(user, repo)
         parent_owner = r['parent']['owner']['login']
         parent_repo  = r['parent']['name']
@@ -665,7 +667,7 @@ module GHTorrent
 
       if fork_commit.nil? or fork_commit.empty?
         warn "Cannot find fork commit for repo #{owner}/#{repo}. Retrieving all commits."
-        return ensure_commits(owner, repo)
+        return ensure_commits(owner, repo, fork_all: true)
       end
 
       debug "Retrieving commits for fork #{owner}/#{repo}: strategy is #{strategy}"
