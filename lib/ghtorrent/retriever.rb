@@ -288,22 +288,6 @@ module GHTorrent
       end
     end
 
-    # Retrieve all collaborators for a repository
-    def retrieve_repo_collaborators(user, repo)
-      repo_bound_items(user, repo, :repo_collaborators,
-                       ["repos/#{user}/#{repo}/collaborators"],
-                       {'repo' => repo, 'owner' => user},
-                       'login', item = nil, refresh = false, order = :asc)
-    end
-
-    # Retrieve a single repository collaborator
-    def retrieve_repo_collaborator(user, repo, new_member)
-      repo_bound_item(user, repo, new_member, :repo_collaborators,
-                      ["repos/#{user}/#{repo}/collaborators"],
-                      {'repo' => repo, 'owner' => user},
-                      'login')
-    end
-
     # Retrieve all watchers for a repository
     def retrieve_watchers(user, repo)
       repo_bound_items(user, repo, :watchers,
@@ -654,8 +638,7 @@ module GHTorrent
                        end
 
                   instance_selector = selector.merge({discriminator => id})
-                  persister.del(entity, instance_selector)
-                  persister.store(entity, x)
+                  persister.upsert(entity, instance_selector, x)
                   debug "Refreshing #{entity} #{user}/#{repo} -> #{x[discriminator]}"
                 end
               else

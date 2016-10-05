@@ -593,7 +593,7 @@ module GHTorrent
           repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => parent[:id])
           info "Repo #{user}/#{repo} is a fork of #{parent_owner}/#{parent_repo}"
 
-          forked_commit = ensure_fork_point(user, repo)
+          ensure_fork_point(user, repo)
         end
       end
 
@@ -814,71 +814,6 @@ module GHTorrent
     end
 
     ##
-    # Make sure that a project has all the registered members defined
-    def ensure_project_members(user, repo, refresh = false)
-      currepo = ensure_repo(user, repo)
-      time = currepo[:created_at]
-
-      project_members = db.from(:project_members, :users).\
-          where(:project_members__user_id => :users__id).\
-          where(:project_members__repo_id => currepo[:id]).select(:login).all
-
-      retrieve_repo_collaborators(user, repo).reduce([]) do |acc, x|
-        if project_members.find {|y| y[:login] == x['login']}.nil?
-          acc << x
-        else
-          acc
-        end
-      end.map { |x| save{ensure_project_member(user, repo, x['login'], time) }}.select{|x| !x.nil?}
-    end
-
-    ##
-    # Make sure that a project member exists in a project
-    def ensure_project_member(owner, repo, new_member, date_added)
-      pr_members = db[:project_members]
-      project = ensure_repo(owner, repo)
-      new_user = ensure_user(new_member, false, false)
-
-      if project.nil? or new_user.nil?
-        warn "Could not find repo #{owner}/#{repo} or member #{new_member}"
-        return
-      end
-
-      memb_exist = pr_members.first(:user_id => new_user[:id],
-                                    :repo_id => project[:id])
-
-      if memb_exist.nil?
-        added = if date_added.nil?
-                  max(project[:created_at], new_user[:created_at])
-                else
-                  date_added
-                end
-        retrieved = retrieve_repo_collaborator(owner, repo, new_member)
-
-        if retrieved.nil?
-          warn "Could not retrieve member #{new_member} of #{owner}/#{repo}"
-          return
-        end
-
-        pr_members.insert(
-            :user_id => new_user[:id],
-            :repo_id => project[:id],
-            :created_at => date(added)
-        )
-        info "Added project_member #{repo} -> #{new_member}"
-      else
-        debug "Project member #{repo} -> #{new_member} exists"
-      end
-
-      unless date_added.nil?
-        pr_members.filter(:user_id => new_user[:id],
-                          :repo_id => project[:id])\
-                    .update(:created_at => date(date_added))
-        info "Updated project member #{repo} -> #{new_member}, created_at -> #{date(date_added)}"
-      end
-    end
-
-    ##
     # Make sure that the organizations the user participates into exist
     #
     # ==Parameters:
@@ -1003,7 +938,7 @@ module GHTorrent
 
     ##
     # Make sure that all watchers exist for a repository
-    def ensure_watchers(owner, repo, refresh = false)
+    def ensure_watchers(owner, repo)
       currepo = ensure_repo(owner, repo)
 
       if currepo.nil?
@@ -1023,12 +958,12 @@ module GHTorrent
         else
           acc
         end
-      end.map { |x| save{ensure_watcher(owner, repo, x['login'], nil) }}.select{|x| !x.nil?}
+      end.map { |x| save{ensure_watcher(owner, repo, x['login']) }}.select{|x| !x.nil?}
     end
 
     ##
     # Make sure that a watcher/stargazer exists for a repository
-    def ensure_watcher(owner, repo, watcher, date_added = nil)
+    def ensure_watcher(owner, repo, watcher, date_added: nil)
       project = ensure_repo(owner, repo)
       new_watcher = ensure_user(watcher, false, false)
 
@@ -1448,23 +1383,19 @@ module GHTorrent
 
     ##
     # Make sure all issues exist for a project
-    def ensure_issues(owner, repo, refresh = false)
+    def ensure_issues(owner, repo)
       currepo = ensure_repo(owner, repo)
       if currepo.nil?
         warn "Could not find repo #{owner}/#{repo} for retrieving issues"
         return
       end
 
-      raw_issues = if refresh
-                     retrieve_issues(owner, repo, refresh = true)
-                   else
-                     issues = db[:issues].filter(:repo_id => currepo[:id]).all
-                     retrieve_issues(owner, repo).reduce([]) do |acc, x|
-                       if issues.find { |y| y[:issue_id] == x['number'] }.nil?
-                         acc << x
-                       else
+      issues = db[:issues].filter(:repo_id => currepo[:id]).all
+      raw_issues = retrieve_issues(owner, repo).reduce([]) do |acc, x|
+                     if issues.find { |y| y[:issue_id] == x['number'] }.nil?
+                       acc << x
+                     else
                          acc
-                       end
                      end
                    end
 
@@ -1719,7 +1650,7 @@ module GHTorrent
 
     ##
     # Retrieve repository issue labels
-    def ensure_labels(owner, repo, refresh = false)
+    def ensure_labels(owner, repo)
       currepo = ensure_repo(owner, repo)
 
       if currepo.nil?
@@ -1729,7 +1660,7 @@ module GHTorrent
 
       repo_labels = db[:repo_labels].filter(:repo_id => currepo[:id]).all
 
-      retrieve_repo_labels(owner, repo, refresh).reduce([]) do |acc, x|
+      retrieve_repo_labels(owner, repo).reduce([]) do |acc, x|
         if repo_labels.find {|y| y[:name] == x['name']}.nil?
           acc << x
         else
