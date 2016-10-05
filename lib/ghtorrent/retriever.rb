@@ -190,10 +190,10 @@ module GHTorrent
       end
     end
 
-    def retrieve_repo(user, repo)
+    def retrieve_repo(user, repo, refresh = false)
       stored_repo = persister.find(:repos, {'owner.login' => user,
                                              'name' => repo })
-      if stored_repo.empty?
+      if stored_repo.empty? or refresh
         url = ghurl "repos/#{user}/#{repo}"
         r = api_request(url)
 
@@ -201,8 +201,12 @@ module GHTorrent
           return
         end
 
-        unq = persister.store(:repos, r)
-        info "Added repo #{user} -> #{repo}"
+        if refresh
+          persister.upsert(:repos, {'name' => r['name'], 'owner.login' => r['owner']['login']}, r)
+        else
+          persister.store(:repos, r)
+          info "Added repo #{user} -> #{repo}"
+        end
         r
       else
         debug "Repo #{user} -> #{repo} exists"
@@ -587,10 +591,15 @@ module GHTorrent
       api_request(cmp_url)
     end
 
-    # Retrieve the default branch for a repo. If nothing is retrieve, 'master' is returned
-    def retrieve_default_branch(owner, repo)
-      retrieved = retrieve_repo(owner, repo)
+    # Retrieve the default branch for a repo. If nothing is retrieved, 'master' is returned
+    def retrieve_default_branch(owner, repo, refresh = false)
+      retrieved = retrieve_repo(owner, repo, refresh)
       master_branch = 'master'
+      if retrieved['default_branch'].nil?
+        # The currently stored repo entry has been created before the
+        # default_branch field was added to the schema
+        retrieved = retrieve_repo(owner, repo, true)
+      end
       master_branch = retrieved['default_branch'] unless retrieved.nil?
       master_branch
     end

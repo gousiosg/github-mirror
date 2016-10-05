@@ -754,6 +754,13 @@ module GHTorrent
 
       # Retrieve diff between parent and fork master branch
       diff = retrieve_master_branch_diff(owner, repo, default_branch, parent[:login], parent[:name], default_branch)
+
+      if diff.empty?
+        # Try a bit harder by refreshing the default branch
+        default_branch = retrieve_default_branch(parent[:login], parent[:name], true)
+        diff = retrieve_master_branch_diff(owner, repo, default_branch, parent[:login], parent[:name], default_branch)
+      end
+
       if diff.empty?
         # This means that the are no common ancestors between the repos
         # This can apparently happen when the parent repo was renamed or force-pushed
