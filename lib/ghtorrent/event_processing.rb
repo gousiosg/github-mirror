@@ -33,9 +33,11 @@ module GHTorrent
         last_sha     = data['payload']['commits'].last['url'].split(/\//)[7]
         push_commits = data['payload']['commits'].map { |x| x['sha'] }
 
+        attempts = 0
         while true
+          attempts += 1
           commits = retrieve_commits(repo, last_sha, owner, 1)
-          return if commits.size <= 1 and commits[0]['sha'] == last_sha
+          return if attempts > 1 and commits[0]['sha'] == last_sha
 
           commits.each do |c|
             url = c['url'].split(/\//)
