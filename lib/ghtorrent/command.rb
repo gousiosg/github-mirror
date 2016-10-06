@@ -94,7 +94,7 @@ Standard options:
             :type => String
         opt :token, 'GitHub OAuth token',
             :type => String, :short => 't'
-        opt :req_limit, 'Request limit for provided account (in reqs/hour)',
+        opt :req_limit, 'Number or requests to leave on any provided account (in reqs/hour)',
             :type => Integer, :short => 'l'
         opt :uniq, 'Unique name for this command. Will appear in logs.',
             :type => String, :short => 'u'

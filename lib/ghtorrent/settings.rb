@@ -59,7 +59,7 @@ module GHTorrent
         :attach_ip => '0.0.0.0',
 
         :rescue_loops => 'true',
-        :req_limit => 4998,
+        :req_limit => 2,
         :geoloc_wait => 2,
         :fork_commits => 'fork_point',
 
