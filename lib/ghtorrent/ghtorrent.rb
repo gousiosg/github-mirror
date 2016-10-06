@@ -25,6 +25,7 @@ module GHTorrent
       @retry_on_error <<  Mysql2::Error      if defined? Mysql2::Error
       @retry_on_error <<  SQLite3::Exception if defined? SQLite3::Exception
       @retry_on_error <<  PG::Error if defined? PG::Error
+      @org_filter = load_orgs_file(config(:mirror_orgs_file))
     end
 
     def dispose
@@ -52,6 +53,25 @@ module GHTorrent
     def persister
       @persister ||= connect(config(:mirror_persister), @settings)
       @persister
+    end
+
+    def load_orgs_file(path)
+      if not File.exists?(path)
+        return nil
+      end
+
+      result = Set.new
+      IO.foreach(path) do |x|
+        x = x.strip
+        if x.empty? == false
+          result.add(x)
+        end
+      end
+      result
+    end
+
+    def includeOrg?(org)
+      return not @orgFilter or @org_filter.include? org
     end
 
     ##
@@ -544,6 +564,10 @@ module GHTorrent
     #  If the repo can be retrieved, it is returned as a Hash. Otherwise,
     #  the result is nil
     def ensure_repo(user, repo, recursive = false)
+      if not includeOrg? user
+        warn "Organization #{user} excluded by org filter"
+        return
+      end
 
       repos = db[:projects]
       curuser = ensure_user(user, false, false)
@@ -605,6 +629,10 @@ module GHTorrent
     end
 
     def ensure_repo_recursive(owner, repo)
+      if not includeOrg? owner
+        warn "Organization #{owner} excluded by filter"
+        return
+      end
 
       functions = %w(ensure_commits ensure_labels ensure_pull_requests
        ensure_issues ensure_watchers ensure_forks ensure_languages)
@@ -817,6 +845,10 @@ module GHTorrent
     # Make sure that a project has all the registered members defined
     def ensure_project_members(user, repo, refresh = false)
       currepo = ensure_repo(user, repo)
+      if currepo.nil?
+        warn "Could not find repo #{user}/#{repo} to load members"
+        return
+      end
       time = currepo[:created_at]
 
       project_members = db.from(:project_members, :users).\
@@ -928,6 +960,11 @@ module GHTorrent
     # [organization]  The login name of the organization
     #
     def ensure_org(organization, members = true)
+      if not includeOrg? organization
+        warn "Organization #{organization} excluded by filter"
+        return
+      end
+
       org = db[:users].first(:login => organization, :type => 'org')
 
       if org.nil?
@@ -1479,7 +1516,7 @@ module GHTorrent
       issues = db[:issues]
       repository = ensure_repo(owner, repo)
 
-      if repo.nil?
+      if repository.nil?
         warn "Could not find repo #{owner}/#{repo} for retrieving issue #{issue_id}"
         return
       end

@@ -21,6 +21,7 @@ module GHTorrent
         :mirror_urlbase => 'mirror.urlbase',
         :mirror_persister => 'mirror.persister',
         :mirror_history_pages_back => 'mirror.history_pages_back',
+        :mirror_orgs_file => 'mirror.orgs_file',
         :uniq_id => 'mirror.uniq_id',
         :user_agent => 'mirror.user_agent',
 
@@ -58,7 +59,7 @@ module GHTorrent
         :attach_ip => '0.0.0.0',
 
         :rescue_loops => 'true',
-        :req_limit => 4998,
+        :req_limit => 2,
         :geoloc_wait => 2,
         :fork_commits => 'fork_point',
 

@@ -59,6 +59,18 @@ module GHTorrent
 
       end
 
+      def runStage(stage, user, repo)
+        begin
+          ght.send(stage, user, repo)
+        rescue StandardError => e
+          # 409 indicates an empty repo so just absorb the error and move on
+          if not e.io.status[0].to_i == 409
+            warn("Error processing #{stage} for #{owner}/#{repo}: #{$!}")
+            warn("Exception trace #{e.backtrace.join("\n")}")
+          end
+        end
+      end
+
       def retrieve_full_repo(owner, repo)
         user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
 
@@ -86,7 +98,7 @@ module GHTorrent
           # last update was done too recently (less than 10 days), ignore
           if not repo_entry[:updated_at].nil? \
             and repo_entry[:updated_at] > (Time.now - 10 * 24 * 60 * 60) \
-            and not options[:force_given]
+            and not options[:force]
             warn "Last update too recent (#{Time.at(repo_entry[:updated_at])}) for #{owner}/#{repo}"
             return
           end
@@ -95,19 +107,12 @@ module GHTorrent
         end
 
         unless options[:no_entities_given]
-          begin
-            if options[:only_stage].nil?
-              stages.each do |x|
-                stage = x
-                ght.send(x, user, repo)
-              end
-            else
-              stage = options[:only_stage]
-              ght.send(options[:only_stage], user, repo)
+          if options[:only_stage].nil?
+            stages.each do |x|
+              runStage(x, user, repo)
             end
-          rescue StandardError => e
-            warn("Error processing #{stage} for #{owner}/#{repo}: #{$!}")
-            warn("Exception trace #{e.backtrace.join("\n")}")
+          else
+            runStage(options[:only_stage], user, repo)
           end
         end
 
