@@ -181,7 +181,8 @@ module GHTorrent
         raise e
       ensure
         # The exact limit is only enforced upon the first @reset
-        if 5000 - @remaining >= @req_limit
+        # No idea how many requests are available on this key. Sleep if we have run out
+        if @remaining < @req_limit
           to_sleep = @reset - Time.now.to_i + 2
           debug "Request limit reached, sleeping for #{to_sleep} secs"
           t = Thread.new do
