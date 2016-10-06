@@ -71,7 +71,6 @@ module GHTorrent
     end
 
     def includeOrg?(org)
-      return (not @orgFilter.nil?) || (@org_filter.include? org)
     end
 
     ##
@@ -844,6 +843,10 @@ module GHTorrent
     end
 
     ##
+      if currepo.nil?
+        warn "Could not find repo #{user}/#{repo} to load members"
+        return
+      end
     # Make sure that the organizations the user participates into exist
     #
     # ==Parameters:
