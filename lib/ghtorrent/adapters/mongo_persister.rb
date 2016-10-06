@@ -14,6 +14,7 @@ module GHTorrent
     LOCALCONFIG = {
         :mongo_host => "mongo.host",
         :mongo_port => "mongo.port",
+        :mongo_ssl => "mongo.ssl",
         :mongo_db => "mongo.db",
         :mongo_username => "mongo.username",
         :mongo_passwd => "mongo.password",
@@ -108,6 +109,7 @@ module GHTorrent
       host = config(:mongo_host)
       port = config(:mongo_port)
       db = config(:mongo_db)
+      ssl = config(:mongo_ssl) ? '?ssl=true' : ''
 
       replicas = config(:mongo_replicas)
       replicas = if replicas.nil? then
@@ -117,9 +119,9 @@ module GHTorrent
                  end
 
       constring = if uname.nil?
-                    "mongodb://#{host}:#{port}#{replicas}/#{db}"
+                    "mongodb://#{host}:#{port}#{replicas}/#{db}#{ssl}"
                   else
-                    "mongodb://#{uname}:#{passwd}@#{host}:#{port}#{replicas}/#{db}"
+                    "mongodb://#{uname}:#{passwd}@#{host}:#{port}#{replicas}/#{db}#{ssl}"
                   end
 
       Mongo::Logger.logger.level = Logger::WARN
