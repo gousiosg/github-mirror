@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# msght: contains functions for starting MSGHT and
+#    storing repositories in ../projects.txt.
+#
+#    Run this script in bin, as it uses local paths.
+#    Pass in the read and write tokens, respectively,
+#    if a function requires them.
+#    This will call whichever function is passed in
+#
+#  Ex: ./msght startMSGHT 0123456789abcdefghij0123456789abcdefghij abcdefghij123456789abcdefghij0123456789
+
+#Function that starts MSGHT by first grabbing repos and then starting msght_run.js
+startMSGHT() {
+    getRepos $1 $2
+    node run-msght.js -p ../projects.txt -k ../../keys.txt -t 5 2>&1 > ../logfile.txt
+}
+
+#Function that grabs all repos for all orgs and stores them in projects.txt
+getRepos() {
+    echo "" > ../repos.txt
+    cat ../orgs.txt | while read org; do
+        node GetRepos.js -org $org -f repos.txt
+    done
+}
+
+#Starts up webhooks
+startWebhooks() {
+    RACK_ENV=production CONFIG=../../config.yaml ruby ../ghtorrent-webhook/bin/ght-webhook
+}
+
+#start the webhook logging listener
+startWebhookListener() {
+    node ../ghtorrent-webhook/bin/listen_insights.js -c ../../config.yaml
+}
+
+$@

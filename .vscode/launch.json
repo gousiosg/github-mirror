@@ -1,0 +1,92 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Get Repos",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceRoot}/msght/GetRepos.js",
+      "stopOnEntry": false,
+      "args": [
+        "-orgs",
+        "${workspaceRoot}/orgs.txt",
+        "-f",
+        "repos.txt"
+      ],
+      "cwd": "${workspaceRoot}",
+      "preLaunchTask": null,
+      "runtimeExecutable": null,
+      "runtimeArgs": [
+        "--nolazy"
+      ],
+      "env": {
+        "NODE_ENV": "development",
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      },
+      "console": "externalTerminal",
+      "sourceMaps": false,
+      "outDir": null
+    },
+    {
+      "name": "Webhooks",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-webhook",
+      "args": [
+        "-c", "${workspaceRoot}/../config.yaml"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
+      "name": "Retrieve User",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-retrieve-user",
+      "args": [
+        "jeffmcaffer", "-c", "${workspaceRoot}/../config.yaml"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
+      "name": "Retrieve Repo",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-retrieve-repo",
+      "args": [
+        "contoso-d", "Test", "-f", "-c", "${workspaceRoot}/../config.yaml"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
+      "name": "Attach",
+      "type": "node",
+      "request": "attach",
+      "port": 5858,
+      "address": "localhost",
+      "restart": false,
+      "sourceMaps": false,
+      "outDir": null,
+      "localRoot": "${workspaceRoot}",
+      "remoteRoot": null
+    },
+    {
+      "name": "Attach to Process",
+      "type": "node",
+      "request": "attach",
+      "processId": "${command.PickProcess}",
+      "port": 5858,
+      "sourceMaps": false,
+      "outDir": null
+    }
+  ]
+}

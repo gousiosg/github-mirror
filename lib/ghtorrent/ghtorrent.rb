@@ -71,6 +71,7 @@ module GHTorrent
     end
 
     def includeOrg?(org)
+      return (not @orgFilter) || (@org_filter.include? org)
     end
 
     ##
