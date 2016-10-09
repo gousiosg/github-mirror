@@ -62,6 +62,19 @@
       }
     },
     {
+      "name": "Process queues",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-data-retrieval",
+      "args": [
+        "-c", "${workspaceRoot}/../config.yaml"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
       "name": "Retrieve User",
       "type": "Ruby",
       "request": "launch",

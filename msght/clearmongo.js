@@ -19,7 +19,7 @@ const url = `mongodb://${username}:${password}@${host}:${port}${replicas}/${db}$
 mongo.connect(url, function (err, db) {
   db.collections(function (err, collections) {
     dropCollection(db, collections, 0).then(() => {
-      db.close();
+      db.close().then(() => { console.log('Done'); });
     });
   });
 });
