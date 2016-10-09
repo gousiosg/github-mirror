@@ -165,8 +165,10 @@ function writeList(prefix, list, path) {
   list.forEach(repo => {
     output.write(`${prefix}${repo}\n`);
   });
-  output.end();
-  return Q(list);
+  // make a promise that resolves when the stream is written.  Otherwise
+  const deferred = Q.defer();
+  output.end(() => deferred.resolve(list));
+  return deferred;
 }
 
 function checkWebHooks(orgs, url, secret) {

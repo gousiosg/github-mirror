@@ -71,7 +71,7 @@ module GHTorrent
     end
 
     def includeOrg?(org)
-      return (not @orgFilter) || (@org_filter.include? org)
+      return (not @orgFilter.nil?) || (@org_filter.include? org)
     end
 
     ##
@@ -613,7 +613,8 @@ module GHTorrent
 
         if parent.nil?
           warn "Could not find repo #{parent_owner}/#{parent_repo}, parent of: #{user}/#{repo}"
-          repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => -1)
+          # TODO this breaks a SQL schema constraint on the foriegn key.  Not sure what to do
+          # repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => -1)
         else
           repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => parent[:id])
           info "Repo #{user}/#{repo} is a fork of #{parent_owner}/#{parent_repo}"

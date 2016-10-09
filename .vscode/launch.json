@@ -2,6 +2,26 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Clear Mongo",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceRoot}/msght/clearmongo.js",
+      "stopOnEntry": false,
+      "args": [],
+      "cwd": "${workspaceRoot}",
+      "preLaunchTask": null,
+      "runtimeExecutable": null,
+      "runtimeArgs": [
+        "--nolazy"
+      ],
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "console": "externalTerminal",
+      "sourceMaps": false,
+      "outDir": null
+    },
+    {
       "name": "Get Repos",
       "type": "node",
       "request": "launch",
@@ -60,7 +80,7 @@
       "request": "launch",
       "program": "${workspaceRoot}/bin/ght-retrieve-repo",
       "args": [
-        "contoso-d", "Test", "-f", "-c", "${workspaceRoot}/../config.yaml"
+        "contoso-d", "closure-library", "-f", "-c", "${workspaceRoot}/../config.yaml"
       ],
       "env": {
         "RUBYOPT": "-I${workspaceRoot}/lib",

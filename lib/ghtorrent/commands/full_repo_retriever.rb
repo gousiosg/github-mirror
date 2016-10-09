@@ -114,8 +114,6 @@ module GHTorrent
             end
           rescue StandardError => e
             warn("Error in stage: #{stage}, Repo: #{owner}/#{repo}, Message: #{$!}")
-          end
-        end
 
         # Process repo events
         unless options[:no_events_given]
