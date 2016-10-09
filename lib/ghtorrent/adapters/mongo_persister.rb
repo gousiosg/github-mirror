@@ -55,7 +55,18 @@ module GHTorrent
 
     def store(entity, data = {})
       super
-      mongo[entity].insert_one(data).to_s
+      begin
+        mongo[entity].insert_one(data).to_s
+      rescue StandardError => e
+        # In the interest of best effort, catch errors where the document is too big for Mongo
+        # Not great approach but the exception from Mongo is pretty generic.
+        if e.message.include?("Request size is too large")
+          url = data['url']
+          warn "Document too big for Mongo: #{url}"
+        else
+          raise e
+        end
+      end
     end
 
     def find(entity, query = {})

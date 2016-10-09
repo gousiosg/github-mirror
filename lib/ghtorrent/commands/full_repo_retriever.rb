@@ -59,18 +59,6 @@ module GHTorrent
 
       end
 
-      def runStage(stage, user, repo)
-        begin
-          ght.send(stage, user, repo)
-        rescue StandardError => e
-          # 409 indicates an empty repo so just absorb the error and move on
-          if not e.io.status[0].to_i == 409
-            warn("Error processing #{stage} for #{owner}/#{repo}: #{$!}")
-            warn("Exception trace #{e.backtrace.join("\n")}")
-          end
-        end
-      end
-
       def retrieve_full_repo(owner, repo)
         user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
 
@@ -106,6 +94,22 @@ module GHTorrent
           ght.db.from(:projects).where(:id => repo_entry[:id]).update(:updated_at => Time.now)
         end
 
+        unless options[:no_entities_given]
+          begin
+            if options[:only_stage].nil?
+              stages.each do |x|
+                stage = x
+                ght.send(x, user, repo)
+              end
+            else
+              stage = options[:only_stage]
+              ght.send(options[:only_stage], user, repo)
+              end
+          rescue StandardError => e
+            warn("Error processing #{stage} for #{owner}/#{repo}: #{$!}")
+            warn("Exception trace #{e.backtrace.join("\n")}")
+          end
+        end
         unless options[:no_entities_given]
           if options[:only_stage].nil?
             stages.each do |x|
