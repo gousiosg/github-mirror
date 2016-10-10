@@ -1,0 +1,39 @@
+#!/usr/bin/env ruby
+
+require 'pp'
+require 'ghtorrent'
+
+
+class GHTGeolocate < GHTorrent::Command
+
+  include GHTorrent::Geolocator
+  include GHTorrent::Persister
+  include GHTorrent::Logging
+
+  def persister
+    @persister ||= connect(config(:mirror_persister), @settings)
+    @persister
+  end
+
+  def prepare_options(options)
+    options.banner <<-BANNER
+Geolocates the given address using GHTorrent's APIs and config.
+    BANNER
+
+    options.opt :engine, 'Geolocation engine to use (osm or bing)',
+                :type => String
+  end
+
+  def validate
+    super
+    Trollop::die("Missing search string") if ARGV[0].nil?
+  end
+
+  def go
+    @settings = override_config(@settings, :geolocation_service, options[:engine])
+    pp geolocate(location: ARGV[0], from_cache: false)
+  end
+
+end
+
+GHTGeolocate.run

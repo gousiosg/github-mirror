@@ -10,19 +10,19 @@ module GHTorrent
         URI.escape("http://nominatim.openstreetmap.org/search/#{location}?format=json&addressdetails=1&accept_language=en")
       end
 
-      def parse_geolocation_result(url, geocoded)
+      def parse_geolocation_result(location, geocoded)
         if geocoded.empty?
-          debug "Geolocation request #{url} returned successfully but no location was found"
+          debug "Geolocation request #{location} returned successfully but no location was found"
           geo       = EMPTY_LOCATION
           geo[:key] = location
           return geo
         else
-          debug "Geolocation request #{url} returned #{geocoded.size} places"
+          debug "Geolocation request for #{location} returned #{geocoded.size} places"
         end
 
         geocoded = geocoded.sort { |x, y| y['importance'] <=> x['importance'] }.first
 
-        {
+        geo = {
             :key          => location,
             :long         => geocoded['lon'],
             :lat          => geocoded['lat'],
@@ -32,6 +32,7 @@ module GHTorrent
             :country_code => geocoded['address']['country_code'],
             :status       => :ok
         }
+        geo
 
       end
     end
@@ -41,6 +42,15 @@ end
 module GHTorrent
   module Geolocator
     module Bing
+
+      COUNTRY_CODES = File.open(File.join(File.dirname(__FILE__), 'country_codes.txt')).\
+        readlines.\
+        inject({}) do |acc, x|
+          name, code = x.split(/','/)
+          acc.merge(name.tr("'", '') => code.strip.tr("'", ''))
+        end
+
+    CONFIDENCE_ORDER = {'High' => 3, 'Medium' => 2, 'Low' => 1}
 
       def format_url(location)
         URI.escape("http://dev.virtualearth.net/REST/v1/Locations?q=#{location}&key=#{config(:geolocation_bing_key)}")
@@ -57,8 +67,14 @@ module GHTorrent
           debug "Geolocation request for #{location} returned #{geocoded['resourceSets'][0]['estimatedTotal']} places"
         end
 
-        details = geocoded['resourceSets'][0]['resources'].select{|x| x['confidence'] == 'High'}.first
-        puts details
+        details = geocoded['resourceSets'][0]['resources'].map do |x|
+          x['confidence'] = CONFIDENCE_ORDER[x['confidence']]
+          x
+        end.sort_by do |x|
+          x['confidence']
+        end.select do |x|
+          x['confidence'] == 3
+        end.first
 
         geo = {
             :key          => location,
@@ -67,7 +83,7 @@ module GHTorrent
             :city         => details['address']['locality'],
             :country      => details['address']['countryRegion'],
             :state        => details['address']['adminDistrict'],
-            :country_code => 'nl', #FIXME: not all cities are in NL
+            :country_code => COUNTRY_CODES[details['address']['countryRegion']],
             :status       => :ok
         }
         geo
@@ -101,22 +117,24 @@ module GHTorrent
     # input: Larisa, Greece
     # output:
     # {
-    #   :key          => "Larisa, Greece" # The actual key used for searcing
-    #   :long         => "22.417088"
-    #   :lat          => "39.6369927"
+    #   :key          => "larisa",
+    #   :long         => 22.41629981994629,
+    #   :lat          => 39.61040115356445,
+    #   :city         => "Larisa",
+    #   :country      => "Greece",
+    #   :state        => "Thessaly",
     #   :country_code => "gr",
-    #   :country      => "Ελλάδα",  #local language name
-    #   :city         => "Λάρισα",  #local language name
-    #   :state        => "Αποκεντρωμένη Διοίκηση Θεσσαλίας - Στερεάς Ελλάδας",
-    #   :status       => "ok"       #or failed, if geolocation failed
+    #   :status       => :ok
     # }
-    #
-    # Uses OSM and aggressive caching
-    def geolocate(location, wait = config(:geolocation_wait).to_i)
+    # Uses aggressive caching
+    def geolocate(location: nil, wait: config(:geolocation_wait).to_i, from_cache: true)
       return EMPTY_LOCATION if location.nil? or location == ''
       location = location_filter(location)
 
-      geo = persister.find(:geo_cache, {'key' => location})
+      geo = []
+      if from_cache
+        geo = persister.find(:geo_cache, {'key' => location})
+      end
 
       if geo.empty?
 
@@ -130,11 +148,11 @@ module GHTorrent
           ts  = Time.now
           url = format_url(location)
           req = open(url)
-          p = JSON.parse(req.read)
+          p   = JSON.parse(req.read)
           geo = parse_geolocation_result(location, p)
 
           info "Successful geolocation request. Location: #{location}, URL: #{url}"
-        rescue
+        rescue StandardError => e
           warn "Failed geolocation request. URL: #{url}"
           geo       = EMPTY_LOCATION
           geo[:key] = location

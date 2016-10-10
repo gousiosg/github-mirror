@@ -8,6 +8,7 @@ require 'ghtorrent/persister'
 require 'ghtorrent/command'
 require 'ghtorrent/bson_orderedhash'
 
+
 class GHTLoad < GHTorrent::Command
 
   include GHTorrent::Settings
@@ -205,5 +206,4 @@ Loads data from a MongoDB collection or a file to a queue for further processing
     end
   end
 end
-
 #vim: set filetype=ruby expandtab tabstop=2 shiftwidth=2 autoindent smartindent:

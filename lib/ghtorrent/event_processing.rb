@@ -222,7 +222,7 @@ module GHTorrent
       return unless data['payload']['ref_type'] == 'repository'
 
       ght.ensure_repo(owner, repo)
-      ght.ensure_repo_recursive(owner, repo, false)
+      ght.ensure_repo_recursive(owner, repo)
     end
   end
 end
