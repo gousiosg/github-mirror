@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-# (c) 2016 - onwards Georgios Gousios <gousiosg@gmail.com>
+# (c) 2016 - onwards Georgios Gousios <gousiosg@gmail.com> and others
 #
 # MIT licensed, see LICENSE in top level dir
 #
@@ -15,12 +15,8 @@ require 'openssl'
 require 'json'
 require 'thread'
 require_relative '../lib/ghtorrent/api_client.rb'
-# require 'ghtorrent/settings'
 require 'ghtorrent/logging'
 
-# include GHTorrentWebhook
-# include GHTorrent::Persister
-# include GHTorrent::Settings
 include GHTorrent::Logging
 include GHTorrent::APIClient
 include GHTorrent::Logging
@@ -55,7 +51,7 @@ configure do
   end
 
   # Stash away the @settings value and define a [] method to access it.  The "settings"
-  # var her is actually the Sinatra application. The GHT config() method will try to run
+  # var here is actually the Sinatra application. The GHT config() method will try to run
   # (literally) settings[x] at a time when the "settings" field is the Sinatra app.  By adding
   # [] to Sinatra, we can trick GHT and get the config values accessible.
   # TODO figure out Ruby closures to eliminate the global
@@ -94,88 +90,49 @@ get '/' do
 end
 
 post '/' do
-  #Verify the signature
   request.body.rewind
   payload_body = request.body.read
-  if verify_signature(payload_body)
-    puts "verified\r\n"
-
-    # Read and parse event
-    begin
-      event = JSON.parse(payload_body)
-    rescue StandardError => e
-      puts e
-      halt 400, "Error parsing object #{request.body.read}"
-    end
-
-    pull_events(event)
-  else
-    print "Could not verify\r\n"
+  if not verify_signature?(payload_body)
+    print "Could not verify webhook callback"
     halt 500
   end
-end
-
-def pull_events(event)
   begin
-    puts "Received event for repo: #{event['repository']['full_name']}\r\n"
-
-    page = 1
-    until page > configuration['mirror']['history_pages_back']
-      url = "#{configuration['mirror']['urlbase']}repos/#{event['repository']['full_name']}/events?page=#{page}&per_page=100"
-      puts "URL is: #{url}"
-
-      begin
-        r = paged_api_request(url, 1)
-      rescue Exception => e
-        puts "#{configuration['mirror']['urlbase']}: Retrieved all pages. exiting"
-        puts e
-        return
-      end
-
-      if r == nil
-        return
-      end
-
-      # TODO: Replace this semaphore with:
-      #   1. Do HTTP request (above)
-      #   2. Call a new synchronized function whose logic is: if the largest
-      #      Event ID in HTTP response is > than the largest event ID stored
-      #      in a dictionary that maps repositories to their most recently added
-      #      event ID, then update the dictionary's value and return the previously
-      #      stored event ID
-      #   3. If the synchronized function's response indicates that values need to be
-      #      stored, begin storing values from the current highest event ID returned
-      #      by the HTTP request and stop before adding the event ID that was returned
-      #      by the synchronized function.
-      #
-      @@semaphore.synchronize do
-        r.each do |e|
-          # Save to MongoDB, if it is not there yet
-          if settings.mongo['events'].find('id' => e["id"]).count == 0
-            settings.mongo['events'].insert_one(e)
-
-            # Publish to RabbitMQ
-            key = "evt.#{e['type']}"
-            settings.rabbit.publish e["id"], :persistent => true, :routing_key => key
-            settings.rabbit.publish e["id"], :persistent => true, :routing_key => "bot.#{key}"
-            settings.rabbit.publish "#{key} #{e["id"]}", :persistent => true, :routing_key => "log"
-            settings.rabbit.publish e["id"], :persistent => true, :routing_key => "evt.Flow"
-            puts "#{event['repository']['full_name']}: Adding event to mongo with id: #{e["id"]}\r\n"
-          else
-            puts "#{event['repository']['full_name']}: Finished grabbing all new events"
-            return
-          end
-        end
-      end
-
-      page += 1
-    end
-    rescue Exception => e
-      print e
+    event = JSON.parse(payload_body)
+  rescue StandardError => e
+    puts e
+    halt 400, "Error parsing object #{request.body.read}"
+  end
+  begin
+    publish_event(event)
+  rescue StandardError => e
+    halt 500, e
   end
 end
 
-def verify_signature(payload_body)
+# Post the given event to all the relevant topics
+def publish_event(event)
+  begin
+    # ensure there is only one thread publishing at a time.
+    # TODO validate that the semaphore is actually needed
+    @@semaphore.synchronize do
+      repo_fullname = event['repository']['full_name']
+      # publish to the central queue for processing
+      settings.rabbit.publish repo_fullname, :persistent => true, :routing_key => "evt.Event"
+
+      # Fan out to other queues
+      key = "evt.#{event['type']}"
+      id = event['id'].to_s
+      settings.rabbit.publish id, :persistent => true, :routing_key => "bot.#{key}"
+      settings.rabbit.publish "#{key} #{id}", :persistent => true, :routing_key => "log"
+      settings.rabbit.publish id, :persistent => true, :routing_key => "evt.Flow"
+      puts "#{repo_fullname}: Queued event with id: #{id}"
+    end
+  rescue Exception => e
+    print e
+  end
+end
+
+def verify_signature?(payload_body)
   if configuration['debug'] and not configuration['debug']['validate_hooks']
     return true
   end
