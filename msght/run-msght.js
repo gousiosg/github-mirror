@@ -42,8 +42,8 @@ var orgIndex = 0;
 var finishedCount = 0;
 
 //Initialize Application Insights
-appInsights.setup(config.get('APPINSIGHTS_INSTRUMENTATION_KEY')).setAutoCollectExceptions(true).start();
-const appInsightsClient = appInsights.getClient(config.get('APPINSIGHTS_INSTRUMENTATION_KEY'));
+appInsights.setup(config.get('APPINSIGHTS_INSTRUMENTATIONKEY')).setAutoCollectExceptions(true).start();
+const appInsightsClient = appInsights.getClient(config.get('APPINSIGHTS_INSTRUMENTATIONKEY'));
 
 //Grab the arguments
 for (var argI = 0; argI < process.argv.length; ++argI) {

@@ -29,9 +29,9 @@
       "stopOnEntry": false,
       "args": [
         "-orgs",
-        "${workspaceRoot}/orgs.txt",
+        "${workspaceRoot}/../orgs.txt",
         "-f",
-        "repos.txt"
+        "${workspaceRoot}/../repos.txt"
       ],
       "cwd": "${workspaceRoot}",
       "preLaunchTask": null,
