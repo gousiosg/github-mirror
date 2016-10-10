@@ -37,7 +37,7 @@ class MultiprocessQueueClient < GHTorrent::Command
 Retrieve data for multiple item in parallel. To work, it requires
 a mapping file formatted as follows:
 
-TOKEN NUM_PROCS
+TOKEN NUM_PROCS LIMIT
 
 TOKEN: A GitHub OAuth token
 NUM_PROCS: Number of processes to spawn for this TOKEN
@@ -69,7 +69,7 @@ Values in the config.yaml file set with the -c command are overridden.
       (1..instances.to_i).map do |i|
         newcfg = self.settings.clone
         newcfg = override_config(newcfg, :github_token, token)
-        newcfg = override_config(newcfg, :req_limit, limit)
+        newcfg = override_config(newcfg, :req_limit, limit.to_i)
 
         newcfg
       end
