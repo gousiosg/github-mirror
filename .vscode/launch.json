@@ -22,7 +22,36 @@
       "outDir": null
     },
     {
-      "name": "Get Repos",
+      "name": "Get All Repos",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceRoot}/msght/run-msght.js",
+      "stopOnEntry": false,
+      "args": [
+        "-r",
+        "${workspaceRoot}/../repos.txt",
+        "-k",
+        "${workspaceRoot}/../keys.txt",
+        "-t",
+        "1"
+      ],
+      "cwd": "${workspaceRoot}",
+      "preLaunchTask": null,
+      "runtimeExecutable": null,
+      "runtimeArgs": [
+        "--nolazy"
+      ],
+      "env": {
+        "NODE_ENV": "development",
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "APPINSIGHTS_INSTRUMENTATIONKEY": "ed1a849b-a27a-4513-ae6b-d96456bc2c32"
+      },
+      "console": "externalTerminal",
+      "sourceMaps": false,
+      "outDir": null
+    },
+    {
+      "name": "Discover Repos",
       "type": "node",
       "request": "launch",
       "program": "${workspaceRoot}/msght/GetRepos.js",
@@ -30,7 +59,7 @@
       "args": [
         "-orgs",
         "${workspaceRoot}/../orgs.txt",
-        "-f",
+        "-r",
         "${workspaceRoot}/../repos.txt"
       ],
       "cwd": "${workspaceRoot}",

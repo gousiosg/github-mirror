@@ -18,18 +18,16 @@
 const exec = require('child_process').exec;
 const spawn = require('child_process').spawn;
 const appInsights = require('applicationinsights');
-const lineByLineReader = require('line-by-line');
+const fs = require('fs');
 const config = require('painless-config');
 
 const keys_flag = '-k';
-const projects_flag = '-p';
+const repos_flag = '-r';
 const processes_flag = '-t';
 
 //Global variables used throughout the script
-var keys_file_path, projects_file_path;
+var keys_file_path, repos_file_path;
 var processes = 4;
-var has_key_path = false;
-var has_projects_path = false;
 var keys = [];
 var orgs = [];
 var repos = [];
@@ -50,11 +48,9 @@ for (var argI = 0; argI < process.argv.length; ++argI) {
   switch (process.argv[argI]) {
     case keys_flag:
       keys_file_path = process.argv[++argI];
-      has_key_path = true;
       break;
-    case projects_flag:
-      projects_file_path = process.argv[++argI];
-      has_projects_path = true;
+    case repos_flag:
+      repos_file_path = process.argv[++argI];
       break;
     case processes_flag:
       processes = parseInt(process.argv[++argI], 10);
@@ -63,31 +59,25 @@ for (var argI = 0; argI < process.argv.length; ++argI) {
 }
 
 //Check if all args were passed in correctly
-if (!has_key_path || !has_projects_path) {
+if (!keys_file_path || !repos_file_path) {
   console.log('Must pass the path to projects file using -p flag and \
  the keys file using the -k flag. Optionally pass in the number of \
  processes with the -t flag. for example: \r\n\
- node msght_run.js -k keys.txt -p projects.txt -t 4 ');
+ node msght_run.js -k keys.txt -r repos.txt -t 4 ');
   process.exit(1);
 }
 
-//Begin reading the keys
-var lr = new lineByLineReader(keys_file_path);
-lr.on('line', function (line) {
-  keys[keys.length] = line;
-});
+// Load the keys, repos, and orgs, and start processing
+keys = readLines(keys_file_path);
+const repoSpecs = readLines(repos_file_path);
+repoSpecs.forEach(storeOrgAndRepo);
+printStartMessage();
+start();
 
-//When finished reading keys, start reading the projects
-lr.on('end', function () {
-  lr = new lineByLineReader(projects_file_path);
-  lr.on('line', function (line) {
-    storeOrgAndRepo(line);
-  });
-  lr.on('end', function () {
-    printStartMessage();
-    start();
-  });
-});
+function readLines(path) {
+  const orgString = fs.readFileSync(path, 'utf8');
+  return orgString.split(/\r?\n/).filter(element => !!element).map(org => org.trim());
+}
 
 //Store the org and repo gathered when reading orgs.txt
 function storeOrgAndRepo(line) {

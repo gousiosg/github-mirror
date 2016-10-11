@@ -10,6 +10,7 @@
     "applicationinsights": "^0.15.19",
     "github": "^3.1.1",
     "js-yaml": "^3.6.1",
+    "line-by-line": "^0.1.5",
     "mongodb": "^2.2.10",
     "painless-config": "^0.1.0",
     "q": "^1.4.1",

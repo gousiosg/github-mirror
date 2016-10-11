@@ -1,37 +1,53 @@
 #!/bin/sh
 
 # msght: contains functions for starting MSGHT and
-#    storing repositories in ../projects.txt.
+# discovering and storing repos ../repos.txt.
 #
-#    Run this script in bin, as it uses local paths.
-#    Pass in the read and write tokens, respectively,
-#    if a function requires them.
-#    This will call whichever function is passed in
+# Run this script with cwd = repo root (e.g., github-mirror),
+# as it uses relative paths. Configure both env.json and config.yaml
+# at one dir level above the repo root.  Those files need the relevant
+# tokens and other config values.
+# Note that to run the local git repo you need to set RUBY_OPT to -I<path to repo>/lib
 #
-#  Ex: ./msght startMSGHT 0123456789abcdefghij0123456789abcdefghij abcdefghij123456789abcdefghij0123456789
+# Ex: ./msght startMSGHT 0123456789abcdefghij0123456789abcdefghij abcdefghij123456789abcdefghij0123456789
 
-#Function that starts MSGHT by first grabbing repos and then starting msght_run.js
-startMSGHT() {
-    getRepos $1 $2
-    node run-msght.js -p ../projects.txt -k ../../keys.txt -t 5 2>&1 > ../logfile.txt
+# Bulk fetch all the repos in the given args
+bulkFetchRepos() {
+    getRepos $1
+    node msght/run-msght.js -r ../repos.txt -k ../keys.txt -t 5 2>&1 > ../fetchRepos.log
 }
 
-#Function that grabs all repos for all orgs and stores them in projects.txt
-getRepos() {
+# Discover all the orgs and repos and writes them to disk.
+discoverRepos() {
     echo "" > ../repos.txt
-    cat ../orgs.txt | while read org; do
-        node GetRepos.js -org $org -f repos.txt
-    done
+    nohup node msght/GetRepos.js -orgs $1 -f ../repos.txt
 }
 
-#Starts up webhooks
+# start the base
+startEventMirror() {
+  nohup ruby bin/ght-mirror-events -c ../config.yaml 2>&1 > ../eventMirror.log &
+}
+
+# start the base
+startDataRetrieval() {
+  ruby bin/ght-data-retrieval -c ../config.yaml 2>&1 > ../dataRetrieval.log &
+}
+
+# Starts up webhooks
 startWebhooks() {
-    RACK_ENV=production CONFIG=../../config.yaml ruby ../ghtorrent-webhook/bin/ght-webhook
+    RACK_ENV=production CONFIG=../config.yaml ruby bin/ght-webhook 2>&1 > ../webhook.log &
 }
 
-#start the webhook logging listener
-startWebhookListener() {
-    node ../ghtorrent-webhook/bin/listen_insights.js -c ../../config.yaml
+# start the webhook logging listener
+startLogListener() {
+    node ../msght/listen_insights.js -c ../config.yaml
 }
 
+# start all the MSGHT infrastructure
+startMSGHT() {
+  startEventMirror
+  startDataRetrieval
+  startWebhooks
+  tail -f ../webhook.log ../eventMirror.log ../dataRetrieval.log
+}
 $@

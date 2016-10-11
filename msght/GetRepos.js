@@ -25,7 +25,7 @@ const orgsFlag = '-orgs';
 const hooksFlag = '-hooks';
 const tokenReadFlag = '-tr';
 const tokenHookFlag = '-tw';
-const fileFlag = '-f';
+const reposFlag = '-r';
 
 //The data itself that is stored from the commandline arguments
 let org;
@@ -57,7 +57,7 @@ for (var k = 0; k < process.argv.length; k++) {
       tokenHook = process.argv[++k];
       break;
 
-    case fileFlag:
+    case reposFlag:
       filepath = process.argv[++k];
       break;
 
