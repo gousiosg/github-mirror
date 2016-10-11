@@ -213,10 +213,10 @@ module GHTorrent
       end
     end
 
-    def retrieve_repo(user, repo)
+    def retrieve_repo(user, repo, refresh = false)
       stored_repo = persister.find(:repos, {'owner.login' => user,
                                              'name' => repo })
-      if stored_repo.empty?
+      if stored_repo.empty? or refresh
         url = ghurl "repos/#{user}/#{repo}"
         r = api_request(url)
 
@@ -224,8 +224,12 @@ module GHTorrent
           return
         end
 
-        unq = persister.store(:repos, r)
-        info "Added repo #{user} -> #{repo}"
+        if refresh
+          persister.upsert(:repos, {'name' => r['name'], 'owner.login' => r['owner']['login']}, r)
+        else
+          persister.store(:repos, r)
+          info "Added repo #{user} -> #{repo}"
+        end
         r
       else
         debug "Repo #{user} -> #{repo} exists"
@@ -305,22 +309,6 @@ module GHTorrent
         debug "Commit comment #{comment['commit_id']} -> #{comment['id']} exists"
         comment
       end
-    end
-
-    # Retrieve all collaborators for a repository
-    def retrieve_repo_collaborators(user, repo)
-      repo_bound_items(user, repo, :repo_collaborators,
-                       ["repos/#{user}/#{repo}/collaborators"],
-                       {'repo' => repo, 'owner' => user},
-                       'login', item = nil, refresh = false, order = :asc)
-    end
-
-    # Retrieve a single repository collaborator
-    def retrieve_repo_collaborator(user, repo, new_member)
-      repo_bound_item(user, repo, new_member, :repo_collaborators,
-                      ["repos/#{user}/#{repo}/collaborators"],
-                      {'repo' => repo, 'owner' => user},
-                      'login')
     end
 
     # Retrieve all watchers for a repository
@@ -600,7 +588,7 @@ module GHTorrent
       persister.find(:events, {'id' => id})
     end
 
-    # Retrieve diff between to branches. If either branch name is not provided
+    # Retrieve diff between two branches. If either branch name is not provided
     # the branch name is resolved to the corresponding default branch
     def retrieve_master_branch_diff(owner, repo, branch, parent_owner, parent_repo, parent_branch)
       branch   = retrieve_default_branch(owner, repo) if branch.nil?
@@ -610,10 +598,15 @@ module GHTorrent
       api_request(cmp_url)
     end
 
-    # Retrieve the default branch for a repo. If nothing is retrieve, 'master' is returned
-    def retrieve_default_branch(owner, repo)
-      retrieved = retrieve_repo(owner, repo)
+    # Retrieve the default branch for a repo. If nothing is retrieved, 'master' is returned
+    def retrieve_default_branch(owner, repo, refresh = false)
+      retrieved = retrieve_repo(owner, repo, refresh)
       master_branch = 'master'
+      if retrieved['default_branch'].nil?
+        # The currently stored repo entry has been created before the
+        # default_branch field was added to the schema
+        retrieved = retrieve_repo(owner, repo, true)
+      end
       master_branch = retrieved['default_branch'] unless retrieved.nil?
       master_branch
     end
@@ -629,7 +622,7 @@ module GHTorrent
     end
 
     def repo_bound_items(user, repo, entity, urls, selector, discriminator,
-        item_id = nil, refresh = false, order = :asc)
+        item_id = nil, refresh = false, order = :asc, media_type = '')
 
        urls.each do |url|
         total_pages = num_pages(ghurl url)
@@ -641,7 +634,7 @@ module GHTorrent
                      end
 
         page_range.each do |page|
-          items = api_request(ghurl(url, page))
+          items = api_request(ghurl(url, page), media_type)
 
           items.each do |x|
             x['repo'] = repo
@@ -652,7 +645,7 @@ module GHTorrent
             exists = !instances.empty?
 
             unless exists
-              x = api_request(x['url'])
+              x = api_request(x['url'], media_type)
               x['repo'] = repo
               x['owner'] = user
               persister.store(entity, x)
@@ -668,8 +661,7 @@ module GHTorrent
                        end
 
                   instance_selector = selector.merge({discriminator => id})
-                  persister.del(entity, instance_selector)
-                  persister.store(entity, x)
+                  persister.upsert(entity, instance_selector, x)
                   debug "Refreshing #{entity} #{user}/#{repo} -> #{x[discriminator]}"
                 end
               else
@@ -701,12 +693,12 @@ module GHTorrent
     end
 
     def repo_bound_item(user, repo, item_id, entity, url, selector,
-                        discriminator, order = :asc)
+                        discriminator, order = :asc, media_type = '')
       stored_item = repo_bound_instance(entity, selector, discriminator, item_id)
 
       r = if stored_item.empty?
             repo_bound_items(user, repo, entity, url, selector, discriminator,
-                             item_id, false, order).first
+                             item_id, false, order, media_type).first
           else
             stored_item.first
           end

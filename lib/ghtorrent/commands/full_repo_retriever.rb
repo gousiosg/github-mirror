@@ -11,7 +11,7 @@ module GHTorrent
 
       def stages
         %w(ensure_commits ensure_forks ensure_pull_requests
-       ensure_issues ensure_watchers ensure_labels ensure_languages) #ensure_project_members
+       ensure_issues ensure_watchers ensure_labels ensure_languages)
       end
 
       def settings

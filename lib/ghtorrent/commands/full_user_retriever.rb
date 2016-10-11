@@ -58,7 +58,7 @@ module GHTorrent
         end
 
         # Update geo location information
-        geo = geolocate(on_github['location'])
+        geo = geolocate(location: on_github['location'])
 
         ght.db.from(:users).where(:login => login).update(
           # Geolocation info

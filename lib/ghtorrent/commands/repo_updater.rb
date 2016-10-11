@@ -46,6 +46,24 @@ module GHTorrent
                                    retrieved['parent']['name'])
                  end
 
+        fork_commit = ght.ensure_fork_point(owner, repo)
+
+        unless parent.nil?
+          sql = <<-SQL
+            DELETE project_commits
+            FROM project_commits, projects, users
+            WHERE projects.owner_id = users.id
+             AND project_commits.project_id = projects.id
+             AND users.login = '#{owner}'
+             AND projects.name = '#{repo}';
+          SQL
+          ndel = db[:project_commits].with_sql_delete(sql.gsub("\n",'').strip)
+          debug("Deleted #{ndel} commit from project_commits for #{owner}/#{repo}")
+
+          parent_owner = db[:users].where(:id => parent[:owner_id]).first[:login]
+          ght.ensure_fork_commits(owner, repo, parent_owner, parent[:name])
+        end
+
         db.from(:projects, :users).\
         where(:projects__owner_id => :users__id).\
         where(:users__login => owner).\
@@ -55,7 +73,8 @@ module GHTorrent
                :projects__language    => retrieved['language'],
                :projects__created_at  => date(retrieved['created_at']),
                :projects__updated_at  => Time.now,
-               :projects__forked_from => unless parent.nil? then parent[:id] end)
+               :projects__forked_from => unless parent.nil? then parent[:id] end,
+               :projects__forked_commit_id => unless fork_commit.nil? then fork_commit[:id] end)
         info("Repo #{owner}/#{repo} updated")
 
         ght.ensure_languages(owner, repo)

@@ -40,7 +40,7 @@ For distributed mirroring you also need RabbitMQ >= 3.3
 
 
 ### 1. Install GHTorrent
-GHTorrent is written in Ruby (tested with 2.0). To install it as a Gem do:
+GHTorrent is written in Ruby (tested with Ruby > 2.0). To install it as a Gem do:
 
 <code>
 sudo gem install ghtorrent

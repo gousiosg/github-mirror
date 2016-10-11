@@ -85,8 +85,19 @@ module GHTorrent
     #         starts from what the project considers as master branch.
     # [return_retrieved] Should retrieved commits be returned? If not, memory is
     #                    saved while processing them.
-    # [pages] Number of commits to retrieve. A negative number means retrieve all
-    def ensure_commits(user, repo, sha = nil, return_retrieved = false, num_commits = -1)
+    # [num_commits] Number of commit to retrieve
+    # [fork_all] Retrieve all commits even if a repo is a fork
+    def ensure_commits(user, repo, sha: nil, return_retrieved: false,
+                       num_commits: -1, fork_all: false)
+
+      currepo = ensure_repo(user, repo)
+      unless currepo[:forked_from].nil? or fork_all
+        r            = retrieve_repo(user, repo)
+        parent_owner = r['parent']['owner']['login']
+        parent_repo  = r['parent']['name']
+        ensure_fork_commits(user, repo, parent_owner, parent_repo)
+        return
+      end
 
       num_retrieved = 0
       commits = ['foo'] # Dummy entry for simplifying the loop below
@@ -211,6 +222,14 @@ module GHTorrent
       # with any account in Github.
       login = githubuser['login'] unless githubuser.nil?
 
+      # web-flow is a special user reserved for web-based commits:
+      # https://api.github.com/users/web-flow
+      # We do not follow the process below as this user's email
+      # (noreply@github.com) clashes other existing users' emails.
+      if login == 'web-flow'
+        return ensure_user_byuname('web-flow')
+      end
+
       return ensure_user("#{name}<#{email}>", false, false) if login.nil?
 
       dbuser = users.first(:login => login)
@@ -332,7 +351,7 @@ module GHTorrent
                   end
                 end
 
-        geo = geolocate(u['location'])
+        geo = geolocate(location: u['location'])
 
         users.insert(:login => u['login'],
                      :name => u['name'],
@@ -477,7 +496,7 @@ module GHTorrent
           users.first(:login => login)
         else
           in_db = users.first(:login => u['login'])
-          geo = geolocate(u['location'])
+          geo = geolocate(location: u['location'])
           if in_db.nil?
             users.insert(:login => u['login'],
                          :name => u['name'],
@@ -548,6 +567,11 @@ module GHTorrent
         return
       end
 
+      if r['owner']['login'] != curuser[:login]
+        info "Repo changed owner from #{curuser[:login]} to #{r['owner']['login']}"
+        curuser = ensure_user(r['owner']['login'], false, false)
+      end
+
       repos.insert(:url => r['url'],
                    :owner_id => curuser[:id],
                    :name => r['name'],
@@ -569,33 +593,20 @@ module GHTorrent
           repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => parent[:id])
           info "Repo #{user}/#{repo} is a fork of #{parent_owner}/#{parent_repo}"
 
-          forked_commit = ensure_forked_commit(user, repo)
-          unless forked_commit.nil?
-            repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_commit_id => forked_commit[:id])
-            info "Repo #{user}/#{repo} was forked at #{parent_owner}/#{parent_repo}:#{forked_commit[:sha]}"
-          end
+          ensure_fork_point(user, repo)
         end
       end
 
       info "Added repo #{user}/#{repo}"
 
-      ensure_repo_recursive(user, repo, !r['parent'].nil?) if recursive
+      ensure_repo_recursive(user, repo) if recursive
 
       repos.first(:owner_id => curuser[:id], :name => repo)
     end
 
-    def ensure_repo_recursive(owner, repo, is_fork)
+    def ensure_repo_recursive(owner, repo)
 
-      if is_fork
-        r = retrieve_repo(owner, repo)
-        parent_owner = r['parent']['owner']['login']
-        parent_repo = r['parent']['name']
-        ensure_fork_commits(owner, repo, parent_owner, parent_repo)
-      else
-        ensure_commits(owner, repo)
-      end
-
-      functions = %w(ensure_labels ensure_pull_requests
+      functions = %w(ensure_commits ensure_labels ensure_pull_requests
        ensure_issues ensure_watchers ensure_forks ensure_languages)
 
       functions.each do |x|
@@ -646,13 +657,6 @@ module GHTorrent
         return
       end
 
-      fork_commit = ensure_forked_commit(owner, repo)
-
-      if fork_commit.nil? or fork_commit.empty?
-        warn "Cannot find fork commit for repo #{owner}/#{repo}"
-        return
-      end
-
       strategy = case
                    when config(:fork_commits).match(/all/i)
                      :all
@@ -664,35 +668,45 @@ module GHTorrent
                      :fork_point
                  end
 
+      fork_commit = ensure_fork_point(owner, repo)
+
+      if fork_commit.nil? or fork_commit.empty?
+        warn "Cannot find fork commit for repo #{owner}/#{repo}. Retrieving all commits."
+        return ensure_commits(owner, repo, fork_all: true)
+      end
+
       debug "Retrieving commits for fork #{owner}/#{repo}: strategy is #{strategy}"
       return if strategy == :none
 
-      # Retrieve commits up to fork point (fork_commit strategy)
-      info "Retrieving commits for #{owner}/#{repo} until fork commit #{fork_commit[:sha]}"
-      master_branch = retrieve_default_branch(parent_owner, parent_repo)
-      diff          = retrieve_master_branch_diff(owner, repo, master_branch, parent_owner, parent_repo, master_branch)
+      if strategy == :fork_point
+        # Retrieve commits up to fork point (fork_commit strategy)
+        info "Retrieving commits for #{owner}/#{repo} until fork commit #{fork_commit[:sha]}"
+        master_branch = retrieve_default_branch(parent_owner, parent_repo)
 
-      if diff.nil?
-        warn "Could not find branch differences between #{owner}/#{repo}:#{master_branch} and  #{parent_owner}/#{parent_repo}:#{master_branch}"
-        return
-      end
+        sha   = master_branch
+        found = false
+        while not found
+          commits = retrieve_commits(repo, sha, owner, 1)
 
-      commits_to_retrieve = diff['ahead_by'].to_i
+          # This means we retrieved the last page again
+          if commits.size == 1 and commits[0]['sha'] == sha
+            break
+          end
 
-      sha       = master_branch
-      retrieved = 0
-      while commits_to_retrieve > 0 and retrieved < commits_to_retrieve
-        commits = retrieve_commits(repo, sha, owner, 1)
-        for c in commits
-          ensure_commit(repo, c['sha'], owner)
-          retrieved += 1
-          sha = c['sha']
-          break if retrieved > commits_to_retrieve and c['sha'] == fork_commit[:sha]
+          for c in commits
+            ensure_commit(repo, c['sha'], owner)
+            sha = c['sha']
+            if c['sha'] == fork_commit[:sha]
+              found = true
+              break
+            end
+          end
         end
       end
 
       if strategy == :all
-        shared_commit = db[:commits].first(:sha => fork_commit[:sha])
+
+        shared_commit = db[:commits].first(:sha => fork_commit)
         copied        = 0
         to_copy = db.from(:project_commits, :commits).\
                   where(:project_commits__commit_id => :commits__id).\
@@ -704,8 +718,8 @@ module GHTorrent
           copied += 1
           begin
             db[:project_commits].insert(
-                :project_id => c[:id],
-                :commit_id  => currepo[:id]
+                :project_id => currepo[:id],
+                :commit_id  => c[:id]
             )
             debug "Copied commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} (#{copied} total)"
           rescue StandardError => e
@@ -718,7 +732,7 @@ module GHTorrent
     end
 
     # Retrieve and return the commit at which the provided fork was forked at
-    def ensure_forked_commit(owner, repo)
+    def ensure_fork_point(owner, repo)
 
       fork = ensure_repo(owner, repo, false)
 
@@ -746,79 +760,57 @@ module GHTorrent
       default_branch = retrieve_default_branch(parent[:login], parent[:name])
 
       # Retrieve diff between parent and fork master branch
-      cmp = retrieve_master_branch_diff(owner, repo, default_branch, parent[:login], parent[:name], default_branch)
-      debug "Fork #{owner}/#{repo} is #{cmp['ahead_by']} commits ahead and #{cmp['behind_by']} commits behind #{parent[:login]}/#{parent[:name]}"
+      diff = retrieve_master_branch_diff(owner, repo, default_branch, parent[:login], parent[:name], default_branch)
 
-      forked_sha = cmp['merge_base_commit']['sha']
+      if diff.empty?
+        # Try a bit harder by refreshing the default branch
+        default_branch = retrieve_default_branch(parent[:login], parent[:name], true)
+        diff = retrieve_master_branch_diff(owner, repo, default_branch, parent[:login], parent[:name], default_branch)
+      end
+
+      if diff.empty?
+        # This means that the are no common ancestors between the repos
+        # This can apparently happen when the parent repo was renamed or force-pushed
+        # example: https://github.com/openzipkin/zipkin/compare/master...aa1wi:master
+        warn "No common ancestor between #{parent[:login]}/#{parent[:name]} and #{owner}/#{repo}"
+        return nil
+      else
+        debug "Fork #{owner}/#{repo} is #{diff['ahead_by']} commits ahead and #{diff['behind_by']} commits behind #{parent[:login]}/#{parent[:name]}"
+      end
+
+      if diff['ahead_by'].to_i > 0
+        # This means that the fork has diverged, and we need to search through the fork
+        # commit graph for the earliest commit that is shared with the parent. GitHub's
+        # diff contains a list of divergent commits. We are sorting those by date
+        # and select the earliest one. We do date sort instead of graph walking as this
+        # would be prohibetively slow if the commits for the parent did not exist.
+        earliest_diverging = diff['commits'].sort_by{|x| x['commit']['author']['date']}.first
+
+        # Make sure that all likely fork points exist for the parent project
+        # and select the latest of them.
+        # https://github.com/gousiosg/github-mirror/compare/master...pombredanne:master
+        likely_fork_point = earliest_diverging['parents'].\
+            map{ |x| ensure_commit(parent[:name], x['sha'], parent[:login])}.\
+            select{|x| !x.nil?}.\
+            sort_by { |x| x[:created_at]}.\
+            last
+
+        forked_sha  = likely_fork_point[:sha]
+      else
+        # This means that the fork has not diverged.
+        forked_sha = diff['merge_base_commit']['sha']
+      end
+
+      forked_commit = ensure_commit(repo, forked_sha, owner);
+
       debug "Fork commit for #{owner}/#{repo} is #{forked_sha}"
 
-      ensure_commit(parent[:name], forked_sha, parent[:login])
+      unless forked_commit.nil?
+        db[:projects].filter(:id => fork[:id]).update(:forked_commit_id => forked_commit[:id])
+        info "Repo #{owner}/#{repo} was forked at #{parent[:login]}/#{parent[:name]}:#{forked_sha}"
+      end
+
       db[:commits].where(:sha => forked_sha).first
-    end
-
-    ##
-    # Make sure that a project has all the registered members defined
-    def ensure_project_members(user, repo, refresh = false)
-      currepo = ensure_repo(user, repo)
-      time = currepo[:created_at]
-
-      project_members = db.from(:project_members, :users).\
-          where(:project_members__user_id => :users__id).\
-          where(:project_members__repo_id => currepo[:id]).select(:login).all
-
-      retrieve_repo_collaborators(user, repo).reduce([]) do |acc, x|
-        if project_members.find {|y| y[:login] == x['login']}.nil?
-          acc << x
-        else
-          acc
-        end
-      end.map { |x| save{ensure_project_member(user, repo, x['login'], time) }}.select{|x| !x.nil?}
-    end
-
-    ##
-    # Make sure that a project member exists in a project
-    def ensure_project_member(owner, repo, new_member, date_added)
-      pr_members = db[:project_members]
-      project = ensure_repo(owner, repo)
-      new_user = ensure_user(new_member, false, false)
-
-      if project.nil? or new_user.nil?
-        warn "Could not find repo #{owner}/#{repo} or member #{new_member}"
-        return
-      end
-
-      memb_exist = pr_members.first(:user_id => new_user[:id],
-                                    :repo_id => project[:id])
-
-      if memb_exist.nil?
-        added = if date_added.nil?
-                  max(project[:created_at], new_user[:created_at])
-                else
-                  date_added
-                end
-        retrieved = retrieve_repo_collaborator(owner, repo, new_member)
-
-        if retrieved.nil?
-          warn "Could not retrieve member #{new_member} of #{owner}/#{repo}"
-          return
-        end
-
-        pr_members.insert(
-            :user_id => new_user[:id],
-            :repo_id => project[:id],
-            :created_at => date(added)
-        )
-        info "Added project_member #{repo} -> #{new_member}"
-      else
-        debug "Project member #{repo} -> #{new_member} exists"
-      end
-
-      unless date_added.nil?
-        pr_members.filter(:user_id => new_user[:id],
-                          :repo_id => project[:id])\
-                    .update(:created_at => date(date_added))
-        info "Updated project member #{repo} -> #{new_member}, created_at -> #{date(date_added)}"
-      end
     end
 
     ##
@@ -946,7 +938,7 @@ module GHTorrent
 
     ##
     # Make sure that all watchers exist for a repository
-    def ensure_watchers(owner, repo, refresh = false)
+    def ensure_watchers(owner, repo)
       currepo = ensure_repo(owner, repo)
 
       if currepo.nil?
@@ -966,7 +958,7 @@ module GHTorrent
         else
           acc
         end
-      end.map { |x| save{ensure_watcher(owner, repo, x['login'], nil) }}.select{|x| !x.nil?}
+      end.map { |x| save{ensure_watcher(owner, repo, x['login']) }}.select{|x| !x.nil?}
     end
 
     ##
@@ -1381,8 +1373,9 @@ module GHTorrent
         return
       end
 
-      fork_owner = fork['full_name'].split(/\//)[0]
-      fork_name = fork['full_name'].split(/\//)[1]
+      fork_name = if fork['full_name'].nil? then fork['url'].split(/\//)[4..5].join('/') else fork['full_name'] end
+      fork_owner = fork_name.split(/\//)[0]
+      fork_name = fork_name.split(/\//)[1]
 
       r = ensure_repo(fork_owner, fork_name, true)
 
@@ -1396,23 +1389,19 @@ module GHTorrent
 
     ##
     # Make sure all issues exist for a project
-    def ensure_issues(owner, repo, refresh = false)
+    def ensure_issues(owner, repo)
       currepo = ensure_repo(owner, repo)
       if currepo.nil?
         warn "Could not find repo #{owner}/#{repo} for retrieving issues"
         return
       end
 
-      raw_issues = if refresh
-                     retrieve_issues(owner, repo, refresh = true)
-                   else
-                     issues = db[:issues].filter(:repo_id => currepo[:id]).all
-                     retrieve_issues(owner, repo).reduce([]) do |acc, x|
-                       if issues.find { |y| y[:issue_id] == x['number'] }.nil?
-                         acc << x
-                       else
+      issues = db[:issues].filter(:repo_id => currepo[:id]).all
+      raw_issues = retrieve_issues(owner, repo).reduce([]) do |acc, x|
+                     if issues.find { |y| y[:issue_id] == x['number'] }.nil?
+                       acc << x
+                     else
                          acc
-                       end
                      end
                    end
 
@@ -1667,7 +1656,7 @@ module GHTorrent
 
     ##
     # Retrieve repository issue labels
-    def ensure_labels(owner, repo, refresh = false)
+    def ensure_labels(owner, repo)
       currepo = ensure_repo(owner, repo)
 
       if currepo.nil?
@@ -1677,7 +1666,7 @@ module GHTorrent
 
       repo_labels = db[:repo_labels].filter(:repo_id => currepo[:id]).all
 
-      retrieve_repo_labels(owner, repo, refresh).reduce([]) do |acc, x|
+      retrieve_repo_labels(owner, repo).reduce([]) do |acc, x|
         if repo_labels.find {|y| y[:name] == x['name']}.nil?
           acc << x
         else

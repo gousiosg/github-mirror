@@ -48,9 +48,6 @@ mirror:
   # User agent to use for requests. You must use a unique name per client program
   user_agent: ghtorrent
 
-  # Time to wait between geo location API requests
-  geoloc_wait: 2
-
   # Strategy for fork commits:
   #  'all': Retrieve all commits for all forks
   #  'fork_point': Retrieve all commits up to the fork point (remaining ones are shared with parent)
@@ -76,3 +73,11 @@ logging:
   level: "info"
   # stdout or stderr to log to system streams. A file name to log to this file.
   file: "stdout"
+
+geolocate:
+    # osm (open street maps) or bing
+    service: osm
+    # Time to wait between geo location API requests
+    wait: 2
+    # The following are only necessary if bing is used
+    bing_key: foobar
