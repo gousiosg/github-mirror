@@ -37,7 +37,8 @@ module GHTorrent
         :issues                => %w(repo owner number),
         :issue_events          => %w(repo owner issue_id id),
         :issue_comments        => %w(repo owner issue_id id),
-        :geo_cache             => %w(key)
+        :geo_cache             => %w(key),
+        :pull_request_commits  => %w(sha)
     }
 
     attr_reader :settings
