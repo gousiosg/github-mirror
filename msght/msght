@@ -14,13 +14,13 @@
 # Bulk fetch all the repos in the given args
 bulkFetchRepos() {
     getRepos $1
-    node msght/run-msght.js -r ../repos.txt -k ../keys.txt -t 5 2>&1 > ../fetchRepos.log
+    nohup node msght/run-msght.js -r ../repos.txt -k ../keys.txt -t 5 2>&1 > ../fetchRepos.log
 }
 
 # Discover all the orgs and repos and writes them to disk.
 discoverRepos() {
     echo "" > ../repos.txt
-    nohup node msght/GetRepos.js -orgs $1 -f ../repos.txt
+    node msght/GetRepos.js -orgs $1 -f ../repos.txt
 }
 
 # start the base
