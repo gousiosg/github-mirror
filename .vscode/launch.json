@@ -6,8 +6,10 @@
       "type": "node",
       "request": "launch",
       "program": "${workspaceRoot}/msght/clearmongo.js",
+      "args": [
+        "githublocal"
+      ],
       "stopOnEntry": false,
-      "args": [],
       "cwd": "${workspaceRoot}",
       "preLaunchTask": null,
       "runtimeExecutable": null,

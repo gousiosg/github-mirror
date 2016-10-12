@@ -11,7 +11,7 @@ const username = config.mongo.username;
 const password = config.mongo.password;
 const host = config.mongo.host;
 const port = config.mongo.port;
-const db = config.mongo.db;
+const db = process.argv[2] || config.mongo.db;
 const ssl = config.mongo.ssl ? '?ssl=true' : '';
 const replicas = config.mongo.replicas ? config.mongo.replicas.strip('not sure here') : '';
 const url = `mongodb://${username}:${password}@${host}:${port}${replicas}/${db}${ssl}`;

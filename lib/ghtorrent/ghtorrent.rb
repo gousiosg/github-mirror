@@ -70,8 +70,12 @@ module GHTorrent
       result
     end
 
-    def includeOrg?(org)
-      return (not @orgFilter.nil?) || (@org_filter.include? org)
+    def include_org?(org)
+      if @org_filter.nil?
+        return true
+      else
+        return @org_filter.include? org
+      end
     end
 
     ##
@@ -565,7 +569,7 @@ module GHTorrent
     #  If the repo can be retrieved, it is returned as a Hash. Otherwise,
     #  the result is nil
     def ensure_repo(user, repo, recursive = false)
-      if not includeOrg? user
+      if not include_org? user
         warn "Organization #{user} excluded by org filter"
         return
       end
@@ -631,7 +635,7 @@ module GHTorrent
     end
 
     def ensure_repo_recursive(owner, repo)
-      if not includeOrg? owner
+      if not include_org? owner
         warn "Organization #{owner} excluded by filter"
         return
       end
@@ -894,7 +898,7 @@ module GHTorrent
     # [organization]  The login name of the organization
     #
     def ensure_org(organization, members = true)
-      if not includeOrg? organization
+      if not include_org? organization
         warn "Organization #{organization} excluded by filter"
         return
       end

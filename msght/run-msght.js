@@ -60,7 +60,7 @@ for (var argI = 0; argI < process.argv.length; ++argI) {
 
 //Check if all args were passed in correctly
 if (!keys_file_path || !repos_file_path) {
-  console.log('Must pass the path to projects file using -p flag and \
+  console.log('Must pass the path to projects file using -r flag and \
  the keys file using the -k flag. Optionally pass in the number of \
  processes with the -t flag. for example: \r\n\
  node msght_run.js -k keys.txt -r repos.txt -t 4 ');
@@ -144,7 +144,7 @@ function startProcess(key, org, repo, id, keyI, orgI, num_tried) {
   log(`STARTING RETRIEVE  ==== ${org}/${repo}`);
   proc_active[id] = 1;
   var proc = spawn('ruby', [`-I${__dirname}/../lib`, `${__dirname}/../bin/ght-retrieve-repo`,
-    '-c', `${__dirname}/../../config.yaml`, '-t', key, '-l', 50000, org, repo],
+    '-c', `${__dirname}/../../config.yaml`, '-t', key, org, repo],
     { detached: true });
   process_map[proc.pid] = 0; //Mark that the process is running
   proc_pid[id] = proc.pid;
