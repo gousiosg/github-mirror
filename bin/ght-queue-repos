@@ -31,6 +31,7 @@ Queue a mess of repos for full harvesting.
     setup
     repo_list = File.open(@options[:repos], 'r') { |f| f.readlines }
     repo_list.each do |repo|
+      puts "Queuing #{repo}"
       @exchange.publish repo.strip, :persistent => true, :routing_key => GHTorrent::ROUTEKEY_PROJECTS
     end
   end

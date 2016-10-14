@@ -163,7 +163,7 @@
       "request": "launch",
       "program": "${workspaceRoot}/bin/ght-retrieve-repos",
       "args": [
-        "-c", "${workspaceRoot}/../config.yaml", "-q", "evt.projects", "${workspaceRoot}/../keymap.txt"
+        "-c", "${workspaceRoot}/../config.yaml", "-q", "evt.projects", "-i", "${workspaceRoot}/../keymap.txt"
       ],
       "env": {
         "RUBYOPT": "-I${workspaceRoot}/lib",
