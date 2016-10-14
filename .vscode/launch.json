@@ -80,6 +80,19 @@
       "outDir": null
     },
     {
+      "name": "Queue Repos",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-queue-repos",
+      "args": [
+        "-c", "${workspaceRoot}/../config.yaml", "-r", "${workspaceRoot}/../repos.txt"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
       "name": "Webhooks",
       "type": "Ruby",
       "request": "launch",
@@ -138,6 +151,19 @@
       "program": "${workspaceRoot}/bin/ght-retrieve-repo",
       "args": [
         "contoso-d", "closure-library", "-f", "-c", "${workspaceRoot}/../config.yaml"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
+      "name": "Retrieve Repos",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-retrieve-repos",
+      "args": [
+        "-c", "${workspaceRoot}/../config.yaml", "-q", "evt.projects", "${workspaceRoot}/../keymap.txt"
       ],
       "env": {
         "RUBYOPT": "-I${workspaceRoot}/lib",

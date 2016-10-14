@@ -1,0 +1,60 @@
+#!/usr/bin/env ruby
+
+# (c) 2016 Microsoft and others
+#
+# MIT licensed, see LICENSE in top level dir
+#
+# Queue a set of repos for GHTorrent to harvest
+
+require 'bunny'
+require 'ghtorrent/settings'
+require 'ghtorrent/logging'
+require 'ghtorrent'
+require 'ghtorrent/command'
+
+class RepoQueue < GHTorrent::Command
+
+  include GHTorrent::Settings
+  include GHTorrent::Logging
+
+  def prepare_options(options)
+    options.banner <<-BANNER
+Queue a mess of repos for full harvesting.
+
+#{command_name} [options]
+    BANNER
+
+    options.opt :repos, 'List of repos to queue', :short => 'r', :type => String
+  end
+
+  def go
+    setup
+    repo_list = File.open(@options[:repos], 'r') { |f| f.readlines }
+    repo_list.each do |repo|
+      @exchange.publish repo.strip, :persistent => true, :routing_key => GHTorrent::ROUTEKEY_PROJECTS
+    end
+  end
+
+  def setup
+    begin
+      connection = Bunny.new(:host => config(:amqp_host),
+                      :port => config(:amqp_port),
+                      :username => config(:amqp_username),
+                      :password => config(:amqp_password),
+                      :network_recovery_interval => 7)
+      connection.start
+    rescue Exception => e
+      sleep 2
+      retry
+    end
+
+    channel = connection.create_channel
+    STDERR.puts "Connection to RabbitMQ: #{config(:amqp_host)} succeeded"
+
+    @exchange = channel.topic(config(:amqp_exchange), :durable => true,
+                          :auto_delete => false)
+  end
+
+end
+
+RepoQueue.run
