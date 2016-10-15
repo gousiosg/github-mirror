@@ -1,0 +1,203 @@
+#!/usr/bin/env ruby
+#
+
+require 'rubygems'
+require 'trollop'
+require 'application_insights'
+require 'pp'
+require 'time'
+
+def parse_api_client_line(line)
+  if line.start_with?("Successful")
+    # Successful request. URL: https://api.github.com/repos/amizony/self-destructing-task-list/comments/11518274?per_page=100, Remaining: 3949, Total: 423 ms
+    remaining, elapsed = line.match(/.*Remaining: ([\d]+), Total: ([\d]+) ms/).captures
+    $tc.track_event 'api_client_success',  :measurements => { 'elapsed' => elapsed.to_i, 'remaining' => remaining.to_i }
+  elsif line.start_with?("Failed")
+    # Failed request. URL: https://api.github.com/repos/mingliang7/hotel/commits?per_page=100, Status code: 409, Status: Conflict, Access: ghtorrent, IP: 0.0.0.0, Remaining: 3332
+    url, code, elapsed = line.match(/.*URL: ([^,]+), .*Status code: ([^,]+), .*Remaining: ([\d]+)/).captures
+    $tc.track_event 'api_client_fail',  :properties => {'code' => code, 'url' => url }, :measurements => { 'remaining' => remaining.to_i }
+  end
+end
+
+def parse_data_retrieval_line(line)
+  # Success processing event. Type: PushEvent, ID: 2863181313, Time: 967 ms
+  return [{}] unless line.start_with?("Success") or line.start_with?("Error")
+  outcome, evt_type, time = line.match(/([^\ ]+) processing event\. Type: ([\D]+)Event, .*, Time: ([\d]+) ms/).captures
+  $tc.track_event 'data_retrieval', :properties => { 'outcome' => outcome.downcase, 'type' => evt_type }, :measurements => { 'elapsed' => time.to_i }
+end
+
+def parse_retriever_line(line)
+  chunks = line.split(/ /)
+  if line.start_with?("Added")
+    # Added repo hiropong -> googlemaplesson
+    outcome = "success"
+    entity = chunks[1]
+    value = chunks.length > 2 ? chunks[2] : ''
+  elsif line.start_with?("Could not find")
+    # Could not find commit_comment 12106552. Deleted?
+    outcome = "failure"
+    entity = chunks[3]
+    value = chunks.length > 4 ? chunks[4] : ''
+  else
+    return
+  end
+  $tc.track_event 'retriever', :properties => { 'outcome' => outcome.downcase, 'entity' => entity, 'name' => value }
+end
+
+def parse_ghtorrent_line(line)
+  chunks = line.split(/ /)
+  if line.start_with?("Added")
+    # Added user hayjohnny2000
+    # Added issue_event etsy/logster -> 1/etsy/logster -> 1/417355
+    outcome = "success"
+    entity = chunks[1]
+    value = chunks.length > 2 ? chunks[2] : ''
+  elsif line.start_with?("Could not retrieve")
+    # Could not retrieve commit_comment 12106552. Deleted?
+    outcome = "failure"
+    entity = chunks[3]
+    value = chunks.length > 4 ? chunks[4] : ''
+  else
+    return
+  end
+  $tc.track_event 'ghtorrent', :properties => { 'outcome' => outcome.downcase, 'entity' => entity, 'name' => value }
+end
+
+def parse_repo_updater_line(line)
+  unless line.match(/Repo .* updated/).nil?
+    $tc.track_event 'repo_update'
+  end
+
+  unless line.match(/marked as deleted/).nil?
+    $tc.track_event 'repo_delete'
+  end
+end
+
+def parse_full_user_retriever_line(line)
+  unless line.match(/User .* updated/).nil?
+    $tc.track_event 'user_update'
+  end
+  unless line.match(/marked as deleted/).nil?
+    $tc.track_event 'user_delete'
+  end
+end
+
+def parse_full_repo_retriever_line(line)
+  if line.start_with?("Start")
+    # "Start fetching: #{owner}/#{repo}"
+    repo = line.match(/.*fetching: ([\S]+)/).captures
+    $tc.track_event 'repo_fetch_start', :properties => { 'repo' => repo }
+  elsif line.start_with?("Done")
+    # Done fetching: #{owner}/#{repo}, Time: 1003 ms
+    repo, time = line.match(/.*fetching: ([^,]+), Time: ([\d]+)/).captures
+    $tc.track_event 'repo_fetch_done', :properties => { 'repo' => repo, 'time' => time }
+  elsif line.start_with?("Skip")
+    # "Skip: #{owner}/#{repo}, Too new: #{Time.at(repo_entry[:updated_at])}"
+    # "Skip: #{owner}/#{repo}, Owner: #{owner} not found"
+    # "Skip: #{owner}/#{repo}, Repo: #{repo} not found"
+    repo = line.match(/.*Skip: ([^,]+)/).captures
+    too_new = line.match(/.*Too new: ([\S]+)/).captures
+    owner = line.match(/.*Owner: ([\S]+)/).captures
+    target = line.match(/.*Repo: ([\S]+)/).captures
+    $tc.track_event 'repo_fetch_skip', :properties => { 'repo' => repo, 'too_new' => too_new, 'owner' => owner, 'target' => target }.reject{ |k,v| v.nil? }
+  elsif line.start_with?("Error")
+    repo = line.match(/.*fetching: ([^,]+)/).captures
+  elsif line.start_with?("Stage")
+    # "Stage: #{stage} completed, Time: #{Time.now.to_ms - stage_time.to_ms} ms"
+    stage, repo, time = line.match(/.*Stage: ([^,]+), Repo: ([^,]+), Time: ([\d]+)/).captures
+    $tc.track_event 'repo_fetch_stage', :properties => { 'repo' => repo, 'stage' => stage, 'time' => time }
+  end
+end
+
+def process_log_line(line)
+  begin
+    severity, time, progname, stage, msg =
+      line.match(/([A-Z]+), (.+), (.+) -- ([^:]*?): (.*)/).captures
+  rescue
+    puts "Error parsing line: #{line}"
+    return
+  end
+
+  return {} if severity.downcase == 'debug'
+  stage = stage.split(/\./)[0]
+  data = {
+    :client => progname,
+    :severity => severity
+  }
+
+  return {} if msg.nil? or msg.length == 0
+
+  stage_specific =
+    begin
+      case stage
+      when 'api_client'
+        parse_api_client_line(msg)
+      when 'ght_data_retrieval'
+        parse_data_retrieval_line(msg)
+      when 'retriever'
+        parse_retriever_line(msg)
+      when 'ghtorrent'
+        parse_ghtorrent_line(msg)
+      when 'repo_updater'
+        parse_repo_updater_line(msg)
+      when 'full_user_retriever'
+        parse_full_user_retriever_line(msg)
+      when 'full_repo_retriever'
+        parse_full_repo_retriever_line(msg)
+      end
+    rescue StandardError => e
+      puts e.message
+      puts "Error parsing line: #{msg}"
+    end
+end
+
+opts = Trollop::options do
+  banner <<-END
+  Store GHTorrent log output to ApplicationInsights. Reads from STDIN.
+
+Options:
+  END
+
+  opt :key, "ApplicationInsights API key", :type => String,
+    :short => 'k'
+  opt :file, "Read from a file (for testing)", :type => String,
+    :short => 'f'
+end
+
+sender = ApplicationInsights::Channel::AsynchronousSender.new
+queue = ApplicationInsights::Channel::AsynchronousQueue.new sender
+channel = ApplicationInsights::Channel::TelemetryChannel.new nil, queue
+$tc = ApplicationInsights::TelemetryClient.new opts[:key], channel
+ApplicationInsights::UnhandledException.collect(opts[:key])
+
+if opts[:file].nil?
+  puts "Reading from STDIN..."
+  ARGF.each do |line|
+    next if line !~ /^[IDEW]/
+
+    begin
+      logs = parse_log_line(line)
+      next if logs.empty?
+
+      logs.each do |p|
+        puts line
+      end
+    rescue StandardError => e
+      puts "#{e.message}"
+      puts e.backtrace
+    end
+  end
+else
+  puts "Reading from file #{opts[:file]}..."
+  File.open(opts[:file], "r") do |f|
+    f.each_line do |line|
+      begin
+        puts line
+        process_log_line(line)
+      rescue StandardError => e
+        puts "#{e.message}"
+        puts e.backtrace
+      end
+    end
+  end
+end

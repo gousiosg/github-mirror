@@ -1,0 +1,13 @@
+INFO, 2016-10-14T05:00:53+00:00, msghtdev -- ghtorrent.rb: Added user 0xabu
+INFO, 2016-10-14T05:00:53+00:00, msghtdev -- ghtorrent.rb: Added participation Microsoft -> 0xabu
+WARN, 2016-10-14T05:00:58+00:00, msghtdev -- geolocator.rb: Failed geolocation request. URL: http://nominatim.openstreetmap.org/search/chattanooga%20tn?format=json&addressdetails=1&accept_language=en
+INFO, 2016-10-14T05:00:47+00:00, msghtdev -- api_client.rb: Successful request. URL: https://api.github.com/users/zckb?per_page=100, Remaining: 57082, Total: 64 ms
+INFO, 2016-10-14T05:18:54+00:00, msghtdev -- retriever.rb: Added commit Microsoft/pxt-microbit-core -> 58f9a520202357ed6b8fefd174b6fca262e4d647
+INFO, 2016-10-14T05:19:02+00:00, msghtdev -- ghtorrent.rb: Added commit_parent b0392da8b18e5f85b922aaa03dfed8a27027e9af to commit ef8d7185ee3a86be455056a97f85a7610e23c350
+INFO, 2016-10-14T05:19:06+00:00, msghtdev -- ghtorrent.rb: Added commit_assoc c98377182c336e3e6b34a6e37d1f93340eafdcdf with Microsoft/pxt-microbit-core
+WARN, 2016-10-14T05:19:09+00:00, msghtdev -- ghtorrent.rb: Extracted email(REDMOND\cdmbld) not valid for user CDM Build<REDMOND\cdmbld>
+WARN, 2016-10-14T05:19:24+00:00, msghtdev -- ghtorrent.rb: Organization Darzu excluded by org filter
+WARN, 2016-10-14T05:19:22+00:00, msghtdev -- ghtorrent.rb: Could not add Darzu/pxt-neopixel as fork of Microsoft/pxt-neopixel
+WARN, 2016-10-14T05:19:48+00:00, msghtdev -- api_client.rb: Failed request. URL: https://api.github.com/legacy/user/email/isabgolfujia%40gmail.com?per_page=100, Status code: 404, Status: Not Found, Access: 48fe6d7899d, IP: 0.0.0.0, Remaining: 55225
+WARN, 2016-10-14T05:19:48+00:00, msghtdev -- ghtorrent.rb: Could not retrieve user isabgolfujia@gmail.com through search API query
+INFO, 2016-10-14T05:19:48+00:00, msghtdev -- ghtorrent.rb: Added user fake YPCOYIOQ -> isabgolfujia@gmail.com

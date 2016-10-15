@@ -131,6 +131,7 @@ module GHTorrent
             end
           end
         end
+        info "Done fetching: #{owner}/#{repo}, Time: #{Time.now.to_ms - start_time.to_ms} ms"
       end
       info "Done fetching: #{owner}/#{repo}, Time: #{Time.now.to_ms - start_time.to_ms} ms"
     end

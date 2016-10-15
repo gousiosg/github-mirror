@@ -171,6 +171,19 @@
       }
     },
     {
+      "name": "Process Log",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-log-app-insights",
+      "args": [
+        "-k", "ed1a849b-a27a-4513-ae6b-d96456bc2c32", "-f", "${workspaceRoot}/../fetch.log"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
       "name": "Attach",
       "type": "node",
       "request": "attach",
