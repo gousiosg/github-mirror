@@ -101,7 +101,7 @@ if (org) {
 orgs.then(orgList => {
   getReposForOrgs(orgList, filepath)
     .then(() => { checkWebHooks(orgList, hookUrl, hookSecret); })
-    .then(() => { process.exit(0); })
+    // .then(() => { process.exit(0); })
     .catch(err => {
       console.log(err);
     });
@@ -110,7 +110,7 @@ orgs.then(orgList => {
 function getReposForOrgs(orgs, path) {
   const limiter = qlimit(1);
   return Q.allSettled(orgs.map(limiter(o => {
-    return getRepos(o).then(repos => { return writeList(o, repos, path); });
+    return getRepos(o).then(repos => { return writeList(o, repos, path).then(list => { return list; }); });
   })));
 }
 
@@ -145,7 +145,7 @@ function collect(query, selector, sorter) {
 function loadOrgs(path) {
   if (path.startsWith('*')) {
     path = path.substr(1);
-    return getOrgs().then(orgList => { return writeList(null, orgList, path); });
+    return getOrgs().then(orgList => { return writeList(null, orgList, path).then(list => { return list; });  });
   }
   // read the orgs file and break it into trimmed lines
   const orgString = fs.readFileSync(path, 'utf8');
@@ -167,7 +167,9 @@ function writeList(prefix, list, path) {
   });
   // make a promise that resolves when the stream is written.  Otherwise
   const deferred = Q.defer();
-  output.end(() => deferred.resolve(list));
+  output.end(() => {
+    deferred.resolve(list);
+  });
   return deferred;
 }
 

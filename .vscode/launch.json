@@ -158,6 +158,7 @@
       }
     },
     {
+      "linux": "einhorn -n 5 -k bin/ght-retrieve-repos -c ../config.yaml -q evt.projects -i ../keymap.txt 2>&1 | bin/ght-log-app-insights -k ed1a849b-a27a-4513-ae6b-d96456bc2c32 | ../fetchRepos.log",
       "name": "Retrieve Repos",
       "type": "Ruby",
       "request": "launch",
@@ -176,7 +177,7 @@
       "request": "launch",
       "program": "${workspaceRoot}/bin/ght-log-app-insights",
       "args": [
-        "-k", "ed1a849b-a27a-4513-ae6b-d96456bc2c32", "-f", "${workspaceRoot}/../fetch.log"
+        "-k", "ed1a849b-a27a-4513-ae6b-d96456bc2c32", "-f", "${workspaceRoot}/../log.txt"
       ],
       "env": {
         "RUBYOPT": "-I${workspaceRoot}/lib",

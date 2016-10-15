@@ -96,9 +96,9 @@ def parse_full_repo_retriever_line(line)
     # "Skip: #{owner}/#{repo}, Owner: #{owner} not found"
     # "Skip: #{owner}/#{repo}, Repo: #{repo} not found"
     repo = line.match(/.*Skip: ([^,]+)/).captures
-    too_new = line.match(/.*Too new: ([\S]+)/).captures
-    owner = line.match(/.*Owner: ([\S]+)/).captures
-    target = line.match(/.*Repo: ([\S]+)/).captures
+    too_new = get_match(line, /.*Too new: ([\S]+)/)
+    owner = get_match(line, /.*Owner: ([\S]+)/)
+    target = get_match(line, /.*Repo: ([\S]+)/)
     $tc.track_event 'repo_fetch_skip', :properties => { 'repo' => repo, 'too_new' => too_new, 'owner' => owner, 'target' => target }.reject{ |k,v| v.nil? }
   elsif line.start_with?("Error")
     repo = line.match(/.*fetching: ([^,]+)/).captures
@@ -109,12 +109,17 @@ def parse_full_repo_retriever_line(line)
   end
 end
 
+def get_match(line, exp)
+  match = line.match(exp)
+  return match.nil? ? match : match.captures
+end
+
 def process_log_line(line)
   begin
     severity, time, progname, stage, msg =
       line.match(/([A-Z]+), (.+), (.+) -- ([^:]*?): (.*)/).captures
-  rescue
-    puts "Error parsing line: #{line}"
+  rescue StandardError => e
+    puts "  Skip logging. Error: #{e.message}"
     return
   end
 
@@ -173,15 +178,12 @@ ApplicationInsights::UnhandledException.collect(opts[:key])
 if opts[:file].nil?
   puts "Reading from STDIN..."
   ARGF.each do |line|
-    next if line !~ /^[IDEW]/
+    # TODO not sure what this does but its is not working on unbunto 16.04 bash
+    # next if line !~ /^[IDEW]/
 
     begin
-      logs = parse_log_line(line)
-      next if logs.empty?
-
-      logs.each do |p|
-        puts line
-      end
+      puts line
+      process_log_line(line)
     rescue StandardError => e
       puts "#{e.message}"
       puts e.backtrace
