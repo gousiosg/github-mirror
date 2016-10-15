@@ -16,6 +16,10 @@ def parse_api_client_line(line)
     # Failed request. URL: https://api.github.com/repos/mingliang7/hotel/commits?per_page=100, Status code: 409, Status: Conflict, Access: ghtorrent, IP: 0.0.0.0, Remaining: 3332
     url, code, elapsed = line.match(/.*URL: ([^,]+), .*Status code: ([^,]+), .*Remaining: ([\d]+)/).captures
     $tc.track_event 'api_client_fail',  :properties => {'code' => code, 'url' => url }, :measurements => { 'remaining' => remaining.to_i }
+  elsif line.start_with?("Request")
+    # "Request limit reached, reset in: #{to_sleep} secs"
+    time = line.match(/.*in: ([\d]+)/).captures
+    $tc.track_event 'api_client_wait',  :properties => {'time' => time }
   end
 end
 
@@ -109,6 +113,24 @@ def parse_full_repo_retriever_line(line)
   end
 end
 
+def parse_ght_webhook_line(line)
+  if line.start_with?("Malformed")
+    # "Malformed hook body"
+    $tc.track_event 'webhook_malformed'
+  elsif line.start_with?("Could not verify")
+    # "Could not verify webhook callback"
+    $tc.track_event 'webhook_unverified'
+  elsif line.start_with?("Error queuing")
+    # "Error queuing: #{e.message}"
+    message = line.match(/.*queuing: (.*)$/).captures
+    $tc.track_event 'webhook_queue_fail', :properties => { 'message' => message }
+  elsif line.start_with?("Queuing:")
+    # "Queuing: #{repo_fullname}, Event: #{id}, Type: #{event['type']}"
+    repo, event, type = line.match(/.*Queuing: ([^,]+), Event: ([^,]+), Type: ([.*]+)$/).captures
+    $tc.track_event 'webhook_queuing', :properties => { 'repo' => repo, 'event' => event, 'type' => type }
+  end
+end
+
 def get_match(line, exp)
   match = line.match(exp)
   return match.nil? ? match : match.captures
@@ -149,6 +171,8 @@ def process_log_line(line)
         parse_full_user_retriever_line(msg)
       when 'full_repo_retriever'
         parse_full_repo_retriever_line(msg)
+      when 'ght-webhook'
+        parse_ght_webhook_line(msg)
       end
     rescue StandardError => e
       puts e.message

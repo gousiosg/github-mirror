@@ -93,42 +93,35 @@ post '/' do
   request.body.rewind
   payload_body = request.body.read
   if not verify_signature?(payload_body)
-    print "Could not verify webhook callback"
-    halt 500
+    info "Could not verify webhook callback"
+    halt 403
   end
   begin
     event = JSON.parse(payload_body)
   rescue StandardError => e
-    puts e
+    info "Malformed hook body"
     halt 400, "Error parsing object #{request.body.read}"
   end
-  begin
     publish_event(event)
-  rescue StandardError => e
+  rescue Exception => e
+    warn "Error queuing: #{e.message}"
     halt 500, e
   end
 end
 
 # Post the given event to all the relevant topics
 def publish_event(event)
-  begin
-    # ensure there is only one thread publishing at a time.
-    # TODO validate that the semaphore is actually needed
-    @@semaphore.synchronize do
-      repo_fullname = event['repository']['full_name']
-      # publish to the central queue for processing
-      settings.rabbit.publish repo_fullname, :persistent => true, :routing_key => "evt.Event"
-
-      # Fan out to other queues
-      key = "evt.#{event['type']}"
-      id = event['id'].to_s
-      settings.rabbit.publish id, :persistent => true, :routing_key => "bot.#{key}"
-      settings.rabbit.publish "#{key} #{id}", :persistent => true, :routing_key => "log"
-      settings.rabbit.publish id, :persistent => true, :routing_key => "evt.Flow"
-      puts "#{repo_fullname}: Queued event with id: #{id}"
-    end
-  rescue Exception => e
-    print e
+  # ensure there is only one thread publishing at a time.
+  # TODO validate that the semaphore is actually needed
+  @@semaphore.synchronize do
+    repo_fullname = event['repository']['full_name']
+    key = "evt.#{event['type']}"
+    id = event['id'].to_s
+    info "Queuing: #{repo_fullname}, Event: #{id}, Type: #{event['type']}"
+    # publish to the central queue and any additonal queues
+    settings.rabbit.publish repo_fullname, :persistent => true, :routing_key => "evt.Event"
+    settings.rabbit.publish id, :persistent => true, :routing_key => "bot.#{key}"
+    settings.rabbit.publish id, :persistent => true, :routing_key => "evt.Flow"
   end
 end
 
@@ -138,11 +131,5 @@ def verify_signature?(payload_body)
   end
 
   signature = 'sha1=' + OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('sha1'), ENV['SECRET_KEY'], payload_body)
-
-  if Rack::Utils.secure_compare(signature, request.env['HTTP_X_HUB_SIGNATURE'])
-    return true
-  else
-    return false
-  end
+  return Rack::Utils.secure_compare(signature, request.env['HTTP_X_HUB_SIGNATURE'])
 end
-
