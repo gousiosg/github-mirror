@@ -104,12 +104,22 @@ def parse_full_repo_retriever_line(line)
     owner = get_match(line, /.*Owner: ([\S]+)/)
     target = get_match(line, /.*Repo: ([\S]+)/)
     $tc.track_event 'repo_fetch_skip', :properties => { 'repo' => repo, 'too_new' => too_new, 'owner' => owner, 'target' => target }.reject{ |k,v| v.nil? }
-  elsif line.start_with?("Error")
-    repo = line.match(/.*fetching: ([^,]+)/).captures
+  elsif line.start_with?("Error in stage")
+    # "Error in stage: #{stage}, Repo: #{owner}/#{repo}, Message: #{$!}"
+    stage, repo, message = line.match(/.*stage: ([^,]+), Repo: ([^,]+), Message:(.*)$/).captures
+    $tc.track_event 'repo_fetch_error', :properties => { 'stage' => stage, 'repo' => repo, 'message' => message }
   elsif line.start_with?("Stage")
     # "Stage: #{stage} completed, Time: #{Time.now.to_ms - stage_time.to_ms} ms"
     stage, repo, time = line.match(/.*Stage: ([^,]+), Repo: ([^,]+), Time: ([\d]+)/).captures
     $tc.track_event 'repo_fetch_stage', :properties => { 'repo' => repo, 'stage' => stage, 'time' => time }
+  elsif line.start_with?("Processed:")
+    # "Processed: #{event['type']}, Id: #{event['id']}"
+    type, id = line.match(/.*event: ([^,]+), Id: ([\d]+)/).captures
+    $tc.track_event 'repo_fetch_procesed_event', :properties => { 'type' => type, 'id' => id }
+  elsif line.start_with?("Could not process:")
+    "Could not process: #{event['type']}, Id: #{event['id']}: #{e.message}"
+    type, id, message = line.match(/.*process: ([^,]+), Id: ([\d]+): (.*)$/).captures
+    $tc.track_event 'repo_fetch_procesed_event', :properties => { 'type' => type, 'id' => id, 'message' => message }
   end
 end
 
@@ -136,26 +146,32 @@ def get_match(line, exp)
   return match.nil? ? match : match.captures
 end
 
-def process_log_line(line)
+def process_log_line(line, number)
   begin
     severity, time, progname, stage, msg =
       line.match(/([A-Z]+), (.+), (.+) -- ([^:]*?): (.*)/).captures
   rescue StandardError => e
-    puts "  Skip logging. Error: #{e.message}"
+    puts $lineBuffer unless $error
+    $error = true
+    puts "  Skip ##{number} : #{line}"
     return
   end
 
-  return {} if severity.downcase == 'debug'
-  stage = stage.split(/\./)[0]
-  data = {
-    :client => progname,
-    :severity => severity
-  }
+  $lineBuffer = [] if $error
+  $lineBuffer.shift if $lineBuffer.length >= 2
+  $lineBuffer << line
+  $error = false
+  begin
+    return {} if severity.downcase == 'debug'
+    stage = stage.split(/\./)[0]
+    data = {
+      :client => progname,
+      :severity => severity
+    }
 
-  return {} if msg.nil? or msg.length == 0
+    return {} if msg.nil? or msg.length == 0
 
-  stage_specific =
-    begin
+    stage_specific =
       case stage
       when 'api_client'
         parse_api_client_line(msg)
@@ -174,9 +190,8 @@ def process_log_line(line)
       when 'ght-webhook'
         parse_ght_webhook_line(msg)
       end
-    rescue StandardError => e
-      puts e.message
-      puts "Error parsing line: #{msg}"
+    rescue Exception => e
+      puts "Error parsing #: #{number}, Error: #{e.message}, Line: #{msg}"
     end
 end
 
@@ -199,31 +214,21 @@ channel = ApplicationInsights::Channel::TelemetryChannel.new nil, queue
 $tc = ApplicationInsights::TelemetryClient.new opts[:key], channel
 ApplicationInsights::UnhandledException.collect(opts[:key])
 
+$error = false
+$lineBuffer = []
+number = 0
 if opts[:file].nil?
   puts "Reading from STDIN..."
   ARGF.each do |line|
     # TODO not sure what this does but its is not working on unbunto 16.04 bash
     # next if line !~ /^[IDEW]/
-
-    begin
-      puts line
-      process_log_line(line)
-    rescue StandardError => e
-      puts "#{e.message}"
-      puts e.backtrace
-    end
+    process_log_line(line)
   end
 else
   puts "Reading from file #{opts[:file]}..."
   File.open(opts[:file], "r") do |f|
     f.each_line do |line|
-      begin
-        puts line
-        process_log_line(line)
-      rescue StandardError => e
-        puts "#{e.message}"
-        puts e.backtrace
-      end
+      process_log_line(line, number += 1)
     end
   end
 end
