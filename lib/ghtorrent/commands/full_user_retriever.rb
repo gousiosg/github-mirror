@@ -33,6 +33,10 @@ module GHTorrent
         debug "User #{login} update started"
         user_entry = ght.transaction { ght.ensure_user(login, false, false) }
         on_github = api_request(ghurl ("users/#{login}"))
+        if on_github.nil?
+          error "Problem retrieving #{login} from GitHub"
+          return
+        end
 
         if on_github.empty?
           if user_entry.nil?
