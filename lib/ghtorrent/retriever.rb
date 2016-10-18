@@ -188,6 +188,10 @@ module GHTorrent
           return
         end
 
+        # commit patches are big and not always interesting
+        if config(:commit_handling) == "trim"
+          c["files"].each { |file| file.delete("patch") }
+        end
         unq = persister.store(:commits, c)
         info "Added commit #{user}/#{repo} -> #{sha}"
         c

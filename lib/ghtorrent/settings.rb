@@ -32,6 +32,7 @@ module GHTorrent
         :rescue_loops => 'mirror.rescue_loops',
         :req_limit => 'mirror.req_limit',
         :fork_commits => 'mirror.fork_commits',
+        :commit_handling => 'mirror.commit_handling',
 
         :logging_level => 'logging.level',
         :logging_uniq => 'logging.uniq',
