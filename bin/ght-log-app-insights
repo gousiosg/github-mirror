@@ -12,13 +12,13 @@ def parse_api_client_line(line)
     # Successful request. URL: https://api.github.com/repos/amizony/self-destructing-task-list/comments/11518274?per_page=100, Remaining: 3949, Total: 423 ms
     remaining, elapsed = line.match(/.*Remaining: ([\d]+), Total: ([\d]+) ms/).captures
     $tc.track_event 'api_client_success',  :measurements => { 'elapsed' => elapsed.to_i, 'remaining' => remaining.to_i }
-  elsif line.start_with?("Failed")
+  elsif line.start_with?("Failed") and line.include?("Status code:")
     # Failed request. URL: https://api.github.com/repos/mingliang7/hotel/commits?per_page=100, Status code: 409, Status: Conflict, Access: ghtorrent, IP: 0.0.0.0, Remaining: 3332
     url, code, elapsed = line.match(/.*URL: ([^,]+), .*Status code: ([^,]+), .*Remaining: ([\d]+)/).captures
     $tc.track_event 'api_client_fail',  :properties => {'code' => code, 'url' => url }, :measurements => { 'remaining' => remaining.to_i }
   elsif line.start_with?("Request")
     # "Request limit reached, reset in: #{to_sleep} secs"
-    time = line.match(/.*in: ([\d]+)/).captures
+    time = get_match(line, /.*in: ([\d]+)/)
     $tc.track_event 'api_client_wait',  :properties => {'time' => time }
   end
 end
@@ -89,17 +89,17 @@ end
 def parse_full_repo_retriever_line(line)
   if line.start_with?("Start")
     # "Start fetching: #{owner}/#{repo}"
-    repo = line.match(/.*fetching: ([\S]+)/).captures
+    repo = get_match(line, /.*fetching: ([\S]+)/)
     $tc.track_event 'repo_fetch_start', :properties => { 'repo' => repo }
   elsif line.start_with?("Done")
     # Done fetching: #{owner}/#{repo}, Time: 1003 ms
-    repo, time = line.match(/.*fetching: ([^,]+), Time: ([\d]+)/).captures
+    repo, time = line.match(/.*fetching: ([^,]+), Time: ([\d]+) ms/).captures
     $tc.track_event 'repo_fetch_done', :properties => { 'repo' => repo, 'time' => time }
   elsif line.start_with?("Skip")
     # "Skip: #{owner}/#{repo}, Too new: #{Time.at(repo_entry[:updated_at])}"
     # "Skip: #{owner}/#{repo}, Owner: #{owner} not found"
     # "Skip: #{owner}/#{repo}, Repo: #{repo} not found"
-    repo = line.match(/.*Skip: ([^,]+)/).captures
+    repo = get_match(line, /.*Skip: ([^,]+)/)
     too_new = get_match(line, /.*Too new: ([\S]+)/)
     owner = get_match(line, /.*Owner: ([\S]+)/)
     target = get_match(line, /.*Repo: ([\S]+)/)
@@ -114,7 +114,7 @@ def parse_full_repo_retriever_line(line)
     $tc.track_event 'repo_fetch_stage', :properties => { 'repo' => repo, 'stage' => stage, 'time' => time }
   elsif line.start_with?("Processed:")
     # "Processed: #{event['type']}, Id: #{event['id']}"
-    type, id = line.match(/.*event: ([^,]+), Id: ([\d]+)/).captures
+    type, id = line.match(/.*Processed: ([^,]+), Id: ([\d]+)/).captures
     $tc.track_event 'repo_fetch_procesed_event', :properties => { 'type' => type, 'id' => id }
   elsif line.start_with?("Could not process:")
     "Could not process: #{event['type']}, Id: #{event['id']}: #{e.message}"
@@ -132,7 +132,7 @@ def parse_ght_webhook_line(line)
     $tc.track_event 'webhook_unverified'
   elsif line.start_with?("Error queuing")
     # "Error queuing: #{e.message}"
-    message = line.match(/.*queuing: (.*)$/).captures
+    message = get_match(line, /.*queuing: (.*)$/)
     $tc.track_event 'webhook_queue_fail', :properties => { 'message' => message }
   elsif line.start_with?("Queuing:")
     # "Queuing: #{repo_fullname}, Event: #{id}, Type: #{event['type']}"
@@ -143,7 +143,7 @@ end
 
 def get_match(line, exp)
   match = line.match(exp)
-  return match.nil? ? match : match.captures
+  return match.nil? ? nil : match.captures[0]
 end
 
 def process_log_line(line, number)
@@ -151,7 +151,11 @@ def process_log_line(line, number)
     severity, time, progname, stage, msg =
       line.match(/([A-Z]+), (.+), (.+) -- ([^:]*?): (.*)/).captures
   rescue StandardError => e
-    puts $lineBuffer unless $error
+    if not $error
+      puts "LOGGING ERROR"
+      puts $lineBuffer
+      $tc.track_event 'Logging error', :properties => { 'line' => line, 'precedingLines' => $lineBuffer.join }
+    end
     $error = true
     puts "  Skip ##{number} : #{line}"
     return
@@ -191,7 +195,7 @@ def process_log_line(line, number)
         parse_ght_webhook_line(msg)
       end
     rescue Exception => e
-      puts "Error parsing #: #{number}, Error: #{e.message}, Line: #{msg}"
+      puts "Error parsing ##{number}, Error: #{e.message}, Line: #{msg}"
     end
 end
 
@@ -232,3 +236,4 @@ else
     end
   end
 end
+$tc.flush
