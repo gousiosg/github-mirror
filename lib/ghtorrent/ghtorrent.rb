@@ -193,7 +193,7 @@ module GHTorrent
             :project_id => project[:id],
             :commit_id => commitid
         )
-        info "Added commit_assoc of #{sha} with #{user}/#{repo}"
+        info "Added commit_assoc #{sha} with #{user}/#{repo}"
         db[:project_commits].first(:project_id => project[:id],
                                     :commit_id => commitid)
       else
