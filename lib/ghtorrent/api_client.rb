@@ -161,6 +161,7 @@ module GHTorrent
           when 400, # Bad request
               403, # Forbidden
               404, # Not found
+              409, # Conflict -- returned on gets of empty repos
               422 then # Unprocessable entity
             warn request_error_msg(url, e)
             return nil
