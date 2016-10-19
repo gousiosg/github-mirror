@@ -43,6 +43,8 @@ are also queued, to ensure no additional information is gone missing.
   def store_count(events)
     stored = Array.new
     new = dupl = 0
+    return new, dupl, stored if events.nil?
+
     events.each do |e|
       if persister.find(:events, {'id' => e['id']}).empty?
         stored << e

@@ -93,6 +93,7 @@ module GHTorrent
       currepo = ensure_repo(user, repo)
       unless currepo[:forked_from].nil? or fork_all
         r            = retrieve_repo(user, repo)
+        return if r.nil?
         parent_owner = r['parent']['owner']['login']
         parent_repo  = r['parent']['name']
         ensure_fork_commits(user, repo, parent_owner, parent_repo)
@@ -682,6 +683,7 @@ module GHTorrent
         # Retrieve commits up to fork point (fork_commit strategy)
         info "Retrieving commits for #{owner}/#{repo} until fork commit #{fork_commit[:sha]}"
         master_branch = retrieve_default_branch(parent_owner, parent_repo)
+        return if master_branch.nil?
 
         sha   = master_branch
         found = false
@@ -762,13 +764,13 @@ module GHTorrent
       # Retrieve diff between parent and fork master branch
       diff = retrieve_master_branch_diff(owner, repo, default_branch, parent[:login], parent[:name], default_branch)
 
-      if diff.empty?
+      if diff.nil? or diff.empty?
         # Try a bit harder by refreshing the default branch
         default_branch = retrieve_default_branch(parent[:login], parent[:name], true)
         diff = retrieve_master_branch_diff(owner, repo, default_branch, parent[:login], parent[:name], default_branch)
       end
 
-      if diff.empty?
+      if diff.nil? or diff.empty?
         # This means that the are no common ancestors between the repos
         # This can apparently happen when the parent repo was renamed or force-pushed
         # example: https://github.com/openzipkin/zipkin/compare/master...aa1wi:master
@@ -919,7 +921,17 @@ module GHTorrent
         end
 
         commit = ensure_commit(repo, sha, owner, false)
+        if commit.nil?
+          warn "Could not ensure commit: #{sha} in repo: #{owner}/#{repo}"
+          return
+        end
+
         user = ensure_user(retrieved['user']['login'], false, false)
+        if user.nil?
+          warn "Could not ensure user: #{retrieved['user']['login']}"
+          return
+        end
+
         db[:commit_comments].insert(
             :commit_id => commit[:id],
             :user_id => user[:id],
@@ -1166,9 +1178,9 @@ module GHTorrent
       if pull_req.nil?
         pulls_reqs.insert(
             :head_repo_id => if not head_repo.nil? then head_repo[:id] end,
-            :base_repo_id => base_repo[:id],
+            :base_repo_id => if not base_repo.nil? then base_repo[:id] end,
             :head_commit_id => if not head_commit.nil? then head_commit[:id] end,
-            :base_commit_id => base_commit[:id],
+            :base_commit_id => if not base_commit.nil? then base_commit[:id] end,
             :pullreq_id => pullreq_id,
             :intra_branch => pr_is_intra_branch(retrieved)
         )
@@ -1271,6 +1283,7 @@ module GHTorrent
         if commenter.nil?
           warn "Could not find commenter #{retrieved['user']['login']}" +
                "for pullreq comment #{owner}/#{repo} -> #{pullreq_id}(#{comment_id}) "
+          return
         end
 
         commit = ensure_commit(repo, retrieved['original_commit_id'],owner)
@@ -1416,7 +1429,7 @@ module GHTorrent
       issues = db[:issues]
       repository = ensure_repo(owner, repo)
 
-      if repo.nil?
+      if repository.nil?
         warn "Could not find repo #{owner}/#{repo} for retrieving issue #{issue_id}"
         return
       end

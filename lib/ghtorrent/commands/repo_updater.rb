@@ -100,6 +100,10 @@ module GHTorrent
       def process_project(owner, name)
         in_mongo = persister.find(:repos, {'owner.login' => owner, 'name' => name })
         on_github = api_request(ghurl ("repos/#{owner}/#{name}"))
+        if on_github.nil?
+          warn "Problem retrieving #{owner}/#{name} from GitHub"
+          return
+        end
 
         ght.transaction do
 

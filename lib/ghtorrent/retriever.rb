@@ -24,7 +24,7 @@ module GHTorrent
         url = ghurl "users/#{user}"
         u = api_request(url)
 
-        if u.empty?
+        if u.nil? or u.empty?
           return
         end
 
@@ -46,7 +46,7 @@ module GHTorrent
       url = ghurl("legacy/user/email/#{CGI.escape(email)}")
       byemail = api_request(url)
 
-      if byemail.empty?
+      if byemail.nil? or byemail.empty?
         # Only search by name if name param looks like a proper name
         byname = if not name.nil? and name.split(/ /).size > 1
                   url = ghurl("legacy/user/search/#{CGI.escape(name)}")
@@ -184,7 +184,7 @@ module GHTorrent
         url = ghurl "repos/#{user}/#{repo}/commits/#{sha}"
         c = api_request(url)
 
-        if c.empty?
+        if c.nil? or c.empty?
           return
         end
 
@@ -214,7 +214,7 @@ module GHTorrent
 
       commits.map do |c|
         retrieve_commit(repo, c['sha'], user)
-      end
+      end.select{|x| not x.nil?}
     end
 
     def retrieve_repo(user, repo, refresh = false)
@@ -224,7 +224,7 @@ module GHTorrent
         url = ghurl "repos/#{user}/#{repo}"
         r = api_request(url)
 
-        if r.empty?
+        if r.nil? or r.empty?
           return
         end
 
@@ -301,7 +301,7 @@ module GHTorrent
       if comment.nil?
         r = api_request(ghurl "repos/#{owner}/#{repo}/comments/#{id}")
 
-        if r.empty?
+        if r.nil? or r.empty?
           warn "Could not find commit_comment #{id}. Deleted?"
           return
         end
@@ -406,7 +406,7 @@ module GHTorrent
       if comment.nil?
         r = api_request(ghurl "repos/#{owner}/#{repo}/pulls/comments/#{comment_id}")
 
-        if r.empty?
+        if r.nil? or r.empty?
           warn "Could not find pullreq_comment #{owner}/#{repo} #{pullreq_id}->#{comment_id}. Deleted?"
           return
         end
@@ -474,7 +474,7 @@ module GHTorrent
       if event.nil?
         r = api_request(ghurl "repos/#{owner}/#{repo}/issues/events/#{event_id}")
 
-        if r.empty?
+        if r.nil? or r.empty?
           warn "Could not find issue_event #{owner}/#{repo} #{issue_id}->#{event_id}. Deleted?"
           return
         end
@@ -524,7 +524,7 @@ module GHTorrent
       if comment.nil?
         r = api_request(ghurl "repos/#{owner}/#{repo}/issues/comments/#{comment_id}")
 
-        if r.empty?
+        if r.nil? or r.empty?
           warn "Could not find issue_comment #{owner}/#{repo} #{issue_id}->#{comment_id}. Deleted?"
           return
         end
@@ -597,6 +597,7 @@ module GHTorrent
     def retrieve_master_branch_diff(owner, repo, branch, parent_owner, parent_repo, parent_branch)
       branch   = retrieve_default_branch(owner, repo) if branch.nil?
       parent_branch = retrieve_default_branch(parent_owner, parent_repo) if parent_branch.nil?
+      return nil if branch.nil? or parent_branch.nil?
 
       cmp_url = "https://api.github.com/repos/#{parent_owner}/#{parent_repo}/compare/#{parent_branch}...#{owner}:#{branch}"
       api_request(cmp_url)
@@ -605,11 +606,14 @@ module GHTorrent
     # Retrieve the default branch for a repo. If nothing is retrieved, 'master' is returned
     def retrieve_default_branch(owner, repo, refresh = false)
       retrieved = retrieve_repo(owner, repo, refresh)
+      return nil if retrieved.nil?
+
       master_branch = 'master'
       if retrieved['default_branch'].nil?
         # The currently stored repo entry has been created before the
         # default_branch field was added to the schema
         retrieved = retrieve_repo(owner, repo, true)
+        return nil if retrieved.nil?
       end
       master_branch = retrieved['default_branch'] unless retrieved.nil?
       master_branch
@@ -639,6 +643,7 @@ module GHTorrent
 
         page_range.each do |page|
           items = api_request(ghurl(url, page), media_type)
+          break if items.nil?
 
           items.each do |x|
             x['repo'] = repo
@@ -650,6 +655,7 @@ module GHTorrent
 
             unless exists
               x = api_request(x['url'], media_type)
+              break if x.nil?
               x['repo'] = repo
               x['owner'] = user
               persister.store(entity, x)
