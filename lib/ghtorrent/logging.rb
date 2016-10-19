@@ -8,7 +8,7 @@ module GHTorrent
     include GHTorrent::Settings
 
     def error(msg)
-      log(:warn, msg)
+      log(:error, msg)
     end
 
     def warn(msg)
