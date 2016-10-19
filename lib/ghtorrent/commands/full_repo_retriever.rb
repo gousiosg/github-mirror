@@ -127,9 +127,9 @@ module GHTorrent
               next if options[:events_before_given] and event['id'].to_i >= options[:events_before]
 
               send(event['type'], event)
-              info "Processed: #{event['type']}, Id: #{event['id']}"
+              info "Success processing event. Type: #{event['type']}, ID: #{event['id']}"
             rescue StandardError => e
-              warn "Could not process: #{event['type']}, Id: #{event['id']}: #{e.message}"
+              warn "Error processing event. Type: #{data['type']}, ID: #{data['id']}"
             end
           end
         end
