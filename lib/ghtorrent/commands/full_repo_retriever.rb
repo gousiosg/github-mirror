@@ -114,7 +114,8 @@ module GHTorrent
             end
           rescue StandardError => e
             warn("Error in stage: #{stage}, Repo: #{owner}/#{repo}, Message: #{$!}")
-
+          end
+        end
         # Process repo events
         unless options[:no_events_given]
           events = get_repo_events(owner, repo).sort { |e| e['id'].to_i }
@@ -133,7 +134,6 @@ module GHTorrent
         end
         info "Done fetching: #{owner}/#{repo}, Time: #{Time.now.to_ms - start_time.to_ms} ms"
       end
-      info "Done fetching: #{owner}/#{repo}, Time: #{Time.now.to_ms - start_time.to_ms} ms"
     end
   end
 end
