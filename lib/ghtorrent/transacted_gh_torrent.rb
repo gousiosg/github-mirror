@@ -1,10 +1,8 @@
 require 'ghtorrent/ghtorrent'
 
-
 # A version of the GHTorrent class that creates a transaction per processed
 # item
 class TransactedGHTorrent < GHTorrent::Mirror
-
   def ensure_repo(owner, repo, recursive = false)
     check_transaction do
       super(owner, repo, recursive)

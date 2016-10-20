@@ -61,7 +61,6 @@ module GHTorrent
                                                      command.options[:uniq])
         end
 
-
         begin
           command.go
         rescue => e
@@ -74,6 +73,11 @@ module GHTorrent
           exit 1
         end
       end
+    end
+
+    def get_mirror_class
+      klass = config("mirror_class") 
+      GHTorrent.const_get(klass)
     end
 
     # Specify and parse top-level command line options.

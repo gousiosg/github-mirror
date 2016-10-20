@@ -19,7 +19,7 @@ module GHTorrent
       end
 
       def ght
-        @ght ||= TransactedGHTorrent.new(settings)
+        @ght ||= get_mirror_class.new(settings)
       end
 
       def date(arg)

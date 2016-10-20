@@ -9,7 +9,6 @@ require 'ghtorrent/geolocator'
 
 module GHTorrent
   class Mirror
-
     include GHTorrent::Logging
     include GHTorrent::Settings
     include GHTorrent::Retriever
@@ -53,29 +52,6 @@ module GHTorrent
     def persister
       @persister ||= connect(config(:mirror_persister), @settings)
       @persister
-    end
-
-    def load_orgs_file(path)
-      if not File.exists?(path)
-        return nil
-      end
-
-      result = Set.new
-      IO.foreach(path) do |x|
-        x = x.strip
-        if x.empty? == false
-          result.add(x)
-        end
-      end
-      result
-    end
-
-    def include_org?(org)
-      if @org_filter.nil?
-        return true
-      else
-        return @org_filter.include? org
-      end
     end
 
     ##
@@ -238,7 +214,6 @@ module GHTorrent
     # == Returns:
     # The (added/modified) user entry as a Hash.
     def commit_user(githubuser, commituser)
-
       users = db[:users]
 
       name = commituser['name']
@@ -569,11 +544,6 @@ module GHTorrent
     #  If the repo can be retrieved, it is returned as a Hash. Otherwise,
     #  the result is nil
     def ensure_repo(user, repo, recursive = false)
-      if not include_org? user
-        warn "Organization #{user} excluded by org filter"
-        return
-      end
-
       repos = db[:projects]
       curuser = ensure_user(user, false, false)
 
@@ -635,11 +605,6 @@ module GHTorrent
     end
 
     def ensure_repo_recursive(owner, repo)
-      if not include_org? owner
-        warn "Organization #{owner} excluded by filter"
-        return
-      end
-
       functions = %w(ensure_commits ensure_labels ensure_pull_requests
        ensure_issues ensure_watchers ensure_forks ensure_languages)
 
@@ -898,11 +863,6 @@ module GHTorrent
     # [organization]  The login name of the organization
     #
     def ensure_org(organization, members = true)
-      if not include_org? organization
-        warn "Organization #{organization} excluded by filter"
-        return
-      end
-
       org = db[:users].first(:login => organization, :type => 'org')
 
       if org.nil?

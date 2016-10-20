@@ -35,7 +35,7 @@ If event_id is provided, only this event is processed.
   end
 
   def ght
-    @gh ||= TransactedGHTorrent.new(settings)
+    @gh ||= get_mirror_class.new(settings)
     @gh
   end
 

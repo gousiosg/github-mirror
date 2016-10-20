@@ -27,7 +27,7 @@ An efficient way to get all data for a single user
   end
 
   def ght
-    @ght ||= TransactedGHTorrent.new(settings)
+    @ght ||= get_mirror_class.new(settings)
     @ght
   end
 

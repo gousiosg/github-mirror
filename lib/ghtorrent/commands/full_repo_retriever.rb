@@ -23,7 +23,7 @@ module GHTorrent
       end
 
       def ght
-        @ghtorrent ||= TransactedGHTorrent.new(settings)
+        @ghtorrent ||= get_mirror_class.new(settings)
         @ghtorrent
       end
 
