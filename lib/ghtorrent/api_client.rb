@@ -244,14 +244,14 @@ module GHTorrent
           alias_method :original_open, :open
 
           case RUBY_VERSION
-          when /1.9/
-            define_method(:open) do |conn_address, conn_port|
-              original_open(conn_address, conn_port, ip)
-            end
-          when /2.0/
-            define_method(:open) do |conn_address, conn_port, local_host, local_port|
-              original_open(conn_address, conn_port, ip, local_port)
-            end
+            when /1.8/, /1.9/
+              define_method(:open) do |conn_address, conn_port|
+                original_open(conn_address, conn_port, ip)
+              end
+            else
+              define_method(:open) do |conn_address, conn_port, local_host, local_port|
+                original_open(conn_address, conn_port, ip, local_port)
+              end
           end
         end
       end
