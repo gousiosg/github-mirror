@@ -51,6 +51,8 @@ Values in the config.yaml file set with the -c command are overridden.
     options.opt :queue, 'Queue to retrieve project names from',
                 :short => 'q', :default => 'multiprocess-queue-client',
                 :type => :string
+    options.opt :inproc, 'Whether or not to run in-proc or fork a process',
+                :short => 'i', :default => false
   end
 
   def validate
@@ -76,7 +78,13 @@ Values in the config.yaml file set with the -c command are overridden.
     end.flatten.select { |x| !x.nil? }
 
     children = configs.map do |config|
-      pid = Process::fork
+      if not options[:inproc]
+        begin
+          pid = Process::fork
+        rescue NotImplementedError
+          # Eat the error on Windows and run inline for testing
+        end
+      end
 
       if pid.nil?
         retriever = clazz.new(config, options[:queue], options)

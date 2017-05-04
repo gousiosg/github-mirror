@@ -61,7 +61,6 @@ module GHTorrent
                                                      command.options[:uniq])
         end
 
-
         begin
           command.go
         rescue => e
@@ -74,6 +73,11 @@ module GHTorrent
           exit 1
         end
       end
+    end
+
+    def get_mirror_class
+      klass = config("mirror_class") 
+      GHTorrent.const_get(klass)
     end
 
     # Specify and parse top-level command line options.
@@ -94,7 +98,7 @@ Standard options:
             :type => String
         opt :token, 'GitHub OAuth token',
             :type => String, :short => 't'
-        opt :req_limit, 'Request limit for provided account (in reqs/hour)',
+        opt :req_limit, 'Number or requests to leave on any provided account (in reqs/hour)',
             :type => Integer, :short => 'l'
         opt :uniq, 'Unique name for this command. Will appear in logs.',
             :type => String, :short => 'u'

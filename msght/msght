@@ -1,0 +1,53 @@
+#!/bin/sh
+
+# msght: contains functions for starting MSGHT and
+# discovering and storing repos ../repos.txt.
+#
+# Run this script with cwd = repo root (e.g., github-mirror),
+# as it uses relative paths. Configure both env.json and config.yaml
+# at one dir level above the repo root.  Those files need the relevant
+# tokens and other config values.
+# Note that to run the local git repo you need to set RUBY_OPT to -I<path to repo>/lib
+#
+# Ex: ./msght startMSGHT 0123456789abcdefghij0123456789abcdefghij abcdefghij123456789abcdefghij0123456789
+
+# Bulk fetch all the repos in the given args
+bulkFetchRepos() {
+    getRepos $1
+    nohup node msght/run-msght.js -r ../repos.txt -k ../keys.txt -t 5 2>&1 > ../fetchRepos.log
+}
+
+# Discover all the orgs and repos and writes them to disk.
+discoverRepos() {
+    echo "" > ../repos.txt
+    node msght/GetRepos.js -orgs $1 -f ../repos.txt
+}
+
+# start the base
+startEventMirror() {
+  nohup ruby bin/ght-mirror-events -c ../config.yaml 2>&1 > ../eventMirror.log &
+}
+
+# start the base
+startDataRetrieval() {
+  ruby bin/ght-data-retrieval -c ../config.yaml 2>&1 > ../dataRetrieval.log &
+}
+
+# Starts up webhooks
+startWebhooks() {
+    RACK_ENV=production CONFIG=../config.yaml ruby bin/ght-webhook 2>&1 > ../webhook.log &
+}
+
+# start the webhook logging listener
+startLogListener() {
+    node ../msght/listen_insights.js -c ../config.yaml
+}
+
+# start all the MSGHT infrastructure
+startMSGHT() {
+  startEventMirror
+  startDataRetrieval
+  startWebhooks
+  tail -f ../webhook.log ../eventMirror.log ../dataRetrieval.log
+}
+$@

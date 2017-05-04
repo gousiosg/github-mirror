@@ -1,0 +1,135 @@
+#!/usr/bin/env ruby
+
+# (c) 2016 - onwards Georgios Gousios <gousiosg@gmail.com> and others
+#
+# MIT licensed, see LICENSE in top level dir
+#
+# Minimal GitHub webhook for use with GHTorrent.
+
+require 'sinatra'
+require 'bunny'
+require 'mongo'
+require 'yaml'
+require 'json'
+require 'openssl'
+require 'json'
+require 'thread'
+require_relative '../lib/ghtorrent/api_client.rb'
+require 'ghtorrent/logging'
+
+include GHTorrent::Logging
+include GHTorrent::APIClient
+include GHTorrent::Logging
+
+@@semaphore = Mutex.new
+def configuration
+  configuration = if ENV['CONFIG'].nil?
+             if ARGV[0].nil?
+               'config.yaml'
+             else
+               ARGV[0]
+             end
+           else
+             ENV['CONFIG']
+           end
+
+  @settings ||= YAML::load_file configuration
+  @settings
+end
+
+configure do
+  if configuration['mongo']['username'].nil?
+    db = Mongo::Client.new(["#{configuration['mongo']['host']}:#{configuration['mongo']['port']}"],
+                           :database => configuration['mongo']['db'],
+                           :ssl => true)
+  else
+    db = Mongo::Client.new(["#{configuration['mongo']['host']}:#{configuration['mongo']['port']}"],
+                           :database => configuration['mongo']['db'],
+                           :user => configuration['mongo']['username'],
+                           :password => configuration['mongo']['password'],
+                           :ssl => true)
+  end
+
+  # Stash away the @settings value and define a [] method to access it.  The "settings"
+  # var here is actually the Sinatra application. The GHT config() method will try to run
+  # (literally) settings[x] at a time when the "settings" field is the Sinatra app.  By adding
+  # [] to Sinatra, we can trick GHT and get the config values accessible.
+  # TODO figure out Ruby closures to eliminate the global
+  $nested_settings = @settings
+  def settings.[](x)
+    $nested_settings[x]
+  end
+
+  db.database.collection_names
+  STDERR.puts "Connection to MongoDB: #{configuration['mongo']['host']} succeeded"
+
+  set :mongo, db
+  begin
+    conn = Bunny.new(:host => configuration['amqp']['host'],
+                     :port => configuration['amqp']['port'],
+                     :username => configuration['amqp']['username'],
+                     :password => configuration['amqp']['password'],
+                     :network_recovery_interval => 7)
+    conn.start
+  rescue Exception => e
+    sleep 2
+    retry
+  end
+
+  ch = conn.create_channel
+  STDERR.puts "Connection to RabbitMQ: #{configuration['amqp']['host']} succeded"
+
+  @exchange = ch.topic(configuration['amqp']['exchange'], :durable => true,
+                         :auto_delete => false)
+
+  set :rabbit, @exchange
+end
+
+get '/' do
+  "ght-web-hook: use POST instead\n"
+end
+
+post '/' do
+  request.body.rewind
+  payload_body = request.body.read
+  if not verify_signature?(payload_body)
+    info "Could not verify webhook callback"
+    halt 403
+  end
+  begin
+    event = JSON.parse(payload_body)
+  rescue StandardError => e
+    info "Malformed hook body"
+    halt 400, "Error parsing object #{request.body.read}"
+  end
+    publish_event(event)
+  rescue Exception => e
+    warn "Error queuing: #{e.message}"
+    halt 500, e
+  end
+end
+
+# Post the given event to all the relevant topics
+def publish_event(event)
+  # ensure there is only one thread publishing at a time.
+  # TODO validate that the semaphore is actually needed
+  @@semaphore.synchronize do
+    repo_fullname = event['repository']['full_name']
+    key = "evt.#{event['type']}"
+    id = event['id'].to_s
+    info "Queuing: #{repo_fullname}, Event: #{id}, Type: #{event['type']}"
+    # publish to the central queue and any additonal queues
+    settings.rabbit.publish repo_fullname, :persistent => true, :routing_key => "evt.Event"
+    settings.rabbit.publish id, :persistent => true, :routing_key => "bot.#{key}"
+    settings.rabbit.publish id, :persistent => true, :routing_key => "evt.Flow"
+  end
+end
+
+def verify_signature?(payload_body)
+  if configuration['debug'] and not configuration['debug']['validate_hooks']
+    return true
+  end
+
+  signature = 'sha1=' + OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('sha1'), ENV['SECRET_KEY'], payload_body)
+  return Rack::Utils.secure_compare(signature, request.env['HTTP_X_HUB_SIGNATURE'])
+end

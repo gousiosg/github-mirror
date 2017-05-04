@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
   s.executables   = ['ght-data-retrieval', 'ght-mirror-events', 'ght-load',
                      'ght-retrieve-repo', 'ght-retrieve-user',
                      'ght-retrieve-repos', 'ght-retrieve-users',
-                     'ght-mass-harvester']
+                     'ght-mass-harvester', 'ght-webhook']
   s.files         = FileList['lib/**/*.rb',
                              'bin/*',
                              '[A-Z]*',
@@ -28,6 +28,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'trollop', '~> 2.0', '>= 2.0.0'
   s.add_runtime_dependency 'sequel', '~> 4.5', '>= 4.5.0'
   s.add_runtime_dependency 'bunny', '~> 2.3', '>= 2.3.0'
+  s.add_runtime_dependency 'sinatra', '~> 1.4', '>= 1.4.7'
 
   s.add_development_dependency 'influxdb', '0.3.5'
 

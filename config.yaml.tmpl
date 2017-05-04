@@ -42,8 +42,14 @@ mirror:
   # Use either a user name/password or an API key
   #token: a valid github API key
 
-  # Number of reqs/hour to do with the provided key
-  req_limit: 4990
+  # Number of reqs/hour to leave on the provided key
+  req_limit: 10
+
+  # File listing orgs to consider
+  # orgs_file: orgs.txt
+
+  # Mode for collecting events.  Either webhooks or github.  Defaults to github if not specified
+  # mode: webhooks
 
   # User agent to use for requests. You must use a unique name per client program
   user_agent: ghtorrent
@@ -55,6 +61,11 @@ mirror:
   # Default is 'fork_point'
   fork_commits: fork_point
 
+  # Commit handling:
+  #  'trim': Trim off the patch diffs.  These are large and not needed in all scenarios
+  # Default is to not set this property and include all of the commits
+  # commit_handling: trim
+
   # Whether or not you would like to store data in the pull_request_commits collection in Mongo.
   # Default is 'false'
   store_pull_request_commits: false
@@ -62,6 +73,7 @@ mirror:
 mongo:
   host: 127.0.0.1      # Mongo's IP addr
   port: 27017          # Mongo's port
+#  ssl: true           # use ssl
   db: github           # DB name to store commits to
   username: github     # User name to connect to Mongo
   password: github     # Password for mongo

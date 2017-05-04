@@ -161,6 +161,7 @@ module GHTorrent
           when 400, # Bad request
               403, # Forbidden
               404, # Not found
+              409, # Conflict -- returned on gets of empty repos
               422 then # Unprocessable entity
             warn request_error_msg(url, e)
             return nil
@@ -181,9 +182,11 @@ module GHTorrent
         raise e
       ensure
         # The exact limit is only enforced upon the first @reset
-        if 5000 - @remaining >= @req_limit
+        # No idea how many requests are available on this key. Sleep if we have run out
+        # in some cases (e.g., 403) @reset is 0 and we don't want to retry.
+        if (@remaining < @req_limit) and (@reset > 0)
           to_sleep = @reset - Time.now.to_i + 2
-          debug "Request limit reached, sleeping for #{to_sleep} secs"
+          warn "Request limit reached, reset in: #{to_sleep} secs"
           t = Thread.new do
             slept = 0
             while true do
@@ -192,7 +195,7 @@ module GHTorrent
               slept += 1
             end
           end
-          sleep(to_sleep)
+          sleep([0, to_sleep].max)
           t.exit
         end
       end

@@ -14,7 +14,7 @@ module GHTorrent
       end
 
       def ght
-        @ghtorrent ||= TransactedGHTorrent.new(settings)
+        @ghtorrent ||= get_mirror_class.new(settings)
         @ghtorrent
       end
 
@@ -34,10 +34,10 @@ module GHTorrent
         user_entry = ght.transaction { ght.ensure_user(login, false, false) }
         on_github = api_request(ghurl ("users/#{login}"))
 
-        if on_github.empty?
+        if (not on_github.nil?) and on_github.empty?
           if user_entry.nil?
             warn "User #{login} does not exist on GitHub"
-            exit
+            return
           else
             ght.transaction do
               ght.db.from(:users).where(:login => login).update(:users__deleted => true)
@@ -48,7 +48,7 @@ module GHTorrent
         else
           if user_entry.nil?
             warn "Error retrieving user #{login}"
-            exit
+            return
           end
         end
 

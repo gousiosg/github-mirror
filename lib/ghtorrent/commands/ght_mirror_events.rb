@@ -43,6 +43,8 @@ are also queued, to ensure no additional information is gone missing.
   def store_count(events)
     stored = Array.new
     new = dupl = 0
+    return new, dupl, stored if events.nil?
+
     events.each do |e|
       if persister.find(:events, {'id' => e['id']}).empty?
         stored << e
@@ -58,16 +60,18 @@ are also queued, to ensure no additional information is gone missing.
   end
 
   # Retrieve events from Github, store them in the DB and queue them
-  def retrieve(exchange)
+  def retrieve(exchange, event_source = '')
     begin
+      event_source = event_source.empty? ? "events" :  "repos/#{event_source}/events"
+      events_url = "https://api.github.com/#{event_source}?per_page=100"
       new = dupl = 0
-      events = api_request "https://api.github.com/events?per_page=100"
+      events = api_request events_url
       (new, dupl, stored) = store_count events
 
       # This means that the first page does not contain all new events. Do
       # a paged request and get everything on the queue
       if dupl == 0
-        events = paged_api_request "https://api.github.com/events?per_page=100"
+        events = paged_api_request events_url
         (new1, dupl1, stored1) = store_count events
         stored = stored | stored1
         new = new + new1
@@ -94,21 +98,43 @@ are also queued, to ensure no additional information is gone missing.
     end
   end
 
-  def go
+  def watch_webhooks(exchange)
+    channel = exchange.channel
+    queue = channel.queue("Events", {:durable => true})\
+                          .bind(exchange, :routing_key => "evt.Event")
+    info "Binding Events handler to routing key evt.Event"
+    queue.subscribe(:manual_ack => true) do |headers, properties, msg|
+      start = Time.now
+      begin
+        retrieve(exchange, msg)
+        channel.acknowledge(headers.delivery_tag, false)
+        info "Success dispatching event. Repo: #{msg}, Time: #{Time.now.to_ms - start.to_ms} ms"
+      rescue StandardError => e
+        # Give a message a chance to be reprocessed
+        if headers.redelivered?
+          warn "Error dispatching event. Repo: #{msg}, Time: #{Time.now.to_ms - start.to_ms} ms"
+          channel.reject(headers.delivery_tag, false)
+        else
+          channel.reject(headers.delivery_tag, true)
+        end
 
-    @events_requeue = @options[:events_requeue].split(/,/)
-    conn = Bunny.new(:host => config(:amqp_host),
-                     :port => config(:amqp_port),
-                     :username => config(:amqp_username),
-                     :password => config(:amqp_password))
-    conn.start
+        STDERR.puts e
+        STDERR.puts e.backtrace.join("\n")
+      end
+    end
 
-    ch  = conn.create_channel
-    debug "Connection to #{config(:amqp_host)} succeded"
+    stopped = false
+    while not stopped
+      begin
+        sleep(1)
+      rescue Interrupt => _
+        debug 'Exit requested'
+        stopped = true
+      end
+    end
+  end
 
-    exchange = ch.topic(config(:amqp_exchange), :durable => true,
-                 :auto_delete => false)
-
+  def watch_github_events(exchange)
     dupl_msgs = new_msgs = loops = 0
     stopped = false
     while not stopped
@@ -132,6 +158,27 @@ are also queued, to ensure no additional information is gone missing.
     end
   end
 
+  def go
+
+    @events_requeue = @options[:events_requeue].split(/,/)
+    conn = Bunny.new(:host => config(:amqp_host),
+                     :port => config(:amqp_port),
+                     :username => config(:amqp_username),
+                     :password => config(:amqp_password))
+    conn.start
+
+    channel  = conn.create_channel
+    debug "Connection to #{config(:amqp_host)} succeded"
+
+    exchange = channel.topic(config(:amqp_exchange), :durable => true,
+                 :auto_delete => false)
+
+    if (config(:mirror_mode) == 'webhooks')
+      watch_webhooks exchange
+    else
+      watch_github_events exchange
+    end
+  end
 end
 
 # vim: set sta sts=2 shiftwidth=2 sw=2 et ai :

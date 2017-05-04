@@ -1,0 +1,180 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Discover Repos",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceRoot}/msght/GetRepos.js",
+      "stopOnEntry": false,
+      "args": [
+        "-orgs",
+        "${workspaceRoot}/../orgs.txt",
+        "-r",
+        "${workspaceRoot}/../repos.txt"
+      ],
+      "cwd": "${workspaceRoot}",
+      "preLaunchTask": null,
+      "runtimeExecutable": null,
+      "runtimeArgs": [
+        "--nolazy"
+      ],
+      "env": {
+        "NODE_ENV": "development",
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      },
+      "console": "externalTerminal",
+      "sourceMaps": false,
+      "outDir": null
+    },
+    {
+      "name": "Clear Mongo",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceRoot}/msght/clearmongo.js",
+      "args": [
+        "githublocal"
+      ],
+      "stopOnEntry": false,
+      "cwd": "${workspaceRoot}",
+      "preLaunchTask": null,
+      "runtimeExecutable": null,
+      "runtimeArgs": [
+        "--nolazy"
+      ],
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "console": "externalTerminal",
+      "sourceMaps": false,
+      "outDir": null
+    },
+    {
+      "name": "Queue Repos",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-queue-repos",
+      "args": [
+        "-c", "${workspaceRoot}/../config.yaml", "-r", "${workspaceRoot}/../repos.txt"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
+      "linux": "einhorn -n 5 -k bin/ght-retrieve-repos -c ../config.yaml -q evt.projects -i ../keymap.txt 2>&1 | bin/ght-log-app-insights -k ed1a849b-a27a-4513-ae6b-d96456bc2c32 | ../fetchRepos.log",
+      "name": "Process Repos Queue",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-retrieve-repos",
+      "args": [
+        "-c", "${workspaceRoot}/../config.yaml", "-q", "evt.projects", "-i", "${workspaceRoot}/../keymap.txt"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
+      "name": "Webhooks",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-webhook",
+      "args": [
+        "${workspaceRoot}/../config.yaml"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
+      "name": "Mirror events",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-mirror-events",
+      "args": [
+        "-c", "${workspaceRoot}/../config.yaml"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
+      "name": "Process Event queues",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-data-retrieval",
+      "args": [
+        "-c", "${workspaceRoot}/../config.yaml"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
+      "name": "Process Log",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-log-app-insights",
+      "args": [
+        "-k", "ed1a849b-a27a-4513-ae6b-d96456bc2c32", "-f", "c:/temp/fetchRepos.contoso-d.log"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
+      "name": "Retrieve User",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-retrieve-user",
+      "args": [
+        "jeffmcaffer", "-c", "${workspaceRoot}/../config.yaml"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
+      "name": "Retrieve Repo",
+      "type": "Ruby",
+      "request": "launch",
+      "program": "${workspaceRoot}/bin/ght-retrieve-repo",
+      "args": [
+        "contoso-d", "Test", "-f", "-c", "${workspaceRoot}/../config.yaml"
+      ],
+      "env": {
+        "RUBYOPT": "-I${workspaceRoot}/lib",
+        "SSL_CERT_FILE": "c:/temp/cacert.pem"
+      }
+    },
+    {
+      "name": "Attach",
+      "type": "node",
+      "request": "attach",
+      "port": 5858,
+      "address": "localhost",
+      "restart": false,
+      "sourceMaps": false,
+      "outDir": null,
+      "localRoot": "${workspaceRoot}",
+      "remoteRoot": null
+    },
+    {
+      "name": "Attach to Process",
+      "type": "node",
+      "request": "attach",
+      "processId": "${command.PickProcess}",
+      "port": 5858,
+      "sourceMaps": false,
+      "outDir": null
+    }
+  ]
+}

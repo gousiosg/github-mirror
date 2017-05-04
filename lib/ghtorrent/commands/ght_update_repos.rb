@@ -42,7 +42,7 @@ class GHTRepoUpdater
       process_project(owner, repo)
 
       if @options[:commits_given]
-        ght = TransactedGHTorrent.new(settings)
+        ght = get_mirror_class.new(settings)
         ght.ensure_commits(owner, repo)
       end
     end

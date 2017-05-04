@@ -23,7 +23,7 @@ module GHTorrent
       end
 
       def ght
-        @ghtorrent ||= TransactedGHTorrent.new(settings)
+        @ghtorrent ||= get_mirror_class.new(settings)
         @ghtorrent
       end
 
@@ -60,10 +60,12 @@ module GHTorrent
       end
 
       def retrieve_full_repo(owner, repo)
-        user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
+        start_time = Time.now
+        info "Start fetching: #{owner}/#{repo}"
 
+        user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
         if user_entry.nil?
-          warn "Cannot find user #{owner}"
+          warn "Skip: #{owner}/#{repo}. Owner: #{owner} not found"
           return
         end
 
@@ -79,38 +81,41 @@ module GHTorrent
           repo_entry = ght.ensure_repo(owner, repo)
 
           if repo_entry.nil?
-            warn "Cannot find repository #{owner}/#{repo}"
+            warn "Skip: #{owner}/#{repo}. Repo: #{repo} not found"
             return
           end
 
           # last update was done too recently (less than 10 days), ignore
           if not repo_entry[:updated_at].nil? \
             and repo_entry[:updated_at] > (Time.now - 10 * 24 * 60 * 60) \
-            and not options[:force_given]
-            warn "Last update too recent (#{Time.at(repo_entry[:updated_at])}) for #{owner}/#{repo}"
+            and not options[:force]
+            warn "Skip: #{owner}/#{repo}, Too new: #{Time.at(repo_entry[:updated_at])}"
             return
           end
 
           ght.db.from(:projects).where(:id => repo_entry[:id]).update(:updated_at => Time.now)
         end
 
+        stage = nil
         unless options[:no_entities_given]
           begin
             if options[:only_stage].nil?
               stages.each do |x|
+                stage_time = Time.now
                 stage = x
                 ght.send(x, user, repo)
+                info "Stage: #{stage} completed, Repo: #{owner}/#{repo}, Time: #{Time.now.to_ms - stage_time.to_ms} ms"
               end
             else
+              stage_time = Time.now
               stage = options[:only_stage]
               ght.send(options[:only_stage], user, repo)
+              info "Stage: #{stage} completed, Repo: #{owner}/#{repo}, Time: #{Time.now.to_ms - stage_time.to_ms} ms"
             end
           rescue StandardError => e
-            warn("Error processing #{stage} for #{owner}/#{repo}: #{$!}")
-            warn("Exception trace #{e.backtrace.join("\n")}")
+            warn("Error in stage: #{stage}, Repo: #{owner}/#{repo}, Message: #{$!}")
           end
         end
-
         # Process repo events
         unless options[:no_events_given]
           events = get_repo_events(owner, repo).sort { |e| e['id'].to_i }
@@ -121,12 +126,13 @@ module GHTorrent
               next if options[:events_before_given] and event['id'].to_i >= options[:events_before]
 
               send(event['type'], event)
-              puts "Processed event #{event['type']}-#{event['id']}"
+              info "Processed: #{event['type']}, Id: #{event['id']}"
             rescue StandardError => e
-              puts "Could not process event #{event['type']}-#{event['id']}: #{e.message}"
+              warn "Could not process: #{event['type']}, Id: #{event['id']}: #{e.message}"
             end
           end
         end
+        info "Done fetching: #{owner}/#{repo}, Time: #{Time.now.to_ms - start_time.to_ms} ms"
       end
     end
   end

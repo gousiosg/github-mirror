@@ -55,7 +55,7 @@ all GitHub users or repositories and add the non-existing ones to the database.
   end
 
   def ght
-    @ght ||= TransactedGHTorrent.new(@settings)
+    @ght ||= get_mirror_class.new(@settings)
     @ght
   end
 

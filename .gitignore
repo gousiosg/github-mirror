@@ -12,4 +12,5 @@
 *.db
 config.yaml
 doc/build
-
+node_modules/**
+npm-debug.log
