@@ -690,6 +690,11 @@ module GHTorrent
         while not found
           commits = retrieve_commits(repo, sha, owner, 1)
 
+          # This means that we retrieved no commits
+          if commits.size == 0
+            break
+          end
+
           # This means we retrieved the last page again
           if commits.size == 1 and commits[0]['sha'] == sha
             break
