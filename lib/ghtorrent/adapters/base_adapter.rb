@@ -11,7 +11,7 @@ module GHTorrent
     # Stores +data+ into +entity+. Returns a unique key for the stored entry.
     def store(entity, data = {})
       if bsearch(ENTITIES, entity).nil?
-        raise "Perister: Entity #{entity} not known"
+        raise "Persister: Entity #{entity} not known"
       end
     end
 
@@ -52,7 +52,7 @@ module GHTorrent
     # matching JSON object.
     def find(entity, query = {})
       if bsearch(ENTITIES, entity).nil?
-        raise "Perister: Entity #{entity} not known"
+        raise "Persister: Entity #{entity} not known"
       end
     end
 
@@ -60,7 +60,7 @@ module GHTorrent
     # The +query+ can be any query supported by +find+.
     def count(entity, query = {})
       if bsearch(ENTITIES, entity).nil?
-        raise "Perister: Entity #{entity} not known"
+        raise "Persister: Entity #{entity} not known"
       end
     end
 
@@ -68,7 +68,7 @@ module GHTorrent
     # number of entities deleted
     def del(entity, query = {})
       if bsearch(ENTITIES, entity).nil?
-        raise "Perister: Entity #{entity} not known"
+        raise "Persister: Entity #{entity} not known"
       end
     end
 
@@ -76,19 +76,19 @@ module GHTorrent
     # the number of entities added or updated
     def upsert(entity, query = {}, new_entry)
       if bsearch(ENTITIES, entity).nil?
-        raise "Perister: Entity #{entity} not known"
+        raise "Persister: Entity #{entity} not known"
       end
     end
 
     # Get a raw connection to the underlying data store. The connection is
     # implementaiton dependent.
     def get_underlying_connection
-      raise "Unimplemented"
+      raise 'Unimplemented'
     end
 
     # Close the current connection and release any held resources
     def close
-      raise "Unimplemented"
+      raise 'Unimplemented'
     end
 
     private

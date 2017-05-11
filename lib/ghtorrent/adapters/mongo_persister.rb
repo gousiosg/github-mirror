@@ -17,6 +17,7 @@ module GHTorrent
         :mongo_db => "mongo.db",
         :mongo_username => "mongo.username",
         :mongo_passwd => "mongo.password",
+        :mongo_ssl  => "mongo.ssl",
         :mongo_replicas => "mongo.replicas"
     }
 
@@ -60,12 +61,10 @@ module GHTorrent
 
     def find(entity, query = {})
       super
-      result = mongo[entity].find(query)
-
-      result.to_a.map { |r|
-        r[@uniq] = r['_id'].to_s;
-        r.to_h
-      }
+      mongo[entity].
+          find(query).
+          to_a.
+          map { |r| r.to_h }
     end
 
     # Count the number of items returned by +query+
@@ -76,7 +75,7 @@ module GHTorrent
 
     def del(entity, query)
       super
-      raise StandardError 'No filter was specified. Cowardily refusing to remove all entries' if query == {}
+      raise StandardError 'No filter was specified. Cowardly refusing to remove all entries' if query == {}
       r = mongo[entity].delete_many(query)
       r.n
     end
@@ -117,10 +116,17 @@ module GHTorrent
                    ',' + replicas.strip.gsub(' ', ',')
                  end
 
+      ssl = case config(:mongo_ssl)
+              when 'true', 'True', 't', true
+                true
+              else
+                false
+            end
+
       constring = if uname.nil?
                     "mongodb://#{host}:#{port}#{replicas}/#{db}"
                   else
-                    "mongodb://#{uname}:#{passwd}@#{host}:#{port}#{replicas}/#{db}"
+                    "mongodb://#{uname}:#{passwd}@#{host}:#{port}#{replicas}/#{db}?ssl=#{ssl}"
                   end
 
       Mongo::Logger.logger.level = Logger::WARN

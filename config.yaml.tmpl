@@ -65,6 +65,8 @@ mongo:
   db: github           # DB name to store commits to
   username: github     # User name to connect to Mongo
   password: github     # Password for mongo
+  ssl: false           # Whether SSL should be used for the connection
+  replicas:            # Replicas to use for failover (format replica.name:port)
 
 logging:
   # A unique string to appear in all messages produced by the invoking program.

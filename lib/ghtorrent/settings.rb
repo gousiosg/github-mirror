@@ -21,7 +21,6 @@ module GHTorrent
         :mirror_urlbase => 'mirror.urlbase',
         :mirror_persister => 'mirror.persister',
         :mirror_history_pages_back => 'mirror.history_pages_back',
-        :uniq_id => 'mirror.uniq_id',
         :user_agent => 'mirror.user_agent',
         :store_pull_request_commits => 'mirror.store_pull_request_commits',
 
