@@ -65,6 +65,7 @@ module GHTorrent
         :rescue_loops => 'true',
         :req_limit => 2,
         :fork_commits => 'fork_point',
+        :commit_handling => '',
 
         :logging_level => 'info',
         :logging_uniq => '',

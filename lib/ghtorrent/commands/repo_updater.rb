@@ -101,7 +101,7 @@ module GHTorrent
         in_mongo = persister.find(:repos, {'owner.login' => owner, 'name' => name })
         on_github = api_request(ghurl ("repos/#{owner}/#{name}"))
         if on_github.nil?
-          warn "Problem retrieving #{owner}/#{name} from GitHub"
+          warn "Could not retrieve #{owner}/#{name} from GitHub"
           return
         end
 

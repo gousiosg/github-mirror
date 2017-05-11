@@ -92,7 +92,7 @@ module GHTorrent
 
       currepo = ensure_repo(user, repo)
       unless currepo[:forked_from].nil? or fork_all
-        r            = retrieve_repo(user, repo)
+        r = retrieve_repo(user, repo)
         return if r.nil?
         parent_owner = r['parent']['owner']['login']
         parent_repo  = r['parent']['name']
@@ -672,7 +672,7 @@ module GHTorrent
       fork_commit = ensure_fork_point(owner, repo)
 
       if fork_commit.nil? or fork_commit.empty?
-        warn "Cannot find fork commit for repo #{owner}/#{repo}. Retrieving all commits."
+        warn "Could not find fork commit for repo #{owner}/#{repo}. Retrieving all commits."
         return ensure_commits(owner, repo, fork_all: true)
       end
 

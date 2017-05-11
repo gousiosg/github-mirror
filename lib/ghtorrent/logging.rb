@@ -69,7 +69,6 @@ module GHTorrent
 
       c = caller[2]
       unless @logprefixes.key? c
-        file_path = c.split(/:/)[0]
         # ignore the first two chars to allow this to run on Windows with c:\...
         file_path = c[2,c.length - 2].split(/:/)[0]
         @logprefixes[c] = File.basename(file_path) + ': '
