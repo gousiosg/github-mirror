@@ -10,6 +10,10 @@ use the same database name (or if you use the default database name).
 
 ### Download the MySQL dump
 
+You can find all downloads at the [GHTorrent downloads page](http://ghtorrent.org/downloads.html). 
+To download a dump, replace `mysql-yyyy-mm-dd` in the code snippets below
+with one of the available downloads on that page.
+
 ```bash
 wget http://ghtorrent.org/downloads/mysql-yyyy-mm-dd.tar.gz
 tar zxvf mysql-yyyy-mm-dd.tar.gz
