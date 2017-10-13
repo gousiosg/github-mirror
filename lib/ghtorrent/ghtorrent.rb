@@ -558,6 +558,9 @@ module GHTorrent
 
       unless currepo.nil?
         debug "Repo #{user}/#{repo} exists"
+        if currepo[:topics].nil? # since topics is a newer column
+          repos.filter(:owner_id => curuser[:id], :name => r['name']).update(:topics => r['topics'])
+        end
         return currepo
       end
 
@@ -579,7 +582,8 @@ module GHTorrent
                    :description => unless r['description'].nil? then r['description'][0..254] else nil end,
                    :language => r['language'],
                    :created_at => date(r['created_at']),
-                   :updated_at => Time.at(86400))
+                   :updated_at => Time.at(86400),
+                   :topics => r['topics'])
 
       unless r['parent'].nil?
         parent_owner = r['parent']['owner']['login']
@@ -1786,6 +1790,15 @@ module GHTorrent
         issue_lbl
       end
 
+    end
+
+    def ensure_topics(owner, repo)
+      retrieved = retrieve_topics(owner, repo)
+
+      if retrieved.nil?
+        warn "Could not retrieve repo_label #{owner}/#{repo}/topics"
+        return {}
+      end
     end
 
     # Run a block in a DB transaction. Exceptions trigger transaction rollback

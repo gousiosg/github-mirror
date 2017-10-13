@@ -40,7 +40,8 @@ module GHTorrent
         :issue_events          => %w(repo owner issue_id id),
         :issue_comments        => %w(repo owner issue_id id),
         :geo_cache             => %w(key),
-        :pull_request_commits  => %w(sha)
+        :pull_request_commits  => %w(sha),
+        :topics                => %w(repo owner)
     }
 
     attr_reader :settings

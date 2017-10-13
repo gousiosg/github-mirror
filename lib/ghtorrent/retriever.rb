@@ -228,6 +228,9 @@ module GHTorrent
           return
         end
 
+        t = ensure_topics(user, repo)
+        r['topics'] = t['topics']
+
         if refresh
           persister.upsert(:repos, {'name' => r['name'], 'owner.login' => r['owner']['login']}, r)
         else
@@ -561,6 +564,14 @@ module GHTorrent
     def retrieve_issue_labels(owner, repo, issue_id)
       url = ghurl("repos/#{owner}/#{repo}/issues/#{issue_id}/labels")
       paged_api_request(url)
+    end
+
+    def retrieve_topics(owner, repo)
+      # https://developer.github.com/v3/repos/#list-all-topics-for-a-repository
+      repo_bound_items(user, repo, :topics,
+                      ["repos/#{owner}/#{repo}/topics"],
+                      {'repo' => repo, 'owner' => user},
+                      'topics', media_type = "application/vnd.github.mercy-preview+json")
     end
 
     # Get current Github events
