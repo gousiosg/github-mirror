@@ -7,7 +7,7 @@ Sequel.migration do
     puts 'Adding column topics to projects'
 
     alter_table(:projects) do
-      add_column :topics, :type => "text[]", :null => true, :unique => false
+      add_column :topics, 'text[]', :null => true, :unique => false
     end
 
   end
