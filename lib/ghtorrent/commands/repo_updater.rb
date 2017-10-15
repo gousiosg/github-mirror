@@ -66,7 +66,6 @@ module GHTorrent
 
         if db.database_type == :postgres
           t = retrieve_topics(user, repo)
-          info "#{t.inspect}"
           retrieved['topics'] = t['names']
           retrieved['topics'] = Sequel.pg_array(r['topics'], :text)
         else
