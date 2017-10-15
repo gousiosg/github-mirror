@@ -551,7 +551,7 @@ module GHTorrent
 
       repos = db[:projects]
       curuser = ensure_user(user, false, false)
-      info "#{curuser.inspect}"
+
       if curuser.nil?
         warn "Could not find user #{user}"
         return

@@ -231,6 +231,8 @@ module GHTorrent
         t = retrieve_topics(user, repo)
         info "#{t.inspect}"
         r['topics'] = t['names']
+        info "#{r['name']}"
+        info "#{r['owner']['login']}"
 
         if refresh
           persister.upsert(:repos, {'name' => r['name'], 'owner.login' => r['owner']['login']}, r)

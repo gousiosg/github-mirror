@@ -18,7 +18,7 @@ module GHTorrent
       []
     end
 
-    def upsert(entity, query = {})
+    def upsert(entity, query = {}, entry = nil)
       super
       #Nothing to see here
       []

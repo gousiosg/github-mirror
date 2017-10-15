@@ -64,6 +64,15 @@ module GHTorrent
           ght.ensure_fork_commits(owner, repo, parent_owner, parent[:name])
         end
 
+        if db.database_type == :postgres
+          t = retrieve_topics(user, repo)
+          info "#{t.inspect}"
+          retrieved['topics'] = t['names']
+          retrieved['topics'] = Sequel.pg_array(r['topics'], :text)
+        else
+          retrieved['topics'] = nil
+        end
+
         db.from(:projects, :users).\
         where(:projects__owner_id => :users__id).\
         where(:users__login => owner).\
@@ -74,7 +83,8 @@ module GHTorrent
                :projects__created_at  => date(retrieved['created_at']),
                :projects__updated_at  => Time.now,
                :projects__forked_from => unless parent.nil? then parent[:id] end,
-               :projects__forked_commit_id => unless fork_commit.nil? then fork_commit[:id] end)
+               :projects__forked_commit_id => unless fork_commit.nil? then fork_commit[:id] end,
+               :projects__topics => retrieved['topics'])
         info("Repo #{owner}/#{repo} updated")
 
         ght.ensure_languages(owner, repo)
