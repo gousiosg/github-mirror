@@ -45,7 +45,6 @@ module GHTorrent
         Sequel.extension :migration
         Sequel::Migrator.apply(@db, dir)
       end
-
       @db
     end
 
@@ -548,7 +547,7 @@ module GHTorrent
 
       repos = db[:projects]
       curuser = ensure_user(user, false, false)
-
+      info "#{curuser.inspect}"
       if curuser.nil?
         warn "Could not find user #{user}"
         return
@@ -558,9 +557,6 @@ module GHTorrent
 
       unless currepo.nil?
         debug "Repo #{user}/#{repo} exists"
-        if currepo[:topics].nil? # since topics is a newer column
-          repos.filter(:owner_id => curuser[:id], :name => r['name']).update(:topics => r['topics'])
-        end
         return currepo
       end
 
@@ -575,7 +571,7 @@ module GHTorrent
         info "Repo changed owner from #{curuser[:login]} to #{r['owner']['login']}"
         curuser = ensure_user(r['owner']['login'], false, false)
       end
-
+      info "#{r['topics'].inspect}"
       repos.insert(:url => r['url'],
                    :owner_id => curuser[:id],
                    :name => r['name'],
@@ -583,7 +579,7 @@ module GHTorrent
                    :language => r['language'],
                    :created_at => date(r['created_at']),
                    :updated_at => Time.at(86400),
-                   :topics => r['topics'])
+                   :topics => r['topics']) # this is not correct
 
       unless r['parent'].nil?
         parent_owner = r['parent']['owner']['login']
@@ -1792,14 +1788,6 @@ module GHTorrent
 
     end
 
-    def ensure_topics(owner, repo)
-      retrieved = retrieve_topics(owner, repo)
-
-      if retrieved.nil?
-        warn "Could not retrieve repo_label #{owner}/#{repo}/topics"
-        return {}
-      end
-    end
 
     # Run a block in a DB transaction. Exceptions trigger transaction rollback
     # and are rethrown.
