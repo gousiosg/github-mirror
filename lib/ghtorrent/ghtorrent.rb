@@ -45,6 +45,10 @@ module GHTorrent
         Sequel.extension :migration
         Sequel::Migrator.apply(@db, dir)
       end
+
+      if db.database_type == :postgres
+        @db.extension :pg_array
+      end
       @db
     end
 
@@ -571,7 +575,13 @@ module GHTorrent
         info "Repo changed owner from #{curuser[:login]} to #{r['owner']['login']}"
         curuser = ensure_user(r['owner']['login'], false, false)
       end
-      info "#{r['topics'].inspect}"
+
+      if db.database_type == :postgres
+        r['topics'] = Sequel.pg_array(r['topics'], :text)
+      else
+        r['topics'] = nil
+      end
+
       repos.insert(:url => r['url'],
                    :owner_id => curuser[:id],
                    :name => r['name'],
@@ -579,7 +589,7 @@ module GHTorrent
                    :language => r['language'],
                    :created_at => date(r['created_at']),
                    :updated_at => Time.at(86400),
-                   :topics => r['topics']) # this is not correct
+                   :topics => r['topics'])
 
       unless r['parent'].nil?
         parent_owner = r['parent']['owner']['login']
