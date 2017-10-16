@@ -8,7 +8,7 @@ Sequel.migration do
 
     create_table :topic_categories do
       primary_key :topic_id
-      String :topic_name, :size => 24, :null => false
+      String :topic_name, :size => 36, :null => false, index: {unique: true}
     end
 
     puts 'Adding topic_mappings'

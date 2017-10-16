@@ -1810,7 +1810,7 @@ module GHTorrent
 
       topic_map.each do |persisted_topic|
         # remove any stored topics that are no longer accurate
-        db[:topic_mappings].delete(:project_id => project[:id], :topic_id => topic_entry[:topic_id]) if ! t['names'].include?(persisted_topic[:topic_name])
+        db[:topic_mappings].delete(:project_id => project[:id], :topic_id => persisted_topic[:topic_id]) if ! t['names'].include?(persisted_topic[:topic_name])
       end
     end
 
