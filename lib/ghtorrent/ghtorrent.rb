@@ -604,7 +604,7 @@ module GHTorrent
       ensure_repo_recursive(user, repo) if recursive
       ensure_topics(user, repo)
 
-      epos.first(:owner_id => curuser[:id], :name => repo)
+      repos.first(:owner_id => curuser[:id], :name => repo)
     end
 
     def ensure_repo_recursive(owner, repo)
