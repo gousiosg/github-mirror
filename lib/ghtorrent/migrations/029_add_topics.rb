@@ -5,7 +5,6 @@ Sequel.migration do
 
   up do
     puts 'Adding topic_categories'
-
     create_table :topic_categories do
       primary_key :topic_id
       String :topic_name, :size => 36, :null => false, index: {unique: true}
@@ -17,7 +16,6 @@ Sequel.migration do
       foreign_key :project_id, :projects
       primary_key [:topic_id, :project_id]
     end
-
 
   end
 

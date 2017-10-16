@@ -578,7 +578,7 @@ module GHTorrent
         end
 
         if refresh
-          persister.upsert(:topics, {'repo' =>  repo, 'owner' => owner, r)
+          persister.upsert(:topics, {'repo' =>  repo, 'owner' => owner}, r)
         else
           persister.store(:topics, r)
           info "Added topics for #{owner} -> #{repo}"
