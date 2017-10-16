@@ -558,7 +558,6 @@ module GHTorrent
 
       unless currepo.nil?
         debug "Repo #{user}/#{repo} exists"
-        ensure_topics(user, repo)
         return currepo
       end
 
@@ -602,7 +601,6 @@ module GHTorrent
       info "Added repo #{user}/#{repo}"
 
       ensure_repo_recursive(user, repo) if recursive
-      ensure_topics(user, repo)
 
       repos.first(:owner_id => curuser[:id], :name => repo)
     end
