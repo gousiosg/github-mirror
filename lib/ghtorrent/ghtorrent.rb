@@ -558,6 +558,7 @@ module GHTorrent
 
       unless currepo.nil?
         debug "Repo #{user}/#{repo} exists"
+        ensure_topics(user, repo)
         return currepo
       end
 
@@ -601,14 +602,15 @@ module GHTorrent
       info "Added repo #{user}/#{repo}"
 
       ensure_repo_recursive(user, repo) if recursive
+      ensure_topics(user, repo)
 
-      repos.first(:owner_id => curuser[:id], :name => repo)
+      epos.first(:owner_id => curuser[:id], :name => repo)
     end
 
     def ensure_repo_recursive(owner, repo)
 
       functions = %w(ensure_commits ensure_labels ensure_pull_requests
-       ensure_issues ensure_watchers ensure_forks ensure_languages)
+       ensure_issues ensure_watchers ensure_forks ensure_languages ensure_topics)
 
       functions.each do |x|
         send(x, owner, repo)
@@ -1786,6 +1788,30 @@ module GHTorrent
         issue_lbl
       end
 
+    end
+
+    def ensure_topics(owner, repo)
+      project = ensure_repo(owner, repo)
+      t = retrieve_topics(owner, repo)
+
+      t['names'].each do |topic|
+        # store and map each topic
+        topic_entry = db[:topic_categories].first(:topic_name => topic)
+
+        if topic_entry.nil?
+          db[:topic_categories].insert(:topic_name => topic)
+          topic_entry = db[:topic_categories].first(:topic_name => topic)
+        end
+
+        db[:topic_mappings].insert(:project_id => project[:id], :topic_id => topic_entry[:topic_id])
+      end
+
+      topic_map = db[:topic_categories].join(db[:topic_mappings].where(:project_id => project[:id]), topic_id: :topic_id)
+
+      topic_map.each do |persisted_topic|
+        # remove any stored topics that are no longer accurate
+        db[:topic_mappings].delete(:project_id => project[:id], :topic_id => topic_entry[:topic_id]) if ! t['names'].include?(persisted_topic[:topic_name])
+      end
     end
 
     # Run a block in a DB transaction. Exceptions trigger transaction rollback
