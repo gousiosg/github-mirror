@@ -46,6 +46,9 @@ module GHTorrent
         Sequel::Migrator.apply(@db, dir)
       end
 
+      @db
+    end
+
     def persister
       @persister ||= connect(config(:mirror_persister), @settings)
       @persister
