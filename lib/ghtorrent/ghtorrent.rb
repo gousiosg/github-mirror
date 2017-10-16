@@ -46,12 +46,6 @@ module GHTorrent
         Sequel::Migrator.apply(@db, dir)
       end
 
-      if db.database_type == :postgres
-        @db.extension :pg_array
-      end
-      @db
-    end
-
     def persister
       @persister ||= connect(config(:mirror_persister), @settings)
       @persister
@@ -576,20 +570,13 @@ module GHTorrent
         curuser = ensure_user(r['owner']['login'], false, false)
       end
 
-      if db.database_type == :postgres
-        r['topics'] = Sequel.pg_array(r['topics'], :text)
-      else
-        r['topics'] = nil
-      end
-
       repos.insert(:url => r['url'],
                    :owner_id => curuser[:id],
                    :name => r['name'],
                    :description => unless r['description'].nil? then r['description'][0..254] else nil end,
                    :language => r['language'],
                    :created_at => date(r['created_at']),
-                   :updated_at => Time.at(86400),
-                   :topics => r['topics'])
+                   :updated_at => Time.at(86400))
 
       unless r['parent'].nil?
         parent_owner = r['parent']['owner']['login']
@@ -1797,7 +1784,6 @@ module GHTorrent
       end
 
     end
-
 
     # Run a block in a DB transaction. Exceptions trigger transaction rollback
     # and are rethrown.

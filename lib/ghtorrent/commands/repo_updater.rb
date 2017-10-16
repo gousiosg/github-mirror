@@ -82,8 +82,7 @@ module GHTorrent
                :projects__created_at  => date(retrieved['created_at']),
                :projects__updated_at  => Time.now,
                :projects__forked_from => unless parent.nil? then parent[:id] end,
-               :projects__forked_commit_id => unless fork_commit.nil? then fork_commit[:id] end,
-               :projects__topics => retrieved['topics'])
+               :projects__forked_commit_id => unless fork_commit.nil? then fork_commit[:id] end)
         info("Repo #{owner}/#{repo} updated")
 
         ght.ensure_languages(owner, repo)
