@@ -20,9 +20,9 @@ Sequel.migration do
   end
 
   down do
-    puts 'Dropping table topic_categories'
-    drop_table :topic_categories
     puts 'Dropping table topic_mappings'
     drop_table :topic_mappings
+    puts 'Dropping table topic_categories'
+    drop_table :topic_categories
   end
 end
