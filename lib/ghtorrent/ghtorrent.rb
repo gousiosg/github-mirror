@@ -602,7 +602,10 @@ module GHTorrent
 
       ensure_repo_recursive(user, repo) if recursive
 
-      repos.first(:owner_id => curuser[:id], :name => repo)
+      final_repo = repos.first(:owner_id => curuser[:id], :name => repo)
+      ensure_topics(user, repo, final_repo)
+
+      final_repo
     end
 
     def ensure_repo_recursive(owner, repo)
@@ -1788,8 +1791,8 @@ module GHTorrent
 
     end
 
-    def ensure_topics(owner, repo)
-      project = ensure_repo(owner, repo)
+    def ensure_topics(owner, repo, repo_row=nil)
+      project = repo_row.nil? ? ensure_repo(owner, repo) : repo_row
       t = retrieve_topics(owner, repo)
 
       t['names'].each do |topic|
@@ -1808,7 +1811,9 @@ module GHTorrent
 
       topic_map.each do |persisted_topic|
         # remove any stored topics that are no longer accurate
-        db[:topic_mappings].delete(:project_id => project[:id], :topic_id => persisted_topic[:topic_id]) if ! t['names'].include?(persisted_topic[:topic_name])
+        if ! t['names'].include?(persisted_topic[:topic_name])
+          db[:topic_mappings].delete(:project_id => project[:id], :topic_id => persisted_topic[:topic_id])
+        end
       end
     end
 

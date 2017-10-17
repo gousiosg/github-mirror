@@ -568,21 +568,16 @@ module GHTorrent
       # https://developer.github.com/v3/repos/#list-all-topics-for-a-repository
       stored_topics = persister.find(:topics, {'owner' => owner, 'repo' => repo })
 
-      if stored_topics.empty? or refresh
+      if stored_topics.empty?
         url = ghurl("repos/#{owner}/#{repo}/topics")
         r = api_request(url, media_type = "application/vnd.github.mercy-preview+json")
-
 
         if r.nil? or r.empty?
           return
         end
 
-        if refresh
-          persister.upsert(:topics, {'repo' =>  repo, 'owner' => owner}, r)
-        else
-          persister.store(:topics, r)
-          info "Added topics for #{owner} -> #{repo}"
-        end
+        persister.store(:topics, r)
+        info "Added topics for #{owner} -> #{repo}"
         r
       else
         debug "Topics for #{owner} -> #{repo} exists"
