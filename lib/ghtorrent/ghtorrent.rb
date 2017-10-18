@@ -796,15 +796,20 @@ module GHTorrent
         # would be prohibetively slow if the commits for the parent did not exist.
         earliest_diverging = diff['commits'].sort_by{|x| x['commit']['author']['date']}.first
 
-        # Make sure that all likely fork points exist for the parent project
-        # and select the latest of them.
-        # https://github.com/gousiosg/github-mirror/compare/master...pombredanne:master
-        likely_fork_point = earliest_diverging['parents'].\
-            map{ |x| ensure_commit(parent[:name], x['sha'], parent[:login])}.\
-            select{|x| !x.nil?}.\
-            sort_by { |x| x[:created_at]}.\
-            last
-
+        if earliest_diverging['parents'].nil?
+          # this means that the repo was forked from the from the parent repo's initial commit. thus, they both share an initial commit.
+          # example: https://api.github.com/repos/btakita/pain-point/compare/master...spent:master
+          likely_fork_point = ensure_commit(parent[:name], earliest_diverging['sha'], parent['login'])
+        else
+          # Make sure that all likely fork points exist for the parent project
+          # and select the latest of them.
+          # https://github.com/gousiosg/github-mirror/compare/master...pombredanne:master
+          likely_fork_point = earliest_diverging['parents'].\
+              map{ |x| ensure_commit(parent[:name], x['sha'], parent[:login])}.\
+              select{|x| !x.nil?}.\
+              sort_by { |x| x[:created_at]}.\
+              last
+        end
         forked_sha  = likely_fork_point[:sha]
       else
         # This means that the fork has not diverged.
