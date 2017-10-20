@@ -1801,23 +1801,20 @@ module GHTorrent
       t = retrieve_topics(owner, repo)
 
       t['names'].each do |topic|
-        # store and map each topic
-        topic_entry = db[:topic_categories].first(:topic_name => topic)
+        # store each topic
+        topic_entry = db[:project_topics].first(:project_id => project[:id], :topic_name => topic)
 
         if topic_entry.nil?
-          db[:topic_categories].insert(:topic_name => topic)
-          topic_entry = db[:topic_categories].first(:topic_name => topic)
+          db[:project_topics].insert(:project_id => project[:id], :topic_name => topic)
         end
-
-        db[:topic_mappings].insert(:project_id => project[:id], :topic_id => topic_entry[:topic_id])
       end
 
-      topic_map = db[:topic_categories].join(db[:topic_mappings].where(:project_id => project[:id]), topic_id: :topic_id)
+      project_topics = db[:project_topics].where(:project_id => project[:id])
 
-      topic_map.each do |persisted_topic|
+      project_topics.each do |persisted_topic|
         # remove any stored topics that are no longer accurate
         if ! t['names'].include?(persisted_topic[:topic_name])
-          db[:topic_mappings].delete(:project_id => project[:id], :topic_id => persisted_topic[:topic_id])
+          db[:project_topics].delete(:project_id => project[:id], :topic_name => persisted_topic[:topic_name])
         end
       end
     end

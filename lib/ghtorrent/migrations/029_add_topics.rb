@@ -4,25 +4,20 @@ require 'ghtorrent/migrations/mysql_defaults'
 Sequel.migration do
 
   up do
-    puts 'Adding topic_categories'
-    create_table :topic_categories do
-      primary_key :topic_id
-      String :topic_name, :size => 36, :null => false, index: {unique: true}
-    end
-
-    puts 'Adding topic_mappings'
-    create_table :topic_mappings do
-      foreign_key :topic_id, :topic_categories
+    puts 'Adding table project_topics'
+    create_table :project_topics do
       foreign_key :project_id, :projects
-      primary_key [:topic_id, :project_id]
+      String :topic_name, :size => 36
+      DateTime :created_at, :null => false,
+               :default => Sequel::CURRENT_TIMESTAMP
+
+      primary_key [:project_id, :topic_name]
     end
 
   end
 
   down do
-    puts 'Dropping table topic_mappings'
-    drop_table :topic_mappings
-    puts 'Dropping table topic_categories'
-    drop_table :topic_categories
+    puts 'Dropping table project_topics'
+    drop_table :project_topics
   end
 end
