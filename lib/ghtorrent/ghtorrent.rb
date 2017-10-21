@@ -602,10 +602,7 @@ module GHTorrent
 
       ensure_repo_recursive(user, repo) if recursive
 
-      final_repo = repos.first(:owner_id => curuser[:id], :name => repo)
-      ensure_topics(user, repo, final_repo)
-
-      final_repo
+      repos.first(:owner_id => curuser[:id], :name => repo)
     end
 
     def ensure_repo_recursive(owner, repo)
@@ -1796,9 +1793,8 @@ module GHTorrent
 
     end
 
-    def ensure_topics(owner, repo, repo_row=nil)
-      project = repo_row.nil? ? ensure_repo(owner, repo) : repo_row
-      t = retrieve_topics(owner, repo)
+    def ensure_topics(owner, repo)
+      project = ensure_repo(owner, repo)
 
       t['names'].each do |topic|
         # store each topic
