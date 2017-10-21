@@ -1796,12 +1796,16 @@ module GHTorrent
     def ensure_topics(owner, repo)
       project = ensure_repo(owner, repo)
 
-      t['names'].each do |topic|
+      topics = retrieve_topics(owner, repo)
+      topics.each do |topic|
         # store each topic
         topic_entry = db[:project_topics].first(:project_id => project[:id], :topic_name => topic)
 
         if topic_entry.nil?
           db[:project_topics].insert(:project_id => project[:id], :topic_name => topic)
+          info "Added topic #{topic} to repo #{owner}/#{repo}"
+        else
+          debug "Topic #{topic} for repo #{owner}/#{repo} exists"
         end
       end
 
@@ -1809,10 +1813,12 @@ module GHTorrent
 
       project_topics.each do |persisted_topic|
         # remove any stored topics that are no longer accurate
-        if ! t['names'].include?(persisted_topic[:topic_name])
+        unless topics.include?(persisted_topic[:topic_name])
           db[:project_topics].delete(:project_id => project[:id], :topic_name => persisted_topic[:topic_name])
         end
       end
+
+      db[:project_topics].where(:project_id => project[:id]).to_a
     end
 
     # Run a block in a DB transaction. Exceptions trigger transaction rollback
