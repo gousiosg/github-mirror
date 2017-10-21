@@ -126,7 +126,7 @@ module GHTorrent
             end
 
       constring = if uname.nil?
-                    "mongodb://#{host}:#{port}#{replicas}/#{db}#{ssl}"
+                    "mongodb://#{host}:#{port}#{replicas}/#{db}?ssl=#{ssl}"
                   else
                     "mongodb://#{uname}:#{passwd}@#{host}:#{port}#{replicas}/#{db}?ssl=#{ssl}"
                   end
