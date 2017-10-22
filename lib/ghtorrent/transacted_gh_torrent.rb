@@ -104,6 +104,12 @@ class TransactedGHTorrent < GHTorrent::Mirror
     end
   end
 
+  def ensure_topics(owner, repo)
+    check_transaction do
+      super(owner, repo)
+    end
+  end
+
   def check_transaction(&block)
     if db.in_transaction?
       yield block

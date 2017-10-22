@@ -568,21 +568,34 @@ module GHTorrent
       # https://developer.github.com/v3/repos/#list-all-topics-for-a-repository
       stored_topics = persister.find(:topics, {'owner' => owner, 'repo' => repo })
 
-      if stored_topics.empty?
-        url = ghurl("repos/#{owner}/#{repo}/topics")
-        r = api_request(url, media_type = "application/vnd.github.mercy-preview+json")
+      url = ghurl("repos/#{owner}/#{repo}/topics")
+      r = api_request(url, media_type = "application/vnd.github.mercy-preview+json")
 
-        if r.nil? or r.empty?
-          return
-        end
-
-        persister.store(:topics, r)
-        info "Added topics for #{owner} -> #{repo}"
-        r
-      else
-        debug "Topics for #{owner} -> #{repo} exists"
-        stored_topics.first
+      if r.nil? or r.empty? or r['names'].nil? or r['names'].empty?
+        warn "No topics for #{owner}/#{repo}"
+        return
       end
+
+      topics = r['names']
+      if topics.nil? or topics.empty?
+        return
+      end
+
+      topics.each do |topic|
+        if stored_topics.select{|x| x['topic'] == topic}.empty?
+          topic_entry = {
+            :owner => owner,
+            :repo  => repo,
+            :topic => topic
+          }
+          persister.store(:topics, topic_entry)
+          info "Added topic #{topic} -> #{owner}/#{repo}"
+        else
+          debug "Topic #{topic} -> #{owner}/#{repo} exists"
+        end
+      end
+
+      r['names']
     end
 
     # Get current Github events
