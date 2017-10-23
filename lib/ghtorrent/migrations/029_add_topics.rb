@@ -10,6 +10,7 @@ Sequel.migration do
       String :topic_name, :size => 36
       DateTime :created_at, :null => false,
                :default => Sequel::CURRENT_TIMESTAMP
+      TrueClass :deleted :null => false, :default => false
 
       primary_key [:project_id, :topic_name]
     end

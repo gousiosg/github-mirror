@@ -1814,7 +1814,7 @@ module GHTorrent
       project_topics.each do |persisted_topic|
         # remove any stored topics that are no longer accurate
         unless topics.include?(persisted_topic[:topic_name])
-          db[:project_topics].delete(:project_id => project[:id], :topic_name => persisted_topic[:topic_name])
+          db[:project_topics](:project_id => project[:id], :topic_name => persisted_topic[:topic_name]).update(:deleted => true)
         end
       end
 
