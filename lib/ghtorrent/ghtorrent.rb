@@ -1809,12 +1809,17 @@ module GHTorrent
         end
       end
 
-      project_topics = db[:project_topics].where(:project_id => project[:id])
+      project_topics = db[:project_topics].where(:project_id => project[:id],
+                                                 :deleted => false)
 
       project_topics.each do |persisted_topic|
         # remove any stored topics that are no longer accurate
         unless topics.include?(persisted_topic[:topic_name])
-          db[:project_topics](:project_id => project[:id], :topic_name => persisted_topic[:topic_name]).update(:deleted => true)
+          db[:project_topics].\
+            where(:project_id => project[:id],
+                  :topic_name => persisted_topic[:topic_name]).\
+            update(:deleted => true)
+          info "Topic #{persisted_topic[:topic_name]} for repo #{owner}/#{repo} deleted"
         end
       end
 
