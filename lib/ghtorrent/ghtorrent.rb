@@ -1665,7 +1665,13 @@ module GHTorrent
             :comment_id => comment_id,
             :issue_id => issue[:id],
             :user_id => unless user.nil? then user[:id] end,
-            :created_at => date(retrieved['created_at'])
+            :created_at => date(retrieved['created_at']).
+            :like => retrieved['+1'],
+            :dislike => retrieved['-1'],
+            :laugh => retrieved['laugh'],
+            :confused => retrieved['confused'],
+            :heart => retrieved['heart'],
+            :hooray => retrieved['hooray']
         )
 
         info "Added issue_comment #{issue_comment_str}"

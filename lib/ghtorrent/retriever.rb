@@ -522,7 +522,8 @@ module GHTorrent
                                                  'issue_id' => issue_id,
                                                  'id' => comment_id}).first
       if comment.nil?
-        r = api_request(ghurl "repos/#{owner}/#{repo}/issues/comments/#{comment_id}")
+        r = api_request(ghurl("repos/#{owner}/#{repo}/issues/comments/#{comment_id}"),
+                        media_type = 'application/vnd.github.squirrel-girl-preview') # volatile: https://developer.github.com/v3/issues/comments/#reactions-summary
 
         if r.nil? or r.empty?
           warn "Could not find issue_comment #{owner}/#{repo} #{issue_id}->#{comment_id}. Deleted?"
