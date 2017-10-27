@@ -37,6 +37,7 @@ module GHTorrent
       return @db unless @db.nil?
 
       Sequel.single_threaded = true
+      Sequel.split_symbols = true
       @db = Sequel.connect(config(:sql_url), :encoding => 'utf8')
       #@db.loggers << Logger.new(STDOUT)
       if @db.tables.empty?
@@ -1660,18 +1661,19 @@ module GHTorrent
         end
 
         user = ensure_user(retrieved['user']['login'], false, false)
-
+        reactions = retrieved['reactions']
+        info "Reactions: #{reactions.inspect}"
         db[:issue_comments].insert(
             :comment_id => comment_id,
             :issue_id => issue[:id],
             :user_id => unless user.nil? then user[:id] end,
-            :created_at => date(retrieved['created_at']).
-            :like => retrieved['+1'],
-            :dislike => retrieved['-1'],
-            :laugh => retrieved['laugh'],
-            :confused => retrieved['confused'],
-            :heart => retrieved['heart'],
-            :hooray => retrieved['hooray']
+            :created_at => date(retrieved['created_at']),
+            :like => reactions['+1'],
+            :dislike => reactions['-1'],
+            :laugh => reactions['laugh'],
+            :confused => reactions['confused'],
+            :heart => reactions['heart'],
+            :hooray => reactions['hooray']
         )
 
         info "Added issue_comment #{issue_comment_str}"

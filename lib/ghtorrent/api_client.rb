@@ -18,10 +18,10 @@ module GHTorrent
     # A paged request. Used when the result can expand to more than one
     # result pages.
     def paged_api_request(url, pages = config(:mirror_history_pages_back),
-                          last = nil)
-
+                          last = nil, media_type = '')
+      info "media type: #{media_type.inspect}"
       url = ensure_max_per_page(url)
-      data = api_request_raw(url)
+      data = api_request_raw(url, media_type)
 
       return [] if data.nil?
 
@@ -39,7 +39,7 @@ module GHTorrent
         if links['next'].nil?
           parse_request_result(data)
         else
-          parse_request_result(data) | paged_api_request(links['next'], pages, last)
+          parse_request_result(data) | paged_api_request(links['next'], pages, last, media_type)
         end
       else
         parse_request_result(data)

@@ -496,7 +496,9 @@ module GHTorrent
 
     def retrieve_issue_comments(owner, repo, issue_id)
       url = ghurl "repos/#{owner}/#{repo}/issues/#{issue_id}/comments"
-      retrieved_comments = paged_api_request url
+
+      retrieved_comments = paged_api_request(url, config(:mirror_history_pages_back),
+                                             nil, 'application/vnd.github.squirrel-girl-preview')
 
       comments = retrieved_comments.each { |x|
         x['owner'] = owner
