@@ -32,10 +32,10 @@ module GHTorrent
 
       def set_deleted(owner, repo)
         db.from(:projects, :users).\
-        where(:projects__owner_id => :users__id).\
-        where(:users__login => owner).\
-        where(:projects__name => repo).\
-        update(:projects__deleted => true)
+        where(Sequel.qualify('projects','owner_id') => Sequel.qualify('users','id')).\
+        where(Sequel.qualify('users','login') => owner).\
+        where(Sequel.qualify('projects','name') => repo).\
+        update(Sequel.qualify('projects','deleted') => true)
         info("Repo #{owner}/#{repo} marked as deleted")
       end
 
@@ -65,16 +65,16 @@ module GHTorrent
         end
 
         db.from(:projects, :users).\
-        where(:projects__owner_id => :users__id).\
-        where(:users__login => owner).\
-        where(:projects__name => repo).\
-        update(:projects__url         => retrieved['url'],
-               :projects__description => retrieved['description'],
-               :projects__language    => retrieved['language'],
-               :projects__created_at  => date(retrieved['created_at']),
-               :projects__updated_at  => Time.now,
-               :projects__forked_from => unless parent.nil? then parent[:id] end,
-               :projects__forked_commit_id => unless fork_commit.nil? then fork_commit[:id] end)
+        where(Sequel.qualify('projects', 'owner_id') => Sequel.qualify('users','id')).\
+        where(Sequel.qualify('users', 'login') => owner).\
+        where(Sequel.qualify('projects', 'name') => repo).\
+        update(Sequel.qualify('projects', 'url')              => retrieved['url'],
+               Sequel.qualify('projects', 'description')      => retrieved['description'],
+               Sequel.qualify('projects', 'language')         => retrieved['language'],
+               Sequel.qualify('projects', 'created_at')       => date(retrieved['created_at']),
+               Sequel.qualify('projects', 'updated_at')       => Time.now,
+               Sequel.qualify('projects', 'forked_from')      => unless parent.nil? then parent[:id] end,
+               Sequel.qualify('projects', 'forked_commit_id') => unless fork_commit.nil? then fork_commit[:id] end)
         info("Repo #{owner}/#{repo} updated")
 
         ght.ensure_languages(owner, repo)
@@ -83,9 +83,9 @@ module GHTorrent
 
       def get_project_mysql(owner, repo)
         db.from(:projects, :users).\
-        where(:projects__owner_id => :users__id).\
-        where(:users__login => owner).\
-        where(:projects__name => repo).first
+        where(Sequel.qualify('projects','owner_id') => Sequel.qualify('users','id')).\
+        where(Sequel.qualify('users','login') => owner).\
+        where(Sequel.qualify('projects','name') => repo).first
       end
 
       def update_mongo(owner, repo, new_repo)

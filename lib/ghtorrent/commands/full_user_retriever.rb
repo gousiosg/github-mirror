@@ -40,7 +40,7 @@ module GHTorrent
             return
           else
             ght.transaction do
-              ght.db.from(:users).where(:login => login).update(:users__deleted => true)
+              ght.db.from(:users).where(:login => login).update(Sequel.qualify('users', 'deleted') => true)
             end
             warn "User #{login} marked as deleted"
             return
@@ -61,20 +61,20 @@ module GHTorrent
         geo = geolocate(location: on_github['location'])
 
         ght.db.from(:users).where(:login => login).update(
-          # Geolocation info
-          :users__long         => geo['long'].to_f,
-          :users__lat          => geo['lat'].to_f,
-          :users__country_code => geo['country_code'],
-          :users__state        => geo['state'],
-          :users__city         => geo['city'],
-          :users__location     => on_github['location'],
+            # Geolocation info
+            Sequel.qualify('users', 'long')         => geo['long'].to_f,
+            Sequel.qualify('users', 'lat')          => geo['lat'].to_f,
+            Sequel.qualify('users', 'country_code') => geo['country_code'],
+            Sequel.qualify('users', 'state')        => geo['state'],
+            Sequel.qualify('users', 'city')         => geo['city'],
+            Sequel.qualify('users', 'location')     => on_github['location'],
 
-          # user details
-          :users__name         => on_github['name'],
-          :users__company      => on_github['company'],
-          :users__email        => on_github['email'],
-          :users__deleted      => false,
-          :users__fake         => false
+            # user details
+            Sequel.qualify('users', 'name')    => on_github['name'],
+            Sequel.qualify('users', 'company') => on_github['company'],
+            Sequel.qualify('users', 'email')   => on_github['email'],
+            Sequel.qualify('users', 'deleted') => false,
+            Sequel.qualify('users', 'fake')    => false
         )
 
         user = user_entry[:login]
