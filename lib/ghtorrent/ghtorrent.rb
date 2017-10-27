@@ -1377,8 +1377,8 @@ module GHTorrent
 
       retrieve_forks(owner, repo).reduce([]) do |acc, x|
         if existing_forks.find do |y|
-          forked_repo_owner = x['full_name'].split(/\//)[0]
-          forked_repo_name = x['full_name'].split(/\//)[1]
+          forked_repo_owner = x['url'].split(/\//)[4]
+          forked_repo_name = x['url'].split(/\//)[5]
           y[:login] == forked_repo_owner && y[:name] == forked_repo_name
         end.nil?
           acc << x
