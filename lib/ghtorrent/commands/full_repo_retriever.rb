@@ -32,7 +32,6 @@ module GHTorrent
       end
 
       def supported_options(options)
-        options.opt :force, 'Force update even if an update was done very recently', :default => false
         options.opt :no_events, 'Skip retrieving events', :default => false
         options.opt :no_entities, 'Skip retrieving entities', :default => false
 
@@ -70,32 +69,14 @@ module GHTorrent
         end
 
         user = user_entry[:login]
+        repo_entry = ght.transaction{ght.ensure_repo(owner, repo)}
 
-        # Run this in serializable isolation to ensure that projects
-        # are updated or inserted just once. If serialization fails,
-        # it means that another transaction added/updated the repo.
-        # Just re-running the block should lead to the project being
-        # rejected from further processing due to an updated updated_at field
-        ght.db.transaction(:isolation => :serializable,
-                           :retry_on  =>[Sequel::SerializationFailure]) do
-          repo_entry = ght.ensure_repo(owner, repo)
-
-          if repo_entry.nil?
-            warn "Skip: #{owner}/#{repo}. Repo: #{repo} not found"
-            return
-          end
-
-          # last update was done too recently (less than 10 days), ignore
-          if not repo_entry[:updated_at].nil? \
-            and repo_entry[:updated_at] > (Time.now - 10 * 24 * 60 * 60) \
-            and not options[:force]
-            warn "Skip: #{owner}/#{repo}, Too new: #{Time.at(repo_entry[:updated_at])}"
-            return
-          end
-
-          ght.db.from(:projects).where(:id => repo_entry[:id]).update(:updated_at => Time.now)
+        if repo_entry.nil?
+          warn "Skip: #{owner}/#{repo}. Repo: #{repo} not found"
+          return
         end
 
+        # Update project details
         stage = nil
         unless options[:no_entities_given]
           begin
@@ -106,6 +87,8 @@ module GHTorrent
                 ght.send(x, user, repo)
                 info "Stage: #{stage} completed, Repo: #{owner}/#{repo}, Time: #{Time.now.to_ms - stage_time.to_ms} ms"
               end
+
+              ght.db.from(:projects).where(:id => repo_entry[:id]).update(:updated_at => Time.now)
             else
               stage_time = Time.now
               stage = options[:only_stage]
@@ -113,7 +96,9 @@ module GHTorrent
               info "Stage: #{stage} completed, Repo: #{owner}/#{repo}, Time: #{Time.now.to_ms - stage_time.to_ms} ms"
             end
           rescue StandardError => e
-            warn("Error in stage: #{stage}, Repo: #{owner}/#{repo}, Message: #{$!}")
+            error("Error in stage: #{stage}, Repo: #{owner}/#{repo}, Message: #{$!}")
+            puts e.backtrace
+            return
           end
         end
 
