@@ -24,7 +24,7 @@ Gem::Specification.new do |s|
                              'lib/ghtorrent/country_codes.txt'].to_a
   s.required_ruby_version = '~> 2.0'
 
-  s.add_runtime_dependency 'mongo', '~> 2.2', '>= 2.2.0'
+  s.add_runtime_dependency 'mongo', '~> 2.4', '>= 2.4.3'
   s.add_runtime_dependency 'trollop', '~> 2.0', '>= 2.0.0'
   s.add_runtime_dependency 'sequel', '~> 4.5', '>= 4.5.0'
   s.add_runtime_dependency 'bunny', '~> 2.3', '>= 2.3.0'

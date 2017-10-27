@@ -576,12 +576,12 @@ module GHTorrent
 
       if r.nil? or r.empty? or r['names'].nil? or r['names'].empty?
         warn "No topics for #{owner}/#{repo}"
-        return
+        return []
       end
 
       topics = r['names']
       if topics.nil? or topics.empty?
-        return
+        return []
       end
 
       topics.each do |topic|
