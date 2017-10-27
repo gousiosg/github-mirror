@@ -14,7 +14,6 @@ module GHTorrent
     LOCALCONFIG = {
         :mongo_host => "mongo.host",
         :mongo_port => "mongo.port",
-        :mongo_ssl => "mongo.ssl",
         :mongo_db => "mongo.db",
         :mongo_username => "mongo.username",
         :mongo_passwd => "mongo.password",
