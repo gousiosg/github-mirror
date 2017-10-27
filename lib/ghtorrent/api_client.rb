@@ -19,7 +19,7 @@ module GHTorrent
     # result pages.
     def paged_api_request(url, pages = config(:mirror_history_pages_back),
                           last = nil, media_type = '')
-      info "media type: #{media_type.inspect}"
+
       url = ensure_max_per_page(url)
       data = api_request_raw(url, media_type)
 

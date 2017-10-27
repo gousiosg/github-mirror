@@ -1662,7 +1662,7 @@ module GHTorrent
 
         user = ensure_user(retrieved['user']['login'], false, false)
         reactions = retrieved['reactions']
-        info "Reactions: #{reactions.inspect}"
+
         db[:issue_comments].insert(
             :comment_id => comment_id,
             :issue_id => issue[:id],
