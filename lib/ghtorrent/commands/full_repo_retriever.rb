@@ -10,8 +10,8 @@ module GHTorrent
       include GHTorrent::EventProcessing
 
       def stages
-        %w(ensure_commits ensure_forks ensure_pull_requests
-       ensure_issues ensure_watchers ensure_labels ensure_languages ensure_topics)
+        %w(ensure_commits ensure_topics ensure_languages ensure_pull_requests
+         ensure_issues ensure_watchers ensure_labels ensure_forks)
       end
 
       def settings
@@ -100,7 +100,7 @@ module GHTorrent
         unless options[:no_entities_given]
           begin
             if options[:only_stage].nil?
-              stages.each do |x|
+              ght.stages.each do |x|
                 stage_time = Time.now
                 stage = x
                 ght.send(x, user, repo)

@@ -54,6 +54,11 @@ module GHTorrent
       @persister
     end
 
+    def stages
+      %w(ensure_commits ensure_topics ensure_languages ensure_pull_requests
+         ensure_issues ensure_watchers ensure_labels ensure_forks)
+    end
+
     ##
     # Make sure a commit exists
     #
