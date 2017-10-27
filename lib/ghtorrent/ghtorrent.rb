@@ -567,7 +567,7 @@ module GHTorrent
         return currepo
       end
 
-      r = retrieve_repo(user, repo)
+      r = retrieve_repo(user, repo, true)
 
       if r.nil?
         warn "Could not retrieve repo #{user}/#{repo}"
@@ -600,26 +600,31 @@ module GHTorrent
           repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => parent[:id])
           info "Repo #{user}/#{repo} is a fork of #{parent_owner}/#{parent_repo}"
 
-          ensure_fork_point(user, repo)
+          unless ensure_fork_point(user, repo).nil?
+            warn "Could not find fork point for #{user}/#{repo}, fork of #{parent_owner}/#{parent_repo}"
+          end
         end
       end
 
+      if recursive and not ensure_repo_recursive(user, repo)
+        warn "Could retrieve #{user}/#{repo} recursively"
+        return nil
+      end
+
       info "Added repo #{user}/#{repo}"
-
-      ensure_repo_recursive(user, repo) if recursive
-
-      repos.first(:owner_id => curuser[:id], :name => repo)
+      return repos.first(:owner_id => curuser[:id], :name => repo)
     end
 
     def ensure_repo_recursive(owner, repo)
 
-      functions = %w(ensure_commits ensure_labels ensure_pull_requests
-       ensure_issues ensure_watchers ensure_forks ensure_languages ensure_topics)
-
-      functions.each do |x|
-        send(x, owner, repo)
+      stages.each do |x|
+        if send(x, owner, repo).nil?
+          warn "Stage #{x} returned nil, stopping recursive retrieval"
+          return false
+        end
       end
 
+      true
     end
 
     # Get details about the languages used in the repository
