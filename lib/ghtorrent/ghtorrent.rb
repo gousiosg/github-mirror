@@ -392,8 +392,8 @@ module GHTorrent
     def ensure_user_followers(followed)
       curuser = ensure_user(followed, false, false)
       followers = db.from(:followers, :users).\
-          where(:followers__follower_id => :users__id).
-          where(:followers__user_id => curuser[:id]).select(:login).all
+          where(Sequel.qualify('followers', 'follower_id') => Sequel.qualify('users', 'id)')).\
+          where(Sequel.qualify('followers', 'user_id') => curuser[:id]).select(:login).all
 
       retrieve_user_followers(followed).reduce([]) do |acc, x|
         if followers.find {|y| y[:login] == x['login']}.nil?
@@ -454,8 +454,9 @@ module GHTorrent
     def ensure_user_following(user)
       curuser = ensure_user(user, false, false)
       following = db.from(:followers, :users).\
-          where(:followers__follower_id => curuser[:id]).\
-          where(:followers__user_id => :users__id).select(:login).all
+          where(Sequel.qualify('followers', 'follower_id') => curuser[:id]).\
+          where(Sequel.qualify('followers', 'user_id') => Sequel.qualify('users','id')).\
+          select(:login).all
 
       retrieve_user_following(user).reduce([]) do |acc, x|
          if following.find {|y| y[:login] == x['follows']}.nil?
@@ -716,10 +717,10 @@ module GHTorrent
         shared_commit = db[:commits].first(:sha => fork_commit)
         copied        = 0
         to_copy = db.from(:project_commits, :commits).\
-                  where(:project_commits__commit_id => :commits__id).\
-                  where(:project_commits__project_id => parent[:id]).\
+                  where(Sequel.qualify('project_commits', 'commit_id') => Sequel.qualify('commits', 'id')).\
+                  where(Sequel.qualify('project_commits', 'project_id') => parent[:id]).\
                   where('commits.created_at < ?', shared_commit[:created_at]).\
-                  select(:commits__id)
+                  select(Sequel.qualify('commits','id'))
 
         to_copy.each do |c|
           copied += 1
@@ -755,9 +756,9 @@ module GHTorrent
       end
 
       parent = db.from(:projects, :users).\
-                where(:projects__owner_id => :users__id).\
-                where(:projects__id => fork[:forked_from]).\
-                select(:users__login, :projects__name).first
+                where(Sequel.qualify('projects', 'owner_id') => Sequel.qualify('users', 'id')).\
+                where(Sequel.qualify('projects', 'id') => fork[:forked_from]).\
+                select(Sequel.qualify('users', 'login'), Sequel.qualify('projects','name')).first
 
       if parent.nil?
         warn "Unknown parent for repo #{owner}/#{repo}"
@@ -969,8 +970,8 @@ module GHTorrent
       end
 
       watchers = db.from(:watchers, :users).\
-          where(:watchers__user_id => :users__id).\
-          where(:watchers__repo_id => currepo[:id]).select(:login).all
+          where(Sequel.qualify('watchers', 'user_id') => Sequel.qualify('users', 'id')).\
+          where(Sequel.qualify('watchers', 'repo_id') => currepo[:id]).select(:login).all
 
       retrieve_watchers(owner, repo).reduce([]) do |acc, x|
         if watchers.find { |y|
@@ -1370,8 +1371,9 @@ module GHTorrent
       end
 
       existing_forks = db.from(:projects, :users).\
-          where(:users__id => :projects__owner_id). \
-          where(:projects__forked_from => currepo[:id]).select(:projects__name, :login).all
+          where(Sequel.qualify('users', 'id') => Sequel.qualify('projects', 'owner_id')). \
+          where(Sequel.qualify('projects', 'forked_from') => currepo[:id]).\
+          select(Sequel.qualify('projects', 'name'), :login).all
 
       retrieve_forks(owner, repo).reduce([]) do |acc, x|
         if existing_forks.find do |y|
@@ -1742,9 +1744,9 @@ module GHTorrent
       end
 
       issue_labels = db.from(:issue_labels, :repo_labels)\
-                        .where(:issue_labels__label_id => :repo_labels__id)\
-                        .where(:issue_labels__issue_id => issue[:id])\
-                        .select(:repo_labels__name).all
+                        .where(Sequel.qualify('issue_labels', 'label_id') => Sequel.qualify('repo_labels', 'id'))\
+                        .where(Sequel.qualify('issue_labels', 'issue_id') => issue[:id])\
+                        .select(Sequel.qualify('repo_labels', 'name')).all
 
       retrieve_issue_labels(owner, repo, issue_id).reduce([]) do |acc, x|
         if issue_labels.find {|y| y[:name] == x['name']}.nil?
