@@ -1693,16 +1693,16 @@ module GHTorrent
                                    :comment_id => comment_id)
       else
         debug "Issue comment #{issue_comment_str} exists"
-        if ! (curcomment[:like] == reactions['+1'] or
-              curcomment[:dislike] == reactions['-1'] or
-              curcomment[:laugh] == reactions['laugh'] or
-              curcomment[:confused] == reactions['confused'] or
-              curcomment[:heart] == reactions['heart'] or
-              curcomment[:hooray] == reactions['hooray']
-            )
+        if ! (curcomment[:like] == reactions['+1']) or
+           ! (curcomment[:dislike] == reactions['-1']) or
+           ! (curcomment[:laugh] == reactions['laugh']) or
+           ! (curcomment[:confused] == reactions['confused']) or
+           ! (curcomment[:heart] == reactions['heart']) or
+           ! (curcomment[:hooray] == reactions['hooray'])
           info "Updating issue comment reactions..."
 
-          reactions = retrieve_issue_comment(owner, repo, issue_id, comment_id)['reactions']
+          retrieved = retrieve_issue_comment(owner, repo, issue_id, comment_id)
+          reactions = retrieved['reactions']
           db[:issue_comments].filter(:issue_id => issue[:id],
                                      :comment_id => comment_id).update(:like => reactions['+1'],
                                                                        :dislike => reactions['-1'],
