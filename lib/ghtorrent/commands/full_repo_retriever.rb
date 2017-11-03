@@ -114,7 +114,7 @@ module GHTorrent
               send(event['type'], event)
               info "Success processing event. Type: #{event['type']}, ID: #{event['id']}"
             rescue StandardError => e
-              warn "Error processing event. Type: #{event['type']}, ID: #{event['id']}"
+              warn "Error processing event. Type: #{event['type']}, ID: #{event['id']}.\nError: #{$!}\n#{e.backtrace.join("\n")}."
             end
           end
         end

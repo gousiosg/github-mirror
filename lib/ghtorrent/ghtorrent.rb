@@ -1663,15 +1663,16 @@ module GHTorrent
 
       curcomment = db[:issue_comments].first(:issue_id => issue[:id],
                                           :comment_id => comment_id)
+      retrieved = retrieve_issue_comment(owner, repo, issue_id, comment_id)
+
+      if retrieved.nil?
+        warn "Could not retrieve issue_comment #{issue_comment_str}"
+        return
+      end
+
+      reactions = retrieved['reactions']
+
       if curcomment.nil?
-
-        retrieved = retrieve_issue_comment(owner, repo, issue_id, comment_id)
-
-        if retrieved.nil?
-          warn "Could not retrieve issue_comment #{issue_comment_str}"
-          return
-        end
-
         user = ensure_user(retrieved['user']['login'], false, false)
         reactions = retrieved['reactions']
 
@@ -1692,7 +1693,6 @@ module GHTorrent
         db[:issue_comments].first(:issue_id => issue[:id],
                                    :comment_id => comment_id)
       else
-        debug "Issue comment #{issue_comment_str} exists"
         if ! (curcomment[:like] == reactions['+1']) or
            ! (curcomment[:dislike] == reactions['-1']) or
            ! (curcomment[:laugh] == reactions['laugh']) or
