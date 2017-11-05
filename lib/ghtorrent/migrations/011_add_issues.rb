@@ -27,7 +27,6 @@ Sequel.migration do
       String :action_specific, :null => true, :size => 50
       DateTime :created_at, :null => false, :default=>Sequel::CURRENT_TIMESTAMP
       String :ext_ref_id, :null => false, :size => 24, :default => "0"
-      check(:action=>%w[closed reopened subscribed merged referenced mentioned assigned])
       primary_key [:event_id, :issue_id], :name=>:issue_events_pk
     end
 
