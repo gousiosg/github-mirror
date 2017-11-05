@@ -44,14 +44,14 @@ module GHTorrent
             next if push_commits.include? url[7]
 
             sha_not_exist = ght.db.from(:commits, :project_commits, :projects, :users).\
-                            where(Sequel.qualify('projects', 'id') => Sequel.qualify('project_commits', 'project_id)')).\
-                            where(Sequel.qualify('commits', 'id') => Sequel.qualify('project_commits', 'commit_id)')).\
-                            where(Sequel.qualify('projects', 'owner_id') => Sequel.qualify('users', 'id)')).\
+                            where(Sequel.qualify('projects', 'id') => Sequel.qualify('project_commits', 'project_id')).\
+                            where(Sequel.qualify('commits', 'id') => Sequel.qualify('project_commits', 'commit_id')).\
+                            where(Sequel.qualify('projects', 'owner_id') => Sequel.qualify('users', 'id')).\
                             where(Sequel.qualify('projects', 'name') => url[5]).\
                             where(Sequel.qualify('users', 'login') => url[4]).\
                             where(Sequel.qualify('commits', 'sha') => url[7]).all.empty?
 
-            if not sha_not_exist
+            unless sha_not_exist
               debug "Commit #{url[7]} already registered with #{url[4]}/#{url[5]}."
               return
             end
