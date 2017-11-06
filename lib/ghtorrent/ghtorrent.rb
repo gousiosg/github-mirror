@@ -37,7 +37,6 @@ module GHTorrent
       return @db unless @db.nil?
 
       Sequel.single_threaded = true
-      Sequel.split_symbols = true
       @db = Sequel.connect(config(:sql_url), :encoding => 'utf8')
       #@db.loggers << Logger.new(STDOUT)
       if @db.tables.empty?
