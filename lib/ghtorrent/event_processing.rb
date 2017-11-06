@@ -51,7 +51,7 @@ module GHTorrent
                             where(Sequel.qualify('users', 'login') => url[4]).\
                             where(Sequel.qualify('commits', 'sha') => url[7]).all.empty?
 
-            if not sha_not_exist
+            unless sha_not_exist
               debug "Commit #{url[7]} already registered with #{url[4]}/#{url[5]}."
               return
             end
