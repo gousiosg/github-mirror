@@ -439,6 +439,24 @@ ENGINE = MyISAM
 DEFAULT CHARACTER SET = utf8;
 
 -- -----------------------------------------------------
+-- Table `ghtorrent`.`project_topics`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`project_topics` ;
+
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_topics` (
+  `project_id` INT(11) NOT NULL DEFAULT '0' COMMENT '',
+  `topic_name` VARCHAR(36) NULL DEFAULT NULL COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  `deleted` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
+  PRIMARY KEY (`project_id`, `topic_name`)  COMMENT '',
+  CONSTRAINT `project_topics_ibfk_1`
+    FOREIGN KEY (`project_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`),
+  `version` INT(11) NOT NULL DEFAULT '0' COMMENT '')
+ENGINE = MyISAM
+DEFAULT CHARACTER SET = utf8;
+
+-- -----------------------------------------------------
 -- Table `ghtorrent`.`watchers`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `ghtorrent`.`watchers` ;
