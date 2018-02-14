@@ -358,6 +358,7 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_topics` (
   `topic_name` VARCHAR(255) COMMENT '',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
   `deleted` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
+  PRIMARY KEY (`project_id`, `topic_name`)  COMMENT '',
   CONSTRAINT `project_topics_ibfk_1`
     FOREIGN KEY (`project_id`)
     REFERENCES `ghtorrent`.`projects` (`id`))
