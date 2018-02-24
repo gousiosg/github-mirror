@@ -397,7 +397,7 @@ module GHTorrent
     def ensure_user_followers(followed)
       curuser = ensure_user(followed, false, false)
       followers = db.from(:followers, :users).\
-          where(Sequel.qualify('followers', 'follower_id') => Sequel.qualify('users', 'id)')).\
+          where(Sequel.qualify('followers', 'follower_id') => Sequel.qualify('users', 'id')).\
           where(Sequel.qualify('followers', 'user_id') => curuser[:id]).select(:login).all
 
       retrieve_user_followers(followed).reduce([]) do |acc, x|
