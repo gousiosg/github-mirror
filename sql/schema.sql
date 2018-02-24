@@ -349,6 +349,23 @@ ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
 
 -- -----------------------------------------------------
+-- Table `ghtorrent`.`project_topics`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`project_topics` ;
+
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_topics` (
+  `project_id` INT(11) NOT NULL COMMENT '',
+  `topic_name` VARCHAR(255) COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  `deleted` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
+  PRIMARY KEY (`project_id`, `topic_name`)  COMMENT '',
+  CONSTRAINT `project_topics_ibfk_1`
+    FOREIGN KEY (`project_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
+
+-- -----------------------------------------------------
 -- Table `ghtorrent`.`pull_request_comments`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `ghtorrent`.`pull_request_comments` ;
