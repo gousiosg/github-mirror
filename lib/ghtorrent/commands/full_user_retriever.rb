@@ -74,7 +74,8 @@ module GHTorrent
             Sequel.qualify('users', 'company') => on_github['company'],
             Sequel.qualify('users', 'email')   => on_github['email'],
             Sequel.qualify('users', 'deleted') => false,
-            Sequel.qualify('users', 'fake')    => false
+            Sequel.qualify('users', 'fake')    => false,
+            Sequel.qualify('users', 'type')    => user_type(on_github['type'])
         )
 
         user = user_entry[:login]
