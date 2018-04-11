@@ -91,7 +91,9 @@ curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/ORDER"
 if [ $skipArchive = false ]; then
   echo "`date` Creating archive $dumpName"
   cd `dirname $out`
-  tar zcvf $dumpName --exclude='users-private.csv' `basename $out` || exit 1
+  outBasename=`basename $out`
+  files=`ls -Sr $outBasename/* | xargs`  # sort files by size, smallest first
+  tar zcvf $dumpName --exclude='users-private.csv' $files || exit 1
   gzip $out/users-private.csv
   mv $out/users-private.csv.gz `echo $userPrvName`.csv.gz
   rm -R $out
