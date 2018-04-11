@@ -50,7 +50,8 @@ module GHTorrent
         :amqp_exchange => 'github',
         :amqp_prefetch  => 1,
 
-        :sql_url => 'sqlite://github.db',
+        # :sql_url => 'sqlite://github.db',
+        :sql_url => 'mysql2://ghtorrent:ghtorrent@localhost/ghtorrent',
 
         :mirror_urlbase => 'https://api.github.com/',
         :mirror_persister => 'noop',
@@ -58,7 +59,7 @@ module GHTorrent
         :user_agent => 'ghtorrent',
         :store_pull_request_commits => 'false',
 
-        :github_token => '',
+        :github_token => 'place your github token here',
 
         :attach_ip => '0.0.0.0',
 
