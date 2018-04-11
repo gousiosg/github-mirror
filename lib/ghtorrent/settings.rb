@@ -21,22 +21,25 @@ module GHTorrent
         :mirror_urlbase => 'mirror.urlbase',
         :mirror_persister => 'mirror.persister',
         :mirror_history_pages_back => 'mirror.history_pages_back',
-        :uniq_id => 'mirror.uniq_id',
         :user_agent => 'mirror.user_agent',
+        :store_pull_request_commits => 'mirror.store_pull_request_commits',
 
-        :github_username => 'mirror.username',
-        :github_passwd => 'mirror.passwd',
         :github_token => 'mirror.token',
 
         :attach_ip => 'mirror.attach_ip',
 
         :rescue_loops => 'mirror.rescue_loops',
         :req_limit => 'mirror.req_limit',
-        :geoloc_wait => 'mirror.geoloc_wait',
+        :fork_commits => 'mirror.fork_commits',
+        :commit_handling => 'mirror.commit_handling',
 
         :logging_level => 'logging.level',
         :logging_uniq => 'logging.uniq',
-        :logging_file => 'logging.file'
+        :logging_file => 'logging.file',
+
+        :geolocation_service => 'geolocation.service',
+        :geolocation_wait => 'geolocation.wait',
+        :geolocation_bing_key => 'geolocation.bing_key'
     }
 
     DEFAULTS = {
@@ -51,22 +54,26 @@ module GHTorrent
 
         :mirror_urlbase => 'https://api.github.com/',
         :mirror_persister => 'noop',
-        :mirror_history_pages_back => 1,
+        :mirror_history_pages_back => 10,
         :user_agent => 'ghtorrent',
+        :store_pull_request_commits => 'false',
 
-        :github_username => 'foo',
-        :github_passwd => 'bar',
         :github_token => '',
 
         :attach_ip => '0.0.0.0',
 
         :rescue_loops => 'true',
-        :req_limit => 4998,
-        :geoloc_wait => 2,
+        :req_limit => 2,
+        :fork_commits => 'fork_point',
+        :commit_handling => '',
 
         :logging_level => 'info',
         :logging_uniq => '',
-        :logging_file => 'stdout'
+        :logging_file => 'stdout',
+
+        :geolocation_service => 'osm',
+        :geolocation_wait => '2',
+        :geolocation_bing_key => ''
     }
 
     def config(key, use_default = true)

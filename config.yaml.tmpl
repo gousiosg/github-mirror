@@ -42,14 +42,27 @@ mirror:
   # Use either a user name/password or an API key
   #token: a valid github API key
 
-  # Number of reqs/hour to do with the provided key
-  req_limit: 4990
+  # Number of reqs/hour to leave on the provided key
+  req_limit: 10
 
   # User agent to use for requests. You must use a unique name per client program
   user_agent: ghtorrent
 
-  # Time to wait between geo location API requests
-  geoloc_wait: 2
+  # Strategy for fork commits:
+  #  'all': Retrieve all commits for all forks
+  #  'fork_point': Retrieve all commits up to the fork point (remaining ones are shared with parent)
+  #  'none': Retrieve no commits for forks
+  # Default is 'fork_point'
+  fork_commits: fork_point
+
+  # Commit handling:
+  #  'trim': Trim off the patch diffs.  These are large and not needed in all scenarios
+  # Default is to not set this property and include all of the commits
+  # commit_handling: trim
+
+  # Whether or not you would like to store data in the pull_request_commits collection in Mongo.
+  # Default is 'false'
+  store_pull_request_commits: false
 
 mongo:
   host: 127.0.0.1      # Mongo's IP addr
@@ -57,6 +70,8 @@ mongo:
   db: github           # DB name to store commits to
   username: github     # User name to connect to Mongo
   password: github     # Password for mongo
+  ssl: false           # Whether SSL should be used for the connection
+  replicas:            # Replicas to use for failover (format replica.name:port)
 
 logging:
   # A unique string to appear in all messages produced by the invoking program.
@@ -65,3 +80,11 @@ logging:
   level: "info"
   # stdout or stderr to log to system streams. A file name to log to this file.
   file: "stdout"
+
+geolocate:
+    # osm (open street maps) or bing
+    service: osm
+    # Time to wait between geo location API requests
+    wait: 2
+    # The following are only necessary if bing is used
+    bing_key: foobar

@@ -43,7 +43,7 @@ Sequel.migration do
     create_table :pull_request_comments do
       foreign_key :pull_request_id, :pull_requests, :null => false
       foreign_key :user_id, :users, :null => false
-      Long :comment_id, :null =>  false
+      Integer :comment_id, :null =>  false
       Integer :position, :null => true
       String :body, :size => 256
       foreign_key :commit_id, :commits, :null => false

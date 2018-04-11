@@ -4,7 +4,7 @@ require File.expand_path('../lib/version', __FILE__)
 Gem::Specification.new do |s|
   s.name          = 'ghtorrent'
   s.version       = GHTorrent::VERSION
-  s.date          = Time.now.strftime('%Y-%m-%d') 
+  s.date          = Time.now.strftime('%Y-%m-%d')
   s.summary       = 'Mirror and process Github data'
   s.description   = 'A library and a collection of associated programs
                     to mirror and process Github data'
@@ -15,21 +15,21 @@ Gem::Specification.new do |s|
   s.require_paths = ['lib']
   s.rdoc_options  = ['--charset=UTF-8']
   s.executables   = ['ght-data-retrieval', 'ght-mirror-events', 'ght-load',
-                     'ght-get-more-commits', 'ght-retrieve-repo',
-                     'ght-retrieve-user']
+                     'ght-retrieve-repo', 'ght-retrieve-user',
+                     'ght-retrieve-repos', 'ght-retrieve-users',
+                     'ght-mass-harvester']
   s.files         = FileList['lib/**/*.rb',
                              'bin/*',
                              '[A-Z]*',
-                             'spec/**/*'].to_a
+                             'lib/ghtorrent/country_codes.txt'].to_a
   s.required_ruby_version = '~> 2.0'
-  
-  s.add_runtime_dependency 'mongo', '~> 1.12', '>= 1.12.0'
-  s.add_runtime_dependency 'bson_ext', '~> 1.9', '>= 1.9.0'
+
+  s.add_runtime_dependency 'mongo', '~> 2.4', '>= 2.4.3'
   s.add_runtime_dependency 'trollop', '~> 2.0', '>= 2.0.0'
   s.add_runtime_dependency 'sequel', '~> 4.5', '>= 4.5.0'
-  s.add_runtime_dependency 'bunny', '~> 1.0', '>= 1.0.0'
+  s.add_runtime_dependency 'bunny', '~> 2.3', '>= 2.3.0'
 
-  s.add_development_dependency 'influxdb', '0.1.9' 
+  s.add_development_dependency 'influxdb', '0.3.5'
 
   begin
     require 'changelog'

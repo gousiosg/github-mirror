@@ -11,6 +11,7 @@ skipTables=""
 
 ts=`date +%Y-%m-%d`
 dumpName=`echo mysql-$ts.tar.gz`
+userPrvName=`echo users-private-$ts`
 
 usage()
 {
@@ -64,21 +65,18 @@ else
   mysql="mysql -u $user --password=$passwd -s -h $host -D $db"
 fi
 
-if [ ! -z $skipTables ]; then
-  tablesToSkip=`cat $skipTables`
-else
-  tablesToSkip=""
-fi
-
 tables=`echo "show tables" | $mysql`
 
 for table in $tables; do
-
-  if [[ $tablesToSkip =~ $table ]]; then
+  if [ ! -z $skipTables ] && [ `grep ^$table$ $skipTables` ]; then
     echo "`date`: Skipping table $table"
+  elif [ $table == 'users' ]; then
+    echo "`date`: Dumping table users"
+    echo "select id,login,company,created_at,type,fake,deleted,\`long\`,lat,country_code,state,city,location into outfile '$out/users.csv' CHARACTER SET UTF8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from users" |$mysql || exit 1
+    echo "select login,name,email into outfile '$out/users-private.csv' CHARACTER SET UTF8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from users" |$mysql || exit 1
   else
     echo "`date`: Dumping table $table"
-    echo "select * into outfile '$out/$table.csv'  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from $table" |$mysql || exit 1
+    echo "select * into outfile '$out/$table.csv' CHARACTER SET UTF8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from $table" |$mysql || exit 1
   fi
 done
 
@@ -86,13 +84,18 @@ echo "`date` Copying schema and index files"
 curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/indexes.sql" > $out/indexes.sql
 curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/schema.sql" > $out/schema.sql
 curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/ght-restore-mysql" > $out/ght-restore-mysql
+chmod +x $out/ght-restore-mysql
 curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/README.md" > $out/README.md
 curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/ORDER" > $out/ORDER
 
 if [ $skipArchive = false ]; then
   echo "`date` Creating archive $dumpName"
   cd `dirname $out`
-  tar zcvf $dumpName `basename $out` || exit 1
+  outBasename=`basename $out`
+  files=`ls -Sr $outBasename/* | xargs`  # sort files by size, smallest first
+  tar zcvf $dumpName --exclude='users-private.csv' $files || exit 1
+  gzip $out/users-private.csv
+  mv $out/users-private.csv.gz `echo $userPrvName`.csv.gz
   rm -R $out
 fi
 

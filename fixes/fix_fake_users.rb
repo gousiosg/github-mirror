@@ -34,10 +34,10 @@ class FixFakeUser
   def run(command)
     processor = Proc.new do |login|
       @ght ||= GHTorrent::Mirror.new(settings)
-      @ght.get_db
+      @ght.db
 
       exists = !api_request("https://api.github.com/users/#{login}").empty?
-      @ght.get_db[:users].where(:login => login).update(:fake => exists)
+      @ght.db[:users].where(:login => login).update(:fake => exists)
 
       puts "User: #{login}, exists: #{exists}"
     end

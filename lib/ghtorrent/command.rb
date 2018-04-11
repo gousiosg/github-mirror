@@ -43,18 +43,6 @@ module GHTorrent
                                                      command.options[:addr])
         end
 
-        unless command.options[:username].nil?
-          command.settings = command.override_config(command.settings,
-                                                     :github_username,
-                                                     command.options[:username])
-        end
-
-        unless command.options[:password].nil?
-          command.settings = command.override_config(command.settings,
-                                                     :github_passwd,
-                                                     command.options[:password])
-        end
-
         unless command.options[:token].nil?
           command.settings = command.override_config(command.settings,
                                                      :github_token,
@@ -104,11 +92,9 @@ Standard options:
         opt :verbose, 'verbose mode', :short => 'v'
         opt :addr, 'IP address to use for performing requests', :short => 'a',
             :type => String
-        opt :username, 'Username at Github', :short => 's', :type => String
-        opt :password, 'Password at Github', :type => String
-        opt :token, 'OAuth Github token (use instead of username/password)',
+        opt :token, 'GitHub OAuth token',
             :type => String, :short => 't'
-        opt :req_limit, 'Request limit for provided account (in reqs/hour)',
+        opt :req_limit, 'Number or requests to leave on any provided account (in reqs/hour)',
             :type => Integer, :short => 'l'
         opt :uniq, 'Unique name for this command. Will appear in logs.',
             :type => String, :short => 'u'
@@ -130,14 +116,14 @@ Standard options:
     # provided by this class.
     def validate
       if options[:config].nil?
-        unless (file_exists?("config.yaml"))
+        unless (File.exist?("config.yaml"))
           Trollop::die "No config file in default location (#{Dir.pwd}). You
                         need to specify the #{:config} parameter. Read the
                         documentation on how to create a config.yaml file."
         end
       else
         Trollop::die "Cannot find file #{options[:config]}" \
-          unless file_exists?(options[:config])
+          unless File.exist?(options[:config])
       end
 
       unless @options[:user].nil?
@@ -179,9 +165,9 @@ Standard options:
           conn.start
 
           ch  = conn.create_channel
-          debug "Setting prefetch to #{config(:amqp_prefetch)}"
+          debug "Queue setting prefetch to #{config(:amqp_prefetch)}"
           ch.prefetch(config(:amqp_prefetch))
-          debug "Connection to #{config(:amqp_host)} succeded"
+          debug "Queue connection to #{config(:amqp_host)} succeeded"
 
           x = ch.topic(config(:amqp_exchange), :durable => true,
                        :auto_delete => false)
@@ -229,16 +215,6 @@ Standard options:
       super(config_file, setting, new_value)
     end
 
-    private
-
-    def file_exists?(file)
-      begin
-        File::Stat.new(file)
-        true
-      rescue
-        false
-      end
-    end
   end
 
 end

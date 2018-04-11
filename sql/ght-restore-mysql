@@ -2,7 +2,7 @@
 
 # defaults
 user="ghtorrent"
-passwd="ghtorrent"
+passwd=""
 host="localhost"
 db="ghtorrent"
 engine="MyISAM"
@@ -77,11 +77,11 @@ for f in $dumpDir/*.csv ; do
   table=`basename $f|cut -f1 -d'.'`
   echo "`date` Restoring table $table"
 
-  echo "SET foreign_key_checks = 0; LOAD DATA LOCAL INFILE '$f' INTO TABLE $table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' " |$mysql || exit 1
+  echo "SET foreign_key_checks = 0; LOAD DATA LOCAL INFILE '$f' INTO TABLE $table CHARACTER SET UTF8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' " |$mysql || exit 1
 done
 
 # 3. Create indexes
-if [ ! -e $dumpDir/schema.sql ]; then
+if [ ! -e $dumpDir/indexes.sql ]; then
   echo "Cannot find $dumpDir/indexes.sql to create DB indexes"
   exit 1
 fi

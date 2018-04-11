@@ -4,6 +4,16 @@ require 'ghtorrent'
 
 # Update repos en masse
 class GHTUpdateRepos < MultiprocessQueueClient
+
+  def prepare_options(options)
+    super(options)
+    options.opt :commits, 'Retrieve commits for repo', :default => false
+  end
+
+  def validate
+    super
+  end
+
   def clazz
     GHTRepoUpdater
   end
@@ -30,6 +40,11 @@ class GHTRepoUpdater
     processor = Proc.new do |msg|
       owner, repo = msg.split(/ /)
       process_project(owner, repo)
+
+      if @options[:commits_given]
+        ght = TransactedGHTorrent.new(settings)
+        ght.ensure_commits(owner, repo)
+      end
     end
 
     command.queue_client(@queue, GHTorrent::ROUTEKEY_PROJECTS, :after, processor)

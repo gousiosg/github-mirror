@@ -15,7 +15,7 @@ module GHTorrent
       end
 
       def db
-        @db ||= ght.get_db
+        ght.db
       end
 
       def ght
@@ -32,60 +32,79 @@ module GHTorrent
 
       def set_deleted(owner, repo)
         db.from(:projects, :users).\
-        where(:projects__owner_id => :users__id).\
-        where(:users__login => owner).\
-        where(:projects__name => repo).\
-        update(:projects__deleted => true)
-        info("Project #{owner}/#{repo} marked as deleted")
+        where(Sequel.qualify('projects','owner_id') => Sequel.qualify('users','id')).\
+        where(Sequel.qualify('users','login') => owner).\
+        where(Sequel.qualify('projects','name') => repo).\
+        update(Sequel.qualify('projects','deleted') => true)
+        info("Repo #{owner}/#{repo} marked as deleted")
       end
 
       def update_mysql(owner, repo, retrieved)
 
         parent = unless retrieved['parent'].nil?
                    ght.ensure_repo(retrieved['parent']['owner']['login'],
-                                    retrieved['parent']['name'])
+                                   retrieved['parent']['name'])
                  end
 
-       db.from(:projects, :users).\
-       where(:projects__owner_id => :users__id).\
-       where(:users__login => owner).\
-       where(:projects__name => repo).\
-       update(
-                :projects__url => retrieved['url'],
-                :projects__description => retrieved['description'],
-                :projects__language => retrieved['language'],
-                :projects__created_at => date(retrieved['created_at']),
-                :projects__updated_at => Time.now,
-                :projects__forked_from => unless parent.nil? then parent[:id] end)
-        debug("Repo #{owner}/#{repo} updated")
+        fork_commit = ght.ensure_fork_point(owner, repo)
+
+        unless parent.nil?
+          sql = <<-SQL
+            DELETE project_commits
+            FROM project_commits, projects, users
+            WHERE projects.owner_id = users.id
+             AND project_commits.project_id = projects.id
+             AND users.login = '#{owner}'
+             AND projects.name = '#{repo}';
+          SQL
+          ndel = db[:project_commits].with_sql_delete(sql.gsub("\n",'').strip)
+          debug("Deleted #{ndel} commit from project_commits for #{owner}/#{repo}")
+
+          parent_owner = db[:users].where(:id => parent[:owner_id]).first[:login]
+          ght.ensure_fork_commits(owner, repo, parent_owner, parent[:name])
+        end
+
+        db.from(:projects, :users).\
+        where(Sequel.qualify('projects', 'owner_id') => Sequel.qualify('users','id')).\
+        where(Sequel.qualify('users', 'login') => owner).\
+        where(Sequel.qualify('projects', 'name') => repo).\
+        update(Sequel.qualify('projects', 'url')              => retrieved['url'],
+               Sequel.qualify('projects', 'description')      => retrieved['description'],
+               Sequel.qualify('projects', 'language')         => retrieved['language'],
+               Sequel.qualify('projects', 'created_at')       => date(retrieved['created_at']),
+               Sequel.qualify('projects', 'updated_at')       => Time.now,
+               Sequel.qualify('projects', 'forked_from')      => unless parent.nil? then parent[:id] end,
+               Sequel.qualify('projects', 'forked_commit_id') => unless fork_commit.nil? then fork_commit[:id] end)
+        info("Repo #{owner}/#{repo} updated")
 
         ght.ensure_languages(owner, repo)
+        ght.ensure_topics(owner, repo)
       end
 
       def get_project_mysql(owner, repo)
         db.from(:projects, :users).\
-        where(:projects__owner_id => :users__id).\
-        where(:users__login => owner).\
-        where(:projects__name => repo).first
+        where(Sequel.qualify('projects','owner_id') => Sequel.qualify('users','id')).\
+        where(Sequel.qualify('users','login') => owner).\
+        where(Sequel.qualify('projects','name') => repo).first
       end
 
       def update_mongo(owner, repo, new_repo)
-        r = persister.\
-            get_underlying_connection[:repos].\
-            remove({'owner.login' => owner, 'name' => repo})
-        persister.\
-            get_underlying_connection[:repos].\
-            insert(new_repo)
-        if r['n'] > 0
-          debug("MongoDB entry for repo #{owner}/#{repo} updated (#{r['n']} records removed)")
+        r = persister.del(:repos, {'owner.login' => owner, 'name' => repo})
+        persister.store(:repos, new_repo)
+        if r > 0
+          debug("Persister entry for repo #{owner}/#{repo} updated (#{r} records removed)")
         else
-          debug("Added MongoDB entry for repo #{owner}/#{repo}")
+          debug("Added persister entry for repo #{owner}/#{repo}")
         end
       end
 
       def process_project(owner, name)
         in_mongo = persister.find(:repos, {'owner.login' => owner, 'name' => name })
         on_github = api_request(ghurl ("repos/#{owner}/#{name}"))
+        if on_github.nil?
+          warn "Could not retrieve #{owner}/#{name} from GitHub"
+          return
+        end
 
         ght.transaction do
 

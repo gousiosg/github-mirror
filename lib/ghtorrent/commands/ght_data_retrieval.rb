@@ -35,7 +35,6 @@ If event_id is provided, only this event is processed.
   end
 
   def ght
-    #@gh ||= GHTorrent::Mirror.new(@settings)
     @gh ||= TransactedGHTorrent.new(settings)
     @gh
   end
@@ -49,7 +48,7 @@ If event_id is provided, only this event is processed.
   end
 
   def retrieve_event(evt_id)
-    event = persister.get_underlying_connection[:events].find_one('id' => evt_id)
+    event = persister.find(:events, {'id' => evt_id}).first
     event.delete '_id'
     data = JSON.parse(event.to_json)
     debug "Processing event: #{data['type']}-#{data['id']}"
@@ -64,7 +63,9 @@ If event_id is provided, only this event is processed.
       if event.nil?
         warn "No event with id: #{ARGV[0]}"
       else
+        start = Time.now
         send(event['type'], event)
+        info "Success processing event. Type: #{event['type']}, ID: #{event['id']}, Time: #{Time.now.to_ms - start.to_ms} ms"
       end
       return
     end
@@ -89,7 +90,7 @@ If event_id is provided, only this event is processed.
 
       info "Binding handler #{h} to routing key evt.#{h}"
 
-      queue.subscribe(:ack => true) do |headers, properties, msg|
+      queue.subscribe(:manual_ack => true) do |headers, properties, msg|
         start = Time.now
         begin
           data = retrieve_event(msg)

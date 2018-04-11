@@ -11,7 +11,7 @@ Sequel.migration do
       foreign_key :repo_id, :projects
       foreign_key :reporter_id, :users, :null => true
       foreign_key :assignee_id, :users, :null => true
-      Long :issue_id, :null =>  false
+      Integer :issue_id, :null =>  false
       TrueClass :pull_request, :null => false
       foreign_key :pull_request_id, :pull_requests, :null => true
       DateTime :created_at, :null => false, :default=>Sequel::CURRENT_TIMESTAMP
@@ -27,7 +27,6 @@ Sequel.migration do
       String :action_specific, :null => true, :size => 50
       DateTime :created_at, :null => false, :default=>Sequel::CURRENT_TIMESTAMP
       String :ext_ref_id, :null => false, :size => 24, :default => "0"
-      check(:action=>%w[closed reopened subscribed merged referenced mentioned assigned])
       primary_key [:event_id, :issue_id], :name=>:issue_events_pk
     end
 
@@ -35,7 +34,7 @@ Sequel.migration do
     create_table :issue_comments do
       foreign_key :issue_id, :issues, :null => false
       foreign_key :user_id, :users, :null => false
-      Long :comment_id, :null =>  false
+      Integer :comment_id, :null =>  false
       DateTime :created_at, :null => false, :default=>Sequel::CURRENT_TIMESTAMP
       String :ext_ref_id, :null => false, :size => 24, :default => "0"
     end

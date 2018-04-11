@@ -47,7 +47,6 @@ in the provided project.
   def go
 
     filter = if ARGV.size == 2
-               self.settings = override_config(settings, :mirror_history_pages_back, -1)
                user_entry = ght.transaction { ght.ensure_user(ARGV[0], false, false) }
 
                if user_entry.nil?
@@ -64,7 +63,7 @@ in the provided project.
                {}
              end
 
-    col = persister.get_underlying_connection.collection(:pull_requests.to_s)
+    col = persister.get_underlying_connection[:pull_requests]
     col.find(filter, {:timeout => false}) do |cursor|
       cursor.each do |pr|
         @owner = pr['base']['repo']['owner']['login']
@@ -85,7 +84,7 @@ in the provided project.
   end
 
   def db
-    @db ||= ght.get_db
+    @db ||= ght.db
     @db
   end
 

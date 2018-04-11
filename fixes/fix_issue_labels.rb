@@ -21,7 +21,7 @@ class GHTFixIssueLabels < GHTorrent::Command
 
   def go
     @ght ||= GHTorrent::Mirror.new(settings)
-    col = persister.get_underlying_connection.collection(:issues.to_s)
+    col = persister.get_underlying_connection[:issues]
 
     #repos = @ght.get_db.from(:projects, :users)\
     #                   .where(:projects__owner_id => :users__id)\
@@ -34,7 +34,7 @@ class GHTFixIssueLabels < GHTorrent::Command
     #    logger.debug "Could not get labels for repo #{repo[:login]}/#{repo[:name]}"
     #  end
     #end
-    @ght.get_db
+    @ght.db
     issues = lbls = 0
     col.find({'labels' => {'$ne' => '[]'}}, {:timeout => false}) do |cursor|
       cursor.each do |issue|

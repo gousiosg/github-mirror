@@ -35,7 +35,7 @@ class UpdatePullRequestHistoryEvents
   def run(command)
     processor = Proc.new do |event_id|
       @ght ||= GHTorrent::Mirror.new(settings)
-      @ght.get_db
+      @ght.db
 
       pr = persister.find(:events, {'id' => event_id})[0]
 
@@ -46,7 +46,7 @@ class UpdatePullRequestHistoryEvents
       actor = pr['actor']['login']
       created_at = @ght.date(pr['created_at'])
 
-      pullreq_entry = @ght.get_db.from(:pull_requests, :projects, :users)\
+      pullreq_entry = @ght.db.from(:pull_requests, :projects, :users)\
                    .where(:users__id => :projects__owner_id)\
                    .where(:projects__id => :pull_requests__base_repo_id)\
                    .where(:users__login => owner)\

@@ -34,7 +34,7 @@ Fixes issues with multiple commits in pull requests
 
   def go
 
-    col = persister.get_underlying_connection.collection(:pull_requests.to_s)
+    col = persister.get_underlying_connection[:pull_requests]
 
     add = rm = proc = failed = 0
     col.find({}, {:timeout => false}) do |cursor|
@@ -62,7 +62,7 @@ Fixes issues with multiple commits in pull requests
   end
 
   def db
-    @db ||= ght.get_db
+    @db ||= ght.db
     @db
   end
 

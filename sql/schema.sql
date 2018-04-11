@@ -15,10 +15,7 @@ DROP TABLE IF EXISTS `ghtorrent`.`users` ;
 CREATE TABLE IF NOT EXISTS `ghtorrent`.`users` (
   `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '',
   `login` VARCHAR(255) NOT NULL COMMENT '',
-  `name` VARCHAR(255) NULL DEFAULT NULL COMMENT '',
   `company` VARCHAR(255) NULL DEFAULT NULL COMMENT '',
-  `location` VARCHAR(255) NULL DEFAULT NULL COMMENT '',
-  `email` VARCHAR(255) NULL DEFAULT NULL COMMENT '',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
   `type` VARCHAR(255) NOT NULL DEFAULT 'USR' COMMENT '',
   `fake` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
@@ -28,6 +25,7 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`users` (
   `country_code` CHAR(3) COMMENT '',
   `state` VARCHAR(255) COMMENT '',
   `city` VARCHAR(255) COMMENT '',
+  `location` VARCHAR(255) NULL DEFAULT NULL COMMENT '',
   PRIMARY KEY (`id`)  COMMENT '')
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
@@ -307,10 +305,10 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_commits` (
   `commit_id` INT(11) NOT NULL DEFAULT '0' COMMENT '',
   CONSTRAINT `project_commits_ibfk_1`
     FOREIGN KEY (`project_id`)
-    REFERENCES `ghtorrent16_2`.`projects` (`id`),
+    REFERENCES `ghtorrent`.`projects` (`id`),
   CONSTRAINT `project_commits_ibfk_2`
     FOREIGN KEY (`commit_id`)
-    REFERENCES `ghtorrent16_2`.`commits` (`id`))
+    REFERENCES `ghtorrent`.`commits` (`id`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
 
@@ -345,6 +343,23 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_languages` (
   `bytes` INT(11) COMMENT '',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
   CONSTRAINT `project_languages_ibfk_1`
+    FOREIGN KEY (`project_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
+
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`project_topics`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`project_topics` ;
+
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_topics` (
+  `project_id` INT(11) NOT NULL COMMENT '',
+  `topic_name` VARCHAR(255) COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  `deleted` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
+  PRIMARY KEY (`project_id`, `topic_name`)  COMMENT '',
+  CONSTRAINT `project_topics_ibfk_1`
     FOREIGN KEY (`project_id`)
     REFERENCES `ghtorrent`.`projects` (`id`))
 ENGINE = InnoDB
@@ -462,4 +477,3 @@ DEFAULT CHARACTER SET = utf8;
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
-

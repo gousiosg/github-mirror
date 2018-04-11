@@ -43,9 +43,9 @@ class TransactedGHTorrent < GHTorrent::Mirror
     end
   end
 
-  def ensure_pullreq_comment(owner, repo, pullreq_id, comment_id)
+  def ensure_pullreq_comment(owner, repo, pullreq_id, comment_id, pr_obj = nil)
     check_transaction do
-      super(owner, repo, pullreq_id, comment_id)
+      super(owner, repo, pullreq_id, comment_id, pr_obj)
     end
   end
 
@@ -73,11 +73,6 @@ class TransactedGHTorrent < GHTorrent::Mirror
     end
   end
 
-  def ensure_project_member(owner, repo, new_member, date_added)
-    check_transaction do
-      super(owner, repo, new_member, date_added)
-    end
-  end
 
   def ensure_watcher(owner, repo, watcher, date_added = nil)
     check_transaction do
@@ -109,8 +104,14 @@ class TransactedGHTorrent < GHTorrent::Mirror
     end
   end
 
+  def ensure_topics(owner, repo)
+    check_transaction do
+      super(owner, repo)
+    end
+  end
+
   def check_transaction(&block)
-    if get_db.in_transaction?
+    if db.in_transaction?
       yield block
     else
       transaction do

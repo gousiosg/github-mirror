@@ -24,7 +24,7 @@ module GHTorrent
         url = ghurl "users/#{user}"
         u = api_request(url)
 
-        if u.empty?
+        if u.nil? or u.empty?
           return
         end
 
@@ -46,7 +46,7 @@ module GHTorrent
       url = ghurl("legacy/user/email/#{CGI.escape(email)}")
       byemail = api_request(url)
 
-      if byemail.empty?
+      if byemail.nil? or byemail.empty?
         # Only search by name if name param looks like a proper name
         byname = if not name.nil? and name.split(/ /).size > 1
                   url = ghurl("legacy/user/search/#{CGI.escape(name)}")
@@ -153,6 +153,29 @@ module GHTorrent
       persister.find(:followers, {'login' => user})
     end
 
+    def retrieve_pull_request_commit(pr_obj, repo, sha, user)
+      pull_commit = persister.find(:pull_request_commits, {'sha' => "#{sha}"})
+
+      if pull_commit.empty?
+        commit = retrieve_commit(repo, sha, user)
+
+        unless commit.nil?
+          commit.delete(nil)
+          commit.delete(:_id)
+          commit.delete('_id')
+          commit['pull_request_id'] = pr_obj[:id]
+          persister.store(:pull_request_commits, commit)
+          info "Added commit #{user}/#{repo} -> #{sha} with pull_id #{pr_obj['id']}"
+          commit
+        else
+          return
+        end
+      else
+        debug "Pull request commit #{user}/#{repo} -> #{sha} exists for pull id #{pr_obj['id']}"
+        pull_commit.first
+      end
+    end
+
     # Retrieve a single commit from a repo
     def retrieve_commit(repo, sha, user)
       commit = persister.find(:commits, {'sha' => "#{sha}"})
@@ -161,11 +184,15 @@ module GHTorrent
         url = ghurl "repos/#{user}/#{repo}/commits/#{sha}"
         c = api_request(url)
 
-        if c.empty?
+        if c.nil? or c.empty?
           return
         end
 
-        unq = persister.store(:commits, c)
+        # commit patches are big and not always interesting
+        if config(:commit_handling) == 'trim'
+          c['files'].each { |file| file.delete('patch') }
+        end
+        persister.store(:commits, c)
         info "Added commit #{user}/#{repo} -> #{sha}"
         c
       else
@@ -187,22 +214,26 @@ module GHTorrent
 
       commits.map do |c|
         retrieve_commit(repo, c['sha'], user)
-      end
+      end.select{|x| not x.nil?}
     end
 
-    def retrieve_repo(user, repo)
+    def retrieve_repo(user, repo, refresh = false)
       stored_repo = persister.find(:repos, {'owner.login' => user,
                                              'name' => repo })
-      if stored_repo.empty?
+      if stored_repo.empty? or refresh
         url = ghurl "repos/#{user}/#{repo}"
         r = api_request(url)
 
-        if r.empty?
+        if r.nil? or r.empty?
           return
         end
 
-        unq = persister.store(:repos, r)
-        info "Added repo #{user} -> #{repo}"
+        if refresh
+          persister.upsert(:repos, {'name' => r['name'], 'owner.login' => r['owner']['login']}, r)
+        else
+          persister.store(:repos, r)
+          info "Added repo #{user} -> #{repo}"
+        end
         r
       else
         debug "Repo #{user} -> #{repo} exists"
@@ -270,7 +301,7 @@ module GHTorrent
       if comment.nil?
         r = api_request(ghurl "repos/#{owner}/#{repo}/comments/#{id}")
 
-        if r.empty?
+        if r.nil? or r.empty?
           warn "Could not find commit_comment #{id}. Deleted?"
           return
         end
@@ -282,22 +313,6 @@ module GHTorrent
         debug "Commit comment #{comment['commit_id']} -> #{comment['id']} exists"
         comment
       end
-    end
-
-    # Retrieve all collaborators for a repository
-    def retrieve_repo_collaborators(user, repo)
-      repo_bound_items(user, repo, :repo_collaborators,
-                       ["repos/#{user}/#{repo}/collaborators"],
-                       {'repo' => repo, 'owner' => user},
-                       'login', item = nil, refresh = false, order = :asc)
-    end
-
-    # Retrieve a single repository collaborator
-    def retrieve_repo_collaborator(user, repo, new_member)
-      repo_bound_item(user, repo, new_member, :repo_collaborators,
-                      ["repos/#{user}/#{repo}/collaborators"],
-                      {'repo' => repo, 'owner' => user},
-                      'login')
     end
 
     # Retrieve all watchers for a repository
@@ -391,7 +406,7 @@ module GHTorrent
       if comment.nil?
         r = api_request(ghurl "repos/#{owner}/#{repo}/pulls/comments/#{comment_id}")
 
-        if r.empty?
+        if r.nil? or r.empty?
           warn "Could not find pullreq_comment #{owner}/#{repo} #{pullreq_id}->#{comment_id}. Deleted?"
           return
         end
@@ -459,7 +474,7 @@ module GHTorrent
       if event.nil?
         r = api_request(ghurl "repos/#{owner}/#{repo}/issues/events/#{event_id}")
 
-        if r.empty?
+        if r.nil? or r.empty?
           warn "Could not find issue_event #{owner}/#{repo} #{issue_id}->#{event_id}. Deleted?"
           return
         end
@@ -509,7 +524,7 @@ module GHTorrent
       if comment.nil?
         r = api_request(ghurl "repos/#{owner}/#{repo}/issues/comments/#{comment_id}")
 
-        if r.empty?
+        if r.nil? or r.empty?
           warn "Could not find issue_comment #{owner}/#{repo} #{issue_id}->#{comment_id}. Deleted?"
           return
         end
@@ -548,6 +563,41 @@ module GHTorrent
       paged_api_request(url)
     end
 
+    def retrieve_topics(owner, repo)
+      # volatile: currently available with api preview
+      # https://developer.github.com/v3/repos/#list-all-topics-for-a-repository
+      stored_topics = persister.find(:topics, {'owner' => owner, 'repo' => repo })
+
+      url = ghurl("repos/#{owner}/#{repo}/topics")
+      r = api_request(url, media_type = "application/vnd.github.mercy-preview+json")
+
+      if r.nil? or r.empty? or r['names'].nil? or r['names'].empty?
+        warn "No topics for #{owner}/#{repo}"
+        return []
+      end
+
+      topics = r['names']
+      if topics.nil? or topics.empty?
+        return []
+      end
+
+      topics.each do |topic|
+        if stored_topics.select{|x| x['topic'] == topic}.empty?
+          topic_entry = {
+            :owner => owner,
+            :repo  => repo,
+            :topic => topic
+          }
+          persister.store(:topics, topic_entry)
+          info "Added topic #{topic} -> #{owner}/#{repo}"
+        else
+          debug "Topic #{topic} -> #{owner}/#{repo} exists"
+        end
+      end
+
+      r['names']
+    end
+
     # Get current Github events
     def get_events
       api_request "https://api.github.com/events"
@@ -577,6 +627,33 @@ module GHTorrent
       persister.find(:events, {'id' => id})
     end
 
+    # Retrieve diff between two branches. If either branch name is not provided
+    # the branch name is resolved to the corresponding default branch
+    def retrieve_master_branch_diff(owner, repo, branch, parent_owner, parent_repo, parent_branch)
+      branch   = retrieve_default_branch(owner, repo) if branch.nil?
+      parent_branch = retrieve_default_branch(parent_owner, parent_repo) if parent_branch.nil?
+      return nil if branch.nil? or parent_branch.nil?
+
+      cmp_url = "https://api.github.com/repos/#{parent_owner}/#{parent_repo}/compare/#{parent_branch}...#{owner}:#{branch}"
+      api_request(cmp_url)
+    end
+
+    # Retrieve the default branch for a repo. If nothing is retrieved, 'master' is returned
+    def retrieve_default_branch(owner, repo, refresh = false)
+      retrieved = retrieve_repo(owner, repo, refresh)
+      return nil if retrieved.nil?
+
+      master_branch = 'master'
+      if retrieved['default_branch'].nil?
+        # The currently stored repo entry has been created before the
+        # default_branch field was added to the schema
+        retrieved = retrieve_repo(owner, repo, true)
+        return nil if retrieved.nil?
+      end
+      master_branch = retrieved['default_branch'] unless retrieved.nil?
+      master_branch
+    end
+
     private
 
     def restricted_page_request(url, pages)
@@ -588,7 +665,7 @@ module GHTorrent
     end
 
     def repo_bound_items(user, repo, entity, urls, selector, discriminator,
-        item_id = nil, refresh = false, order = :asc)
+        item_id = nil, refresh = false, order = :asc, media_type = '')
 
        urls.each do |url|
         total_pages = num_pages(ghurl url)
@@ -600,7 +677,8 @@ module GHTorrent
                      end
 
         page_range.each do |page|
-          items = api_request(ghurl(url, page))
+          items = api_request(ghurl(url, page), media_type)
+          break if items.nil?
 
           items.each do |x|
             x['repo'] = repo
@@ -611,7 +689,8 @@ module GHTorrent
             exists = !instances.empty?
 
             unless exists
-              x = api_request(x['url'])
+              x = api_request(x['url'], media_type)
+              break if x.nil?
               x['repo'] = repo
               x['owner'] = user
               persister.store(entity, x)
@@ -627,8 +706,7 @@ module GHTorrent
                        end
 
                   instance_selector = selector.merge({discriminator => id})
-                  persister.del(entity, instance_selector)
-                  persister.store(entity, x)
+                  persister.upsert(entity, instance_selector, x)
                   debug "Refreshing #{entity} #{user}/#{repo} -> #{x[discriminator]}"
                 end
               else
@@ -660,12 +738,12 @@ module GHTorrent
     end
 
     def repo_bound_item(user, repo, item_id, entity, url, selector,
-                        discriminator, order = :asc)
+                        discriminator, order = :asc, media_type = '')
       stored_item = repo_bound_instance(entity, selector, discriminator, item_id)
 
       r = if stored_item.empty?
             repo_bound_items(user, repo, entity, url, selector, discriminator,
-                             item_id, false, order).first
+                             item_id, false, order, media_type).first
           else
             stored_item.first
           end

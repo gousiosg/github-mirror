@@ -15,12 +15,6 @@ module GHTorrent
     include GHTorrent::Settings
     include GHTorrent::Logging
 
-    # This is to fix an annoying bug in JRuby's SSL not being able to
-    # verify a valid certificate.
-    if defined? JRUBY_VERSION
-      OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
-    end
-
     # A paged request. Used when the result can expand to more than one
     # result pages.
     def paged_api_request(url, pages = config(:mirror_history_pages_back),
@@ -54,9 +48,9 @@ module GHTorrent
 
 
     # A normal request. Returns a hash or an array of hashes representing the
-    # parsed JSON result.
-    def api_request(url)
-      parse_request_result api_request_raw(ensure_max_per_page(url))
+    # parsed JSON result. The media type
+    def api_request(url, media_type = '')
+      parse_request_result api_request_raw(ensure_max_per_page(url), media_type)
     end
 
     # Determine the number of pages contained in a multi-page API response
@@ -120,60 +114,78 @@ module GHTorrent
       end
     end
 
+    def fmt_token(token)
+      if token.nil? or token.empty?
+        '<empty-token>'
+      else
+        token[0..10]
+      end
+    end
+
     def request_error_msg(url, exception)
-      <<-MSG
+      msg = <<-MSG
             Failed request. URL: #{url}, Status code: #{exception.io.status[0]},
             Status: #{exception.io.status[1]},
-            Access: #{if (@token.nil? or @token.empty?) then @username else @token end},
+            Access: #{fmt_token(@token)},
             IP: #{@attach_ip}, Remaining: #{@remaining}
       MSG
+      msg.strip.gsub(/\s+/, ' ').gsub("\n", ' ')
     end
 
     def error_msg(url, exception)
-      <<-MSG
+      msg = <<-MSG
             Failed request. URL: #{url}, Exception: #{exception.message},
-            Access: #{if (@token.nil? or @token.empty?) then @username else @token end},
+            Access: #{fmt_token(@token)},
             IP: #{@attach_ip}, Remaining: #{@remaining}
       MSG
+      msg.strip.gsub(/\s+/, ' ').gsub("\n", ' ')
     end
 
     # Do the actual request and return the result object
-    def api_request_raw(url)
+    def api_request_raw(url, media_type = '')
 
       begin
         start_time = Time.now
 
-        contents = do_request(url)
+        contents = do_request(url, media_type)
         total = Time.now.to_ms - start_time.to_ms
         info "Successful request. URL: #{url}, Remaining: #{@remaining}, Total: #{total} ms"
 
         contents
       rescue OpenURI::HTTPError => e
-          @remaining = e.io.meta['x-ratelimit-remaining'].to_i
-          @reset = e.io.meta['x-ratelimit-reset'].to_i
+        @remaining = e.io.meta['x-ratelimit-remaining'].to_i
+        @reset = e.io.meta['x-ratelimit-reset'].to_i
 
-          case e.io.status[0].to_i
+        case e.io.status[0].to_i
           # The following indicate valid Github return codes
           when 400, # Bad request
-              401, # Unauthorized
               403, # Forbidden
               404, # Not found
+              409, # Conflict -- returned on gets of empty repos
               422 then # Unprocessable entity
-            total = Time.now.to_ms - start_time.to_ms
-            warn request_error_msg(url, e).strip.gsub(/\s+/,' ').gsub("\n", ' ')
-           return nil
+            warn request_error_msg(url, e)
+            return nil
+          when 401 # Unauthorized
+            warn request_error_msg(url, e)
+            warn "Unauthorised request with token: #{@token}"
+            raise e
+          when 451 # DCMA takedown
+            warn request_error_msg(url, e)
+            warn "Repo was taken down (DCMA)"
+            return nil
           else # Server error or HTTP conditions that Github does not report
-            warn request_error_msg(url, e).strip.gsub(/\s+/,' ').gsub("\n", ' ')
+            warn request_error_msg(url, e)
             raise e
         end
       rescue StandardError => e
-        warn error_msg(url, e).strip.gsub(/\s+/,' ').gsub("\n", ' ')
+        warn error_msg(url, e)
         raise e
       ensure
         # The exact limit is only enforced upon the first @reset
-        if 5000 - @remaining >= @req_limit
+        # No idea how many requests are available on this key. Sleep if we have run out
+        if @remaining < @req_limit
           to_sleep = @reset - Time.now.to_i + 2
-          debug "Request limit reached, sleeping for #{to_sleep} secs"
+          warn "Request limit reached, reset in: #{to_sleep} secs"
           t = Thread.new do
             slept = 0
             while true do
@@ -182,46 +194,37 @@ module GHTorrent
               slept += 1
             end
           end
-          sleep(to_sleep)
+          sleep([0, to_sleep].max)
           t.exit
         end
       end
     end
 
-    def auth_method(username, token)
-      if token.nil? or token.empty?
-        if username.nil? or username.empty?
-          :none
-        else
-          :username
-        end
-      else
-        :token
-      end
+    def auth_method(token)
+      return :token unless token.nil? or token.empty?
+      return :none
     end
 
-    def do_request(url)
+    def do_request(url, media_type)
       @attach_ip  ||= config(:attach_ip)
       @token      ||= config(:github_token)
-      @username   ||= config(:github_username)
-      @passwd     ||= config(:github_passwd)
       @user_agent ||= config(:user_agent)
       @remaining  ||= 5000
       @reset      ||= Time.now.to_i + 3600
-      @auth_type  ||= auth_method(@username, @token)
+      @auth_type  ||= auth_method(@token)
       @req_limit  ||= config(:req_limit)
+      media_type = 'application/json' unless media_type.size > 0
 
       open_func ||=
           case @auth_type
             when :none
-              lambda {|url| open(url, 'User-Agent' => @user_agent)}
-            when :username
               lambda {|url| open(url, 'User-Agent' => @user_agent,
-                                 :http_basic_authentication => [@username, @passwd])}
+                                      'Accept' => media_type)}
             when :token
               # As per: https://developer.github.com/v3/auth/#via-oauth-tokens
               lambda {|url| open(url, 'User-Agent' => @user_agent,
-                                 'Authorization' => "token #{@token}") }
+                                      'Authorization' => "token #{@token}",
+                                      'Accept' => media_type)}
           end
 
       result = if @attach_ip.nil? or @attach_ip.eql? '0.0.0.0'
@@ -243,14 +246,14 @@ module GHTorrent
           alias_method :original_open, :open
 
           case RUBY_VERSION
-          when /1.9/
-            define_method(:open) do |conn_address, conn_port|
-              original_open(conn_address, conn_port, ip)
-            end
-          when /2.0/
-            define_method(:open) do |conn_address, conn_port, local_host, local_port|
-              original_open(conn_address, conn_port, ip, local_port)
-            end
+            when /1.8/, /1.9/
+              define_method(:open) do |conn_address, conn_port|
+                original_open(conn_address, conn_port, ip)
+              end
+            else
+              define_method(:open) do |conn_address, conn_port, local_host, local_port|
+                original_open(conn_address, conn_port, ip, local_port)
+              end
           end
         end
       end

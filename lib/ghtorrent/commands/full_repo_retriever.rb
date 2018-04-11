@@ -10,8 +10,8 @@ module GHTorrent
       include GHTorrent::EventProcessing
 
       def stages
-        %w(ensure_commits ensure_forks ensure_pull_requests
-       ensure_issues ensure_watchers ensure_labels ensure_languages) #ensure_project_members
+        %w(ensure_commits ensure_topics ensure_languages ensure_pull_requests
+         ensure_issues ensure_watchers ensure_labels ensure_forks)
       end
 
       def settings
@@ -32,11 +32,10 @@ module GHTorrent
       end
 
       def supported_options(options)
-        options.opt :force, 'Force update even if an update was done very recently', :default => false
         options.opt :no_events, 'Skip retrieving events', :default => false
         options.opt :no_entities, 'Skip retrieving entities', :default => false
 
-        options.opt :only_stage, "Only do the provided stage of entity retrieval (one of: #{stages.join(',')})",
+        options.opt :only_stage, "Only do the provided stage of entity retrieval (one of: #{stages.join(', ')})",
                     :type => String
         options.opt :exclude_events, 'Comma separated list of event types to exclude from processing',
                     :type => String
@@ -60,53 +59,46 @@ module GHTorrent
       end
 
       def retrieve_full_repo(owner, repo)
-        self.settings = override_config(settings, :mirror_history_pages_back, 1000)
-        user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
+        start_time = Time.now
+        info "Start fetching: #{owner}/#{repo}"
 
+        user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
         if user_entry.nil?
-          warn "Cannot find user #{owner}"
+          warn "Skip: #{owner}/#{repo}. Owner: #{owner} not found"
           return
         end
 
         user = user_entry[:login]
+        repo_entry = ght.transaction{ght.ensure_repo(owner, repo)}
 
-        # Run this in serializable isolation to ensure that projects
-        # are updated or inserted just once. If serialization fails,
-        # it means that another transaction added/updated the repo.
-        # Just re-running the block should lead to the project being
-        # rejected from further processing due to an updated updated_at field
-        ght.get_db.transaction(:isolation => :serializable,
-                               :retry_on=>[Sequel::SerializationFailure]) do
-          repo_entry = ght.ensure_repo(owner, repo)
-
-          if repo_entry.nil?
-            warn "Cannot find repository #{owner}/#{repo}"
-            return
-          end
-
-          # last update was done too recently (less than 10 days), ignore
-          if not repo_entry[:updated_at].nil? and repo_entry[:updated_at] > Time.now - 10 * 24 * 60 * 60 and not options[:force_given]
-            warn "Last update too recent (#{Time.at(repo_entry[:updated_at])}) for #{owner}/#{repo}"
-            return
-          end
-
-          ght.get_db.from(:projects).where(:id => repo_entry[:id]).update(:updated_at => Time.now)
+        if repo_entry.nil?
+          warn "Skip: #{owner}/#{repo}. Repo: #{repo} not found"
+          return
         end
 
+        # Update project details
+        stage = nil
         unless options[:no_entities_given]
           begin
             if options[:only_stage].nil?
-              stages.each do |x|
+              ght.stages.each do |x|
+                stage_time = Time.now
                 stage = x
                 ght.send(x, user, repo)
+                info "Stage: #{stage} completed, Repo: #{owner}/#{repo}, Time: #{Time.now.to_ms - stage_time.to_ms} ms"
               end
+
+              ght.db.from(:projects).where(:id => repo_entry[:id]).update(:updated_at => Time.now)
             else
+              stage_time = Time.now
               stage = options[:only_stage]
               ght.send(options[:only_stage], user, repo)
+              info "Stage: #{stage} completed, Repo: #{owner}/#{repo}, Time: #{Time.now.to_ms - stage_time.to_ms} ms"
             end
           rescue StandardError => e
-            warn("Error processing #{stage} for #{owner}/#{repo}: #{$!}")
-            warn("Exception trace #{e.backtrace.join("\n")}")
+            error("Error in stage: #{stage}, Repo: #{owner}/#{repo}, Message: #{$!}")
+            puts e.backtrace
+            return
           end
         end
 
@@ -120,12 +112,13 @@ module GHTorrent
               next if options[:events_before_given] and event['id'].to_i >= options[:events_before]
 
               send(event['type'], event)
-              puts "Processed event #{event['type']}-#{event['id']}"
+              info "Success processing event. Type: #{event['type']}, ID: #{event['id']}"
             rescue StandardError => e
-              puts "Could not process event #{event['type']}-#{event['id']}: #{e.message}"
+              warn "Error processing event. Type: #{event['type']}, ID: #{event['id']}"
             end
           end
         end
+        info "Done fetching: #{owner}/#{repo}, Time: #{Time.now.to_ms - start_time.to_ms} ms"
       end
     end
   end

@@ -34,19 +34,14 @@ class MultiprocessQueueClient < GHTorrent::Command
 
   def prepare_options(options)
     options.banner <<-BANNER
-Retrieve data for multiple repos in parallel. To work, it requires
-a mapping file formatted as either of the follow formats:
+Retrieve data for multiple item in parallel. To work, it requires
+a mapping file formatted as follows:
 
-U IP UNAME PASSWD NUM_PROCS
-T IP TOKEN NUM_PROCS
+TOKEN NUM_PROCS LIMIT
 
-{U,T}: U signifies that a username/password pair is provided, T that an OAuth
-       token is specified instead
-IP: address to use for outgoing requests (use 0.0.0.0 on non-multihomed hosts)
-UNAME: Github user name to use for outgoing requests
-PASSWD: Github password to use for outgoing requests
-TOKEN: Github OAuth token
-NUM_PROCS: Number of processes to spawn for this IP/UNAME combination
+TOKEN: A GitHub OAuth token
+NUM_PROCS: Number of processes to spawn for this TOKEN
+LIMIT: Restrict number of requests/hr for this token
 
 Values in the config.yaml file set with the -c command are overridden.
 
@@ -56,6 +51,8 @@ Values in the config.yaml file set with the -c command are overridden.
     options.opt :queue, 'Queue to retrieve project names from',
                 :short => 'q', :default => 'multiprocess-queue-client',
                 :type => :string
+    options.opt :inproc, 'Whether or not to run in-proc or fork a process',
+                :short => 'i', :default => false
   end
 
   def validate
@@ -67,32 +64,27 @@ Values in the config.yaml file set with the -c command are overridden.
 
     configs = File.open(ARGV[0]).readlines.map do |line|
       next if line =~ /^#/
-      case line.strip.split(/ /)[0]
-        when 'U'
-          type, ip, name, passwd, instances = line.strip.split(/ /)
-        when 'T'
-          type, ip, token, instances = line.strip.split(/ /)
-      end
+      line.strip.split(/ /)[0]
+
+      token, instances, limit = line.strip.split(/ /)
 
       (1..instances.to_i).map do |i|
         newcfg = self.settings.clone
-        newcfg = override_config(newcfg, :attach_ip, ip)
+        newcfg = override_config(newcfg, :github_token, token)
+        newcfg = override_config(newcfg, :req_limit, limit.to_i)
 
-        case type
-          when 'U'
-            newcfg = override_config(newcfg, :github_username, name)
-            newcfg = override_config(newcfg, :github_passwd, passwd)
-          when 'T'
-            newcfg = override_config(newcfg, :github_token, token)
-        end
-
-        newcfg = override_config(newcfg, :mirror_history_pages_back, 100000)
         newcfg
       end
     end.flatten.select { |x| !x.nil? }
 
     children = configs.map do |config|
-      pid = Process::fork
+      if not options[:inproc]
+        begin
+          pid = Process::fork
+        rescue NotImplementedError
+          # Eat the error on Windows and run inline for testing
+        end
+      end
 
       if pid.nil?
         retriever = clazz.new(config, options[:queue], options)

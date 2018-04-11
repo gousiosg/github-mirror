@@ -1,6 +1,12 @@
 module GHTorrent
   module EventProcessing
 
+    include GHTorrent::Retriever
+
+    def persister
+      raise 'Unimplemented'
+    end
+
     def ght
       raise 'Unimplemented'
     end
@@ -16,14 +22,80 @@ module GHTorrent
 
         ght.ensure_commit(url[5], url[7], url[4])
       end
+
+      # Take care of pushes with more than 20 commits
+      # Retrieve commits after the until we find one that is registered with the current repo
+      if data['payload']['commits'].size >= 20
+        info "PushEvent #{data['id']} has >= 20 commits."
+
+        owner        = data['repo']['name'].split(/\//)[0]
+        repo         = data['repo']['name'].split(/\//)[1]
+        last_sha     = data['payload']['commits'].last['url'].split(/\//)[7]
+        push_commits = data['payload']['commits'].map { |x| x['sha'] }
+
+        attempts = 0
+        while true
+          attempts += 1
+          commits = retrieve_commits(repo, last_sha, owner, 1)
+          return if attempts > 1 and commits[0]['sha'] == last_sha
+
+          commits.each do |c|
+            url = c['url'].split(/\//)
+            next if push_commits.include? url[7]
+
+            sha_not_exist = ght.db.from(:commits, :project_commits, :projects, :users).\
+                            where(Sequel.qualify('projects', 'id') => Sequel.qualify('project_commits', 'project_id')).\
+                            where(Sequel.qualify('commits', 'id') => Sequel.qualify('project_commits', 'commit_id')).\
+                            where(Sequel.qualify('projects', 'owner_id') => Sequel.qualify('users', 'id')).\
+                            where(Sequel.qualify('projects', 'name') => url[5]).\
+                            where(Sequel.qualify('users', 'login') => url[4]).\
+                            where(Sequel.qualify('commits', 'sha') => url[7]).all.empty?
+
+            unless sha_not_exist
+              debug "Commit #{url[7]} already registered with #{url[4]}/#{url[5]}."
+              return
+            end
+
+            ght.ensure_commit(url[5], url[7], url[4])
+            last_sha = url[7]
+          end
+        end
+      end
+
     end
 
-    def WatchEvent(data)
-      owner = data['repo']['name'].split(/\//)[0]
-      repo = data['repo']['name'].split(/\//)[1]
-      watcher = data['actor']['login']
-      created_at = data['created_at']
+    def WatchEvent(e)
+      owner      = e['repo']['name'].split(/\//)[0]
+      repo       = e['repo']['name'].split(/\//)[1]
+      watcher    = e['actor']['login']
+      created_at = e['created_at']
 
+      watcher_db = ght.ensure_user(watcher, false, false)
+
+      watcher_entry = {
+          'login'               => watcher,
+          'id'                  => e['actor']['id'],
+          'avatar_url'          => e['actor']['avatar_url'],
+          'gravatar_id'         => e['actor']['gravatar_id'],
+          'url'                 => e['actor']['url'],
+          'html_url'            => "https://github.com/#{watcher}",
+          'followers_url'       => "https://api.github.com/users/#{watcher}/followers",
+          'following_url'       => "https://api.github.com/users/#{watcher}/following{/other_user}",
+          'gists_url'           => "https://api.github.com/users/#{watcher}/gists{/gist_id}",
+          'starred_url'         => "https://api.github.com/users/#{watcher}/starred{/owner}{/repo}",
+          'subscriptions_url'   => "https://api.github.com/users/#{watcher}/subscriptions",
+          'organizations_url'   => "https://api.github.com/users/#{watcher}/orgs",
+          'repos_url'           => "https://api.github.com/users/#{watcher}/repos",
+          'events_url'          => "https://api.github.com/users/#{watcher}/events{/privacy}",
+          'received_events_url' => "https://api.github.com/users/#{watcher}/received_events",
+          'type'                => watcher_db[:type],
+          'site_admin'          => false,
+          'created_at'          => created_at,
+          'owner'               => owner,
+          'repo'                => repo
+      }
+
+      persister.upsert(:watchers, {'owner' => owner, 'repo' => repo, 'login' => watcher}, watcher_entry)
       ght.ensure_watcher(owner, repo, watcher, created_at)
     end
 
@@ -42,7 +114,7 @@ module GHTorrent
       date_added = data['created_at']
 
       ght.transaction do
-        pr_members = ght.get_db[:project_members]
+        pr_members = ght.db[:project_members]
         project = ght.ensure_repo(owner, repo)
         new_user = ght.ensure_user(new_member, false, false)
 
@@ -90,20 +162,32 @@ module GHTorrent
       actor = data['actor']['login']
       created_at = data['created_at']
 
+      pr = data['payload']['pull_request']
+      pr['owner'] = owner
+      pr['repo'] = repo
+
+      persister.upsert(:pull_requests,
+                       {'owner' => owner, 'repo' => repo, 'number' => pullreq_id},
+                       pr)
+
       ght.ensure_pull_request(owner, repo, pullreq_id, true, true, true,
                                     action, actor, created_at)
     end
 
     def ForkEvent(data)
-#      owner = data['repo']['name'].split(/\//)[0]
-#      repo = data['repo']['name'].split(/\//)[1]
-#      fork_id = data['payload']['forkee']['id']
+      owner   = data['repo']['name'].split(/\//)[0]
+      repo    = data['repo']['name'].split(/\//)[1]
+      fork_id = data['payload']['forkee']['id']
 
-#      forkee_owner = data['payload']['forkee']['owner']['login']
-#      forkee_repo = data['payload']['forkee']['name']
+      forkee = data['payload']['forkee']
+      forkee['owner'] = owner
+      forkee['repo'] = repo
 
-#      ght.ensure_fork(owner, repo, fork_id)
-#      ght.ensure_repo_recursive(forkee_owner, forkee_repo, true)
+      persister.upsert(:forks,
+                       {'owner' => owner, 'repo' => repo, 'id' => fork_id},
+                       forkee)
+
+      ght.ensure_fork(owner, repo, fork_id)
     end
 
     def PullRequestReviewCommentEvent(data)
@@ -138,7 +222,7 @@ module GHTorrent
       return unless data['payload']['ref_type'] == 'repository'
 
       ght.ensure_repo(owner, repo)
-      ght.ensure_repo_recursive(owner, repo, false)
+      ght.ensure_repo_recursive(owner, repo)
     end
   end
 end

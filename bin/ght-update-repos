@@ -3,4 +3,4 @@
 require 'rubygems'
 require 'ghtorrent'
 
-GHTMoreCommitsRetriever.run(ARGV)
+GHTUpdateRepos.run(ARGV)

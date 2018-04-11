@@ -47,7 +47,7 @@ class RefreshPullReqHistory
       owner, repo, pull_req = msg.split(/ /)
 
       @ght ||= GHTorrent::Mirror.new(settings)
-      col = persister.get_underlying_connection.collection(:pull_requests.to_s)
+      col = persister.get_underlying_connection[:pull_requests]
 
       retrieved = api_request("https://api.github.com/repos/#{owner}/#{repo}/pulls/#{pull_req}")
 
@@ -60,10 +60,10 @@ class RefreshPullReqHistory
       retrieved['repo'] = repo
       retrieved['number'] = pull_req.to_i
 
-      col.remove({'owner' => owner, 'repo' => repo, 'number' => pull_req.to_i})
-      col.save(retrieved)
+      col.delete_one({'owner' => owner, 'repo' => repo, 'number' => pull_req.to_i})
+      col.insert_one(retrieved)
 
-      @ght.get_db.from(:pull_request_history, :pull_requests, :users, :projects)\
+      @ght.db.from(:pull_request_history, :pull_requests, :users, :projects)\
                  .where(:pull_requests__id => :pull_request_history__pull_request_id)\
                  .where(:users__id => :projects__owner_id)\
                  .where(:projects__id => :pull_requests__base_repo_id)\
