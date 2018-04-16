@@ -31,6 +31,14 @@ Gem::Specification.new do |s|
 
   s.add_development_dependency 'influxdb', '0.3.5'
 
+  s.add_development_dependency "minitest", "~> 4.7.3"
+  s.add_development_dependency 'm', '~> 1.5.0'
+  s.add_development_dependency 'simplecov'
+  s.add_development_dependency 'simplecov-rcov'
+  s.add_development_dependency 'mocha'
+
+
+
   begin
     require 'changelog'
     s.post_install_message = CHANGELOG.new.version_changes

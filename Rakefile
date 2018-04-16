@@ -1,5 +1,15 @@
 require 'rake'
 require 'rdoc/task'
+require 'rake/testtask'
+require 'byebug'
+
+Rake::TestTask.new do |t|
+  t.libs << 'test'
+  t.libs << 'lib/ghtorrent'
+  t.test_files = FileList['test/*_test.rb']
+end
+
+desc "Run tests"
 
 task :default => [:rdoc]
 
