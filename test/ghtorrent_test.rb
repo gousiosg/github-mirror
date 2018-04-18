@@ -1,23 +1,7 @@
 require 'test_helper'
+include FactoryGirl::Syntax::Methods
 
-describe 'GhtRetrieveRepo' do
-  it 'test_it_does_something_useful' do
-    assert true # this will result in a failure
-  end 
-
-  it 'test_load_ght_retrieve_repo' do
-    ght = GHTRetrieveRepo.new
-    err = ->{ ght.go() }.must_raise RuntimeError
-    err.message.must_match /Unimplemented/
-  end
-    
-  it 'test_load_ghtorrent.new()' do
-    ght = GHTRetrieveRepo.new
-    err = -> { ght.validate }.must_raise RuntimeError
-    err.message.must_match /Unimplemented/
-  end
-end
-
+class GhtorrentTest < Minitest::Test
 describe 'ghtorrent::mirror module' do
   before do
     session = 1
@@ -88,10 +72,135 @@ describe 'ghtorrent::mirror module' do
 
    it 'should test the ensure_user method' do
     users = @ght.db[:users]
-    user = users.where(:name => 'matthew').first
-    byebug
-    @ght.ensure_user(user)
+    user = users.where(:login => 'msk999').first
+    returned_user = @ght.ensure_user(user[:login], false, false) 
+    assert returned_user == user
    end
+   
+   it 'ensure_user method should not return a user if given a bad email' do
+    assert @ght.ensure_user('zzz@asldkf.com').nil? 
+   end
+   
+   it 'ensure_user should find correct user if given a name and email' do
+    users = @ght.db[:users]
+    user = users.where(:login => 'msk999').first
+    GHTorrent::Mirror.any_instance.stubs(:ensure_user_byemail).returns(user) 
+    returned_user = @ght.ensure_user("#{user[:login]}<msk999@xyz.com>", false, false) 
+    assert returned_user == user
+   end
+
+   it 'ensure_user should not find a user if given a bad user name only' do
+    returned_user = @ght.ensure_user("~999~$", false, false) 
+    assert returned_user.nil?
+   end
+   
+   it 'should return a user given an email and user' do
+    email = 'matthew.krasnick@gmail.com'
+    returned_user = @ght.ensure_user_byemail(email, 'msk999')
+    assert returned_user[:email] == email
+   end
+
+   it 'should return a user given a bad email and user' do
+    fake_email = 'matthew~1@gmail.com'
+    returned_user = @ght.ensure_user_byemail(fake_email, 'msk999')
+    assert returned_user
+    assert returned_user[:email] == fake_email 
+    assert returned_user[:name] == 'msk999'
+  
+    users = @ght.db[:users]
+    users.where(:email => fake_email).delete 
+   end
+
+   it 'should return a repo given a user and repo' do
+    repo = @ght.ensure_repo('msk999', 'Subscribem')
+    assert repo
+   end
+
+   it 'should not return a repo given a user and bad repo' do
+    repo = @ght.ensure_repo('msk999', 'Subscribem-z')
+    assert repo.nil?
+   end
+   it 'should not return a repo given a bad user' do
+    repo = @ght.ensure_repo('msk999z', 'Subscribem')
+    assert repo.nil?
+   end
+
+   it 'should return a repo given a user and missing repo' do
+    user_id = @ght.ensure_user('msk999', false, false)[:id]
+    repos = @ght.db[:projects]  
+    # change the name of a valid repo so it can't be found
+    repos.where(:owner_id => user_id, :name => 'Subscribem').update(:name => 'Fake_repo')
+    repo = @ght.ensure_repo('msk999', 'Subscribem')
+    assert repo
+   end
+
+   it 'should ensure the repo returns languague info' do
+    langs = @ght.ensure_languages('msk999', 'Subscribem')
+    assert langs
+   end
+
+   it 'should ensure the invalid repo does not return languague info' do
+    langs = @ght.ensure_languages('msk999', 'fake_repo')
+    assert langs.nil?
+   end
+
+   it 'calls ensure_repo_recursive - not sure what this does' do
+      retval = @ght.ensure_repo_recursive('msk999', 'Subscribem')
+      assert retval
+   end
+
+   it 'calls ensure_commit method' do
+     users = @ght.db[:users]
+     user = users.where(:login => 'msk999').first
+     project_id = @ght.db[:projects].where(:owner_id => user[:id]).first[:id]
+     sha = @ght.db[:commits].where(:project_id => project_id).first[:sha]
+     
+     commit = @ght.ensure_commit('Subscribem', sha, 'msk999')
+     assert commit[:sha] == sha
+     assert commit[:project_id] == project_id
+   end
+
+  it ' calls ensure_commits method' do
+    users = @ght.db[:users]
+    user = users.where(:login => 'msk999').first
+    project_id = @ght.db[:projects].where(:owner_id => user[:id]).first[:id]
+    sha = @ght.db[:commits].where(:project_id => project_id).first[:sha]
+    
+    commit = @ght.ensure_commits('msk999', 'Subscribem', sha: sha, return_retrieved: true, fork_all: true)
+    assert commit[0][:sha] == sha
+  end
+
+   it 'should create persist a fake user' do
+      user = create(:user, db_obj: @ght.db) 
+      assert user
+      saved_user = @ght.db[:users].where(id: user.id).first
+      saved_user[:name].must_equal user.name 
+   end
+
+   it 'should not persist a fake user' do
+      user = create(:user) 
+      assert user
+      @ght.db[:users].where(login: user.login).count.must_equal 0
+   end
+   
+   it 'tries to store an invalid commit - need to put this one into transaction' do
+    users = @ght.db[:users]
+    user = users.where(:login => 'msk999').first
+    project_id = @ght.db[:projects].where(:owner_id => user[:id]).first[:id]
+    sha = @ght.db[:commits].where(:project_id => project_id).first[:sha]
+    commit = @ght.db[:commits].where(:sha => '10').first 
+    commit = @ght.retrieve_commit('Subscribem', sha, 'msk999')
+
+    # make commit sha invalid
+    commit['sha'] = '10'
+    retval = @ght.store_commit(commit, 'subscribem', 'msk999')
+    assert retval
+   end
+
+   it 'calls ensure_user_follower method' do
+    retval = @ght.ensure_user_follower('msk999', 'msk999')
+   end
+  end
 
   # it 'should run if arguments are given' do
   #   ARGV[0] = 'msk999'

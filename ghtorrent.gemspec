@@ -36,8 +36,8 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'simplecov'
   s.add_development_dependency 'simplecov-rcov'
   s.add_development_dependency 'mocha'
-
-
+  s.add_development_dependency 'factory_girl'
+  s.add_development_dependency 'faker'
 
   begin
     require 'changelog'
