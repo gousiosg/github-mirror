@@ -1,7 +1,6 @@
-
 FactoryGirl.define do
     
-    factory :user, :class => OpenStruct   do
+    factory :user, :class => OpenStruct do
       skip_create
         id nil
         login Faker::Internet.user_name
@@ -19,12 +18,14 @@ FactoryGirl.define do
         created_at DateTime.now
 
         transient do
-            db_obj nil
+          name_email nil 
+          db_obj nil
         end
 
       after(:create) do | user, evaluator |
+        user.name_email = "#{user.name}<#{user.email}>" 
         user.db_obj = evaluator.db_obj 
-        hashed = build(:user).to_h
+        hashed = attributes_for(:user).to_h
         user.id = user.db_obj[:users].insert(hashed) if user.db_obj
       end
     end

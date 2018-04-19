@@ -44,7 +44,6 @@ require 'ghtorrent/command'
 require 'ghtorrent/adapters/base_adapter'
 require 'ghtorrent/adapters/mongo_persister'
 require 'ghtorrent/adapters/noop_persister'
-require 'ghtorrent/adapters/csv_persister'
 
 # Support for retrieving and saving intermediate results
 require 'ghtorrent/persister'

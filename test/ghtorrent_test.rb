@@ -71,22 +71,21 @@ describe 'ghtorrent::mirror module' do
    end
 
    it 'should test the ensure_user method' do
-    users = @ght.db[:users]
-    user = users.where(:login => 'msk999').first
+    user = create(:user, db_obj: @ght.db)
     returned_user = @ght.ensure_user(user[:login], false, false) 
-    assert returned_user == user
+    assert returned_user[:id] == user[:id]
    end
    
    it 'ensure_user method should not return a user if given a bad email' do
-    assert @ght.ensure_user('zzz@asldkf.com').nil? 
+    user = create(:user) # create a bad email by not saving new user
+    assert @ght.ensure_user(user.email).nil? 
    end
    
    it 'ensure_user should find correct user if given a name and email' do
-    users = @ght.db[:users]
-    user = users.where(:login => 'msk999').first
+    user = create(:user, db_obj: @ght.db)
     GHTorrent::Mirror.any_instance.stubs(:ensure_user_byemail).returns(user) 
     returned_user = @ght.ensure_user("#{user[:login]}<msk999@xyz.com>", false, false) 
-    assert returned_user == user
+    assert returned_user[:id] == user[:id]
    end
 
    it 'ensure_user should not find a user if given a bad user name only' do
@@ -95,24 +94,31 @@ describe 'ghtorrent::mirror module' do
    end
    
    it 'should return a user given an email and user' do
-    email = 'matthew.krasnick@gmail.com'
-    returned_user = @ght.ensure_user_byemail(email, 'msk999')
+    user = create(:user, db_obj: @ght.db)
+    email = user.email
+    returned_user = @ght.ensure_user_byemail(email, user.login)
     assert returned_user[:email] == email
    end
 
-   it 'should return a user given a bad email and user' do
+   it 'should return a user given a bad email and valid user' do
+    user = create(:user, db_obj: @ght.db)
     fake_email = 'matthew~1@gmail.com'
-    returned_user = @ght.ensure_user_byemail(fake_email, 'msk999')
+    returned_user = @ght.ensure_user_byemail(fake_email, user.name)
     assert returned_user
     assert returned_user[:email] == fake_email 
-    assert returned_user[:name] == 'msk999'
+    assert returned_user[:name] == user.name
   
     users = @ght.db[:users]
     users.where(:email => fake_email).delete 
    end
 
    it 'should return a repo given a user and repo' do
-    repo = @ght.ensure_repo('msk999', 'Subscribem')
+    user = create(:user, db_obj: @ght.db)
+    project = create(:project, { owner_id: user.id, db_obj: @ght.db })
+    
+    assert project.owner_id = user.id
+    repo = @ght.ensure_repo(user.name_email, project.name)
+    
     assert repo
    end
 
@@ -177,6 +183,12 @@ describe 'ghtorrent::mirror module' do
       saved_user[:name].must_equal user.name 
    end
 
+   it 'should create persist a fake project' do
+    project = create(:project, db_obj: @ght.db) 
+    assert project
+    saved_project = @ght.db[:projects].where(id: project.id).first
+    saved_project[:name].must_equal project.name 
+   end
    it 'should not persist a fake user' do
       user = create(:user) 
       assert user
