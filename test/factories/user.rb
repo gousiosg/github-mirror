@@ -25,8 +25,22 @@ FactoryGirl.define do
       after(:create) do | user, evaluator |
         user.name_email = "#{user.name}<#{user.email}>" 
         user.db_obj = evaluator.db_obj 
-        hashed = attributes_for(:user).to_h
-        user.id = user.db_obj[:users].insert(hashed) if user.db_obj
+        if user.db_obj
+          attributes = apply_overrides(:user, evaluator)
+          user.id = user.db_obj[:users].insert(attributes) 
+        end
       end
     end
+  end
+
+  # method to apply overrides to newly created object
+  # so we can get a correct hash to insert into the table
+  def apply_overrides(mygirl, evaluator)
+    attributes = evaluator.instance_variable_get('@overrides')
+    overrides = evaluator.methods(false)-[:db_obj]  
+    hashed = attributes_for(mygirl).to_h
+
+    return hashed if overrides.empty?
+    slices = attributes.slice(*overrides)
+    hashed.merge slices
   end

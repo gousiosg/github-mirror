@@ -31,8 +31,9 @@ FactoryGirl.define do
   def apply_overrides(mygirl, evaluator)
     attributes = evaluator.instance_variable_get('@overrides')
     overrides = evaluator.methods(false)-[:db_obj]  
+    hashed = attributes_for(mygirl).to_h
+    return hashed if overrides.empty?
     
     slices = attributes.slice(*overrides)
-    hashed = attributes_for(mygirl).to_h
     hashed.merge slices
   end
