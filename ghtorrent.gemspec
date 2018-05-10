@@ -38,6 +38,9 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'mocha'
   s.add_development_dependency 'factory_girl'
   s.add_development_dependency 'faker'
+  s.add_development_dependency 'byebug'
+  s.add_development_dependency 'vcr'
+  s.add_development_dependency 'webmock'
 
   begin
     require 'changelog'
