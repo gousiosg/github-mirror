@@ -14,5 +14,4 @@ config.yaml
 doc/build
 /coverage/
 *.json
-.byebug*
-
+.byebug_history
