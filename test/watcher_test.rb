@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class GhtWatcherTest < Minitest::Test
+class GhtWatcherTest
  describe 'test configuration and helper methods' do
    before do
      session = 1

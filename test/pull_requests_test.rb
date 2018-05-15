@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class GhtPullRequestTest < Minitest::Test
+class GhtPullRequestTest
   describe 'ghtorrent pull request tests' do
     before do
       session = 1

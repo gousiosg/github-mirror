@@ -1,7 +1,6 @@
 require 'test_helper'
-include FactoryGirl::Syntax::Methods
 
-class GhtCommitTest < Minitest::Test
+class GhtCommitTest
   describe 'ghtorrent transaction test' do
     before do
       session = 1

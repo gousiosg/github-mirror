@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class GhtRepoLabelTest < Minitest::Test
+class GhtRepoLabelTest
 
   describe 'test the user repo methods' do
     before do
@@ -62,12 +62,12 @@ class GhtRepoLabelTest < Minitest::Test
     assert retval && retval.first == 'master'
    end
 
-   it 'should call ensure_repo_label with unsaved user and repo' do
+   it 'should call ensure_repo_label with unsaved user and repo and label' do
     user = create(:user)
     repo = create(:project, :github_project, { owner_id: user.id, owner: {'login' => user.login} } )
+    @ght.stubs(:retrieve_user_byemail).returns(user)
     @ght.stubs(:retrieve_repo).returns(nil)
     @ght.stubs(:retrieve_repo_label).returns(['master'])
-    
     retval = @ght.ensure_repo_label(user.name_email, repo.name, 'master')
     refute retval 
    end

@@ -32,7 +32,6 @@ FactoryGirl.define do
 
         after(:create) do | pull_request_comment, evaluator |
           override_hash = evaluator.instance_variable_get('@overrides')
-          instance_hash = evaluator.instance_variable_get('@instance')
           
           if override_hash.key?(:github)
             override_hash.delete(:github)

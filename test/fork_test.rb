@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class GhtForkTest < Minitest::Test
+class GhtForkTest
   describe 'ghtorrent fork tests' do
     before do
       session = 1

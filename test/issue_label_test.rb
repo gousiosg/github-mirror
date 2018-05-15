@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class GhtIssueLabelTest < Minitest::Test
+class GhtIssueLabelTest
   describe 'ghtorrent issue labels tests' do
     before do
       session = 1

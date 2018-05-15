@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class GhtRepoTest < Minitest::Test
+class GhtRepoTest
 
   describe 'test the user repo methods' do
     before do
@@ -124,7 +124,7 @@ class GhtRepoTest < Minitest::Test
       @ght.stubs(:retrieve_repo).returns(repo)
       @ght.stubs(:retrieve_languages).returns({"Ruby"=>35941, "HTML"=>6085, "JavaScript"=>2239, "CSS"=>1728})
   
-      langs = @ght.ensure_languages(user.name_email, repo.name)
+      @ght.ensure_languages(user.name_email, repo.name)
       
       repo_in_db = @ght.ensure_repo(user.name_email, repo.name)
       assert @db[:project_languages].where(:project_id => repo_in_db[:id]).count.must_equal 4
@@ -139,8 +139,8 @@ class GhtRepoTest < Minitest::Test
     end
  
     it 'calls ensure_repo_recursive - if one stage is not successful returns false' do
-      @ght.stubs(@ght.stages[0].to_sym).returns(false)
-      
+      @ght.stubs(@ght.stages[0].to_sym).returns(nil)
+      @ght.expects(:warn).returns("Stage #{@ght.stages[0]} returned nil, stopping recursive retrieval")
       retval = @ght.ensure_repo_recursive('msk999', 'fake_repo')
       refute retval
     end

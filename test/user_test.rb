@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class GhtUserTest < Minitest::Test
+class GhtUserTest
   describe 'ghtorrent transaction test' do
     before do
      session = 1

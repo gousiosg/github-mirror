@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class GhtFollowerlTest < Minitest::Test
+class GhtFollowerlTest
 
   describe 'test the user repo methods' do
     before do

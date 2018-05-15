@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class GhtForkCommitTest < Minitest::Test
+class GhtForkCommitTest
   describe 'ghtorrent transaction test' do
     before do
       session = 1

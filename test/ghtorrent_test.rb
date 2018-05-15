@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class GhtorrentTest < Minitest::Test
+class GhtorrentTest
   describe 'test configuration and helper methods' do
     before do
      session = 1
