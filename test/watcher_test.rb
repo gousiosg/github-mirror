@@ -2,11 +2,16 @@ require 'test_helper'
 
 class GhtWatcherTest
  describe 'test configuration and helper methods' do
-   before do
-     session = 1
-     @ght = GHTorrent::Mirror.new(session)
-     @db = @ght.db
-   end
+    around do | test | 
+        ght_trx do
+          test.call
+        end
+      end
+  
+      before do
+        @ght = ght
+        @db = db
+      end
 
    it 'should call the ensure_watchers method without a saved watcher' do
     user = create(:user, db_obj: @db)

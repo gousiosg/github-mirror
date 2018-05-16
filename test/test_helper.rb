@@ -18,9 +18,8 @@ require 'factory_girl'
 require 'faker'
 require 'byebug'
 require 'helpers/shared'
+require 'helpers/minitest_trx'
+require 'minitest/around/spec'
 
 FactoryGirl.find_definitions
 include FactoryGirl::Syntax::Methods
-
-
-

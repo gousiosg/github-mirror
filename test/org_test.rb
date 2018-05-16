@@ -3,10 +3,15 @@ require 'test_helper'
 class GhtFollowerlTest
 
   describe 'test the user repo methods' do
+    around do | test | 
+      ght_trx do
+        test.call
+      end
+    end
+
     before do
-      session = 1
-      @ght = GHTorrent::Mirror.new(session)
-      @db = @ght.db
+      @ght = ght
+      @db = db
     end
     
     it 'should call the ensure orgs method with a regular user' do

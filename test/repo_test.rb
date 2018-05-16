@@ -3,10 +3,15 @@ require 'test_helper'
 class GhtRepoTest
 
   describe 'test the user repo methods' do
+    around do | test | 
+      ght_trx do
+        test.call
+      end
+    end
+
     before do
-      session = 1
-      @ght = GHTorrent::Mirror.new(session)
-      @db = @ght.db
+      @ght = ght
+      @db = db
     end
    
     it 'should return a repo given a user and repo' do
@@ -40,7 +45,7 @@ class GhtRepoTest
       assert repo.nil?
     end
  
-    it 'should return a repo given a user and bogus repo will add repo to db' do
+    it 'should return a repo given a user and invalid repo will add repo to db' do
      user = create(:user, db_obj: @db)
      repo = create(:repo, {owner_id: user.id, owner: {'login' => user.login} })
      

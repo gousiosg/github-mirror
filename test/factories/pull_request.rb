@@ -5,11 +5,11 @@ FactoryGirl.define do
     
       skip_create
         id nil
-        head_repo_id {Faker::Number.number(2) }
-        base_repo_id {Faker::Number.number(2) }
-        head_commit_id {Faker::Number.number(2) }
-        base_commit_id {Faker::Number.number(2) }
-        pullreq_id {Faker::Number.number(2) }
+        head_repo_id nil
+        base_repo_id {Faker::Number.number(4) }
+        head_commit_id nil
+        base_commit_id {Faker::Number.number(4) }
+        pullreq_id {Faker::Number.number(4) }
         intra_branch false
   
         transient do
@@ -23,7 +23,7 @@ FactoryGirl.define do
             user {}
             merged_at nil
             closed_at nil
-            number {Faker::Number.number(2) }
+            number {Faker::Number.number(4) }
             created_at nil
           end
 

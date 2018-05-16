@@ -2,19 +2,22 @@ require 'test_helper'
 
 class GhtUserTest
   describe 'ghtorrent transaction test' do
+    around do | test | 
+      ght_trx do
+        test.call
+      end
+    end
+
     before do
-     session = 1
-     @ght = GHTorrent::Mirror.new(session)
-     @db = @ght.db
+      @ght = ght
+      @db = db
     end
  
     it 'should create persist a fake user' do
-      @db.transaction(:rollback=>:always) do  
-        user = create(:user, db_obj: @db) 
-        assert user
-        saved_user = @db[:users].where(id: user.id).first
-        saved_user[:name].must_equal user.name 
-      end
+      user = create(:user, db_obj: @db) 
+      assert user
+      saved_user = @db[:users].where(id: user.id).first
+      saved_user[:name].must_equal user.name 
     end
 
     it 'should test the user factory' do
@@ -43,12 +46,10 @@ class GhtUserTest
 
    
     it 'should test the ensure_user method' do
-     @db.transaction(:rollback=>:always) do
-       user = create(:user, db_obj: @db)
-       returned_user = @ght.ensure_user(user[:login], false, false) 
-       assert returned_user
-       assert returned_user[:id] == user.id
-     end
+      user = create(:user, db_obj: @db)
+      returned_user = @ght.ensure_user(user[:login], false, false) 
+      assert returned_user
+      assert returned_user[:id] == user.id
     end
    
     it 'ensure_user method should not return a user if given a bad email' do
@@ -76,14 +77,15 @@ class GhtUserTest
    end
  
    it 'should return a user given a bad email and valid user' do
-    @db.transaction(:rollback=>:always) do
-      user = create(:user, db_obj: @db)
-      fake_email = Faker::Internet.email
-      returned_user = @ght.ensure_user_byemail(fake_email, user.name)
-      assert returned_user
-      assert returned_user[:email] == fake_email 
-      assert returned_user[:name] == user.name
-    end
+     user = create(:user, db_obj: @db)
+     fake_email = Faker::Internet.email
+     
+     @ght.stubs(:retrieve_user_byemail).returns nil
+     returned_user = @ght.ensure_user_byemail(fake_email, user.name)
+
+     assert returned_user
+     assert returned_user[:email] == fake_email 
+     assert returned_user[:name] == user.name
    end
 
    it 'should call ensure_user_byuname method' do

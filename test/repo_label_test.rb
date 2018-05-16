@@ -3,10 +3,15 @@ require 'test_helper'
 class GhtRepoLabelTest
 
   describe 'test the user repo methods' do
+    around do | test | 
+      ght_trx do
+        test.call
+      end
+    end
+
     before do
-      session = 1
-      @ght = GHTorrent::Mirror.new(session)
-      @db = @ght.db
+      @ght = ght
+      @db = db
     end
 
    it 'should not be able to find repo_label' do
@@ -40,12 +45,15 @@ class GhtRepoLabelTest
     assert retval && retval[:name] == 'master'
    end
    
-   it 'should call ensure_labels method' do
+   it 'should call ensure_labels method with invalid repo' do
     user = create(:user)
     repo = create(:project, :github_project, { owner_id: user.id, owner: {'login' => user.login} } )
+    @ght.stubs(:ensure_user).returns user
     @ght.stubs(:retrieve_repo).returns(nil)
-    @ght.stubs(:retrieve_repo_label).returns(['master'])
-    
+    @ght.expects(:warn)
+        .returns("Could not find #{user.name_email}/#{repo.name} for retrieving issue labels")
+        .at_least_once
+        
     retval = @ght.ensure_labels(user.name_email, repo.name)
     refute retval 
    end

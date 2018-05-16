@@ -2,11 +2,16 @@ require 'test_helper'
 
 class GhtForkTest
   describe 'ghtorrent fork tests' do
-    before do
-      session = 1
-      @ght = GHTorrent::Mirror.new(session)
-      @db = @ght.db
-    end
+    around do | test | 
+        ght_trx do
+          test.call
+        end
+      end
+  
+      before do
+        @ght = ght
+        @db = db
+      end
 
     it 'should call ensure_fork method with missing repo' do
       user = create(:user, db_obj: @db)
@@ -23,7 +28,7 @@ class GhtForkTest
     it 'should call ensure_fork method with existing repo missing fork name' do
       user = create(:user, db_obj: @db)
       repo = create(:repo, :github_project, { owner_id: user.id, 
-          owner: { 'login' => user.name_email }, forked_from: Faker::Number.number(2), 
+          owner: { 'login' => user.name_email },  
           db_obj: @db })
       @ght.stubs(:retrieve_fork).returns repo
       
@@ -37,7 +42,7 @@ class GhtForkTest
     it 'should call ensure_fork without existing fork' do
       user = create(:user, db_obj: @db)
       repo = create(:repo, :github_project, { owner_id: user.id, 
-          owner: { 'login' => user.name_email }, forked_from: Faker::Number.number(2), 
+          owner: { 'login' => user.name_email }, 
           db_obj: @db })
       @ght.stubs(:retrieve_fork).returns repo
       @ght.stubs(:ensure_repo).returns nil
@@ -62,7 +67,7 @@ class GhtForkTest
     it 'should call ensure_forks method with existing repo missing fork name' do
         user = create(:user, db_obj: @db)
         repo = create(:repo, :github_project, { owner_id: user.id, 
-            owner: { 'login' => user.name_email }, forked_from: Faker::Number.number(2), 
+            owner: { 'login' => user.name_email }, 
             db_obj: @db })
         @ght.stubs(:retrieve_fork).returns repo
         @ght.stubs(:retrieve_forks).returns([repo])
@@ -77,7 +82,7 @@ class GhtForkTest
       it 'should call ensure_forks method with existing repo fork name' do
         user = create(:user, db_obj: @db)
         fork_repo = create(:repo, :github_project, { owner_id: user.id, 
-            owner: { 'login' => user.name_email }, forked_from: user.id, 
+            owner: { 'login' => user.name_email }, 
             db_obj: @db })
 
         repo = create(:repo, :github_project, { owner_id: user.id, 

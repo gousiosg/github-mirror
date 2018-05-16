@@ -3,10 +3,15 @@ require 'test_helper'
 class GhtFollowerTest 
 
   describe 'test the user repo methods' do
+    around do | test | 
+      ght_trx do
+        test.call
+      end
+    end
+
     before do
-      session = 1
-      @ght = GHTorrent::Mirror.new(session)
-      @db = @ght.db
+      @ght = ght
+      @db = db
     end
     
     it 'calls ensure_user_follower method' do
@@ -30,7 +35,8 @@ class GhtFollowerTest
         follower = create(:follower, {follower_id: follower_user.id, user_id: followed.id})
     
         @ght.stubs(:retrieve_user_follower).returns follower
-    
+        @ght.stubs(:retrieve_user_byemail).returns nil
+
         retval = @ght.ensure_user_follower(followed.name_email, follower_user.name_email)
         assert retval 
         assert retval[:user_id].must_equal followed.id
@@ -42,7 +48,7 @@ class GhtFollowerTest
         follower = create(:follower, {follower_id: follower_user.id, user_id: followed.id})
     
         @ght.stubs(:retrieve_user_follower).returns follower
-        
+        @ght.stubs(:retrieve_user_byemail).returns nil
         time_stamp = (Date.today + 1).strftime('%FT%T %z')
         
         refute follower.created_at == time_stamp

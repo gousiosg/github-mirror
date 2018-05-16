@@ -2,10 +2,15 @@ require 'test_helper'
 
 class GhtCommitTest
   describe 'ghtorrent transaction test' do
+    around do | test | 
+      ght_trx do
+        test.call
+      end
+    end
+
     before do
-      session = 1
-      @ght = GHTorrent::Mirror.new(session)
-      @db = @ght.db
+      @ght = ght
+      @db = db
     end
 
     it 'should call ensure_commit_comment' do
@@ -112,6 +117,8 @@ class GhtCommitTest
     it 'should call commit_user with unsaved githubuser' do
       githubuser = create(:user)
       commituser = create(:user)
+      @ght.stubs(:retrieve_user_byemail).returns nil
+
       retval = @ght.commit_user(githubuser, commituser)
     end
 
@@ -119,8 +126,9 @@ class GhtCommitTest
       githubuser = create(:user )
       commituser = create(:user, db_obj: @db)
       commituser.login = Faker::Internet.user_name
-  
+      @ght.stubs(:retrieve_user_byemail).returns nil
       @ght.stubs(:ensure_user_byuname).returns(nil)
+      
       retval = @ght.commit_user(githubuser, commituser)
     end
 
