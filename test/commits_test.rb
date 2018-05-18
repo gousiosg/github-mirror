@@ -217,7 +217,12 @@ class GhtCommitTest
 
     it 'should call ensure_commits with unsaved repo' do
       user = create(:user, db_obj: @db)
-      repo = create(:repo, { owner_id: user.id, forked_from: 1, db_obj: @db})
+
+      fork_repo = create(:repo, :github_project, { owner_id: user.id, 
+        owner: { 'login' => user.name_email }, 
+        db_obj: @db })
+
+      repo = create(:repo, { owner_id: user.id, forked_from: fork_repo.id, db_obj: @db})
       
       commit = create(:commit, :github_commit, {project_id: repo.id, committer_id: user.id,  
                       author: user,

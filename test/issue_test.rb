@@ -69,8 +69,15 @@ class GhtIssueTest
       repo = create(:repo, :github_project, { owner_id: user.id, 
           owner: { 'login' => user.name_email }, db_obj: @db } )
       
+      commit = create(:sha, :github_commit, {project_id: repo.id, committer_id: user.id,  
+            author: user,
+            committer: user,
+            commit:  { :comment_count => 0, :author => user, :committer => user},
+            parents: [], db_obj: @db} )  
+        
       pull_request = create(:pull_request, :github_pr, {base_repo_id: repo.id, 
-                              db_obj: @db })
+                            base_commit_id: commit.id, db_obj: @db })
+
       issue = create(:issue,:github_issue, {repo_id: repo.id, db_obj: @db})
       
       # Need to nil out pull_request stores value as integer but tests for nil?  -- this is a problem
@@ -94,8 +101,15 @@ class GhtIssueTest
       repo = create(:repo, :github_project, { owner_id: user.id, 
           owner: { 'login' => user.name_email }, db_obj: @db } )
       
+      commit = create(:sha, :github_commit, {project_id: repo.id, committer_id: user.id,  
+            author: user,
+            committer: user,
+            commit:  { :comment_count => 0, :author => user, :committer => user},
+            parents: [], db_obj: @db} )  
+        
       pull_request = create(:pull_request, :github_pr, {base_repo_id: repo.id, 
-                              db_obj: @db })
+                            base_commit_id: commit.id, db_obj: @db })
+  
       issue = create(:issue,:github_issue, {repo_id: repo.id, db_obj: @db})
       
       # Need to nil out pull_request stores value as integer but tests for nil?  -- this is a problem
@@ -129,9 +143,15 @@ class GhtIssueTest
         
       repo = create(:repo, :github_project, { owner_id: user.id, 
           owner: { 'login' => user.name_email }, db_obj: @db } )
+          commit = create(:sha, :github_commit, {project_id: repo.id, committer_id: user.id,  
+            author: user,
+            committer: user,
+            commit:  { :comment_count => 0, :author => user, :committer => user},
+            parents: [], db_obj: @db} )  
         
       pull_request = create(:pull_request, :github_pr, {base_repo_id: repo.id, 
-                              db_obj: @db })
+                            base_commit_id: commit.id, db_obj: @db })
+                            
       issue = create(:issue,:github_issue, {repo_id: repo.id})
         
       # Need to nil out pull_request stores value as integer but tests for nil?  -- this is a problem
@@ -192,6 +212,8 @@ class GhtIssueTest
       @ght.stubs(:ensure_issue_comments).returns nil
       @ght.stubs(:ensure_issue_labels).returns nil
       @ght.stubs(:ensure_commit).returns(commit)
+      @ght.stubs(:retrieve_user_byemail).returns user
+      
       retval = @ght.ensure_issue(user.name_email, repo.name, issue.issue_id, false, false, false)
       assert retval
       

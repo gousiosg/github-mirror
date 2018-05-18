@@ -24,11 +24,14 @@ class GhtIssueCommentTest
           committer: user,
           commit:  { :comment_count => 0, :author => user, :committer => user},
           parents: [], db_obj: @ght.db} )  
+          
       pull_request = create(:pull_request, :github_pr, {base_repo_id: repo.id, 
           base_commit_id: commit.id, db_obj: @ght.db })
+          
       issue = create(:issue,:github_issue, {repo_id: repo.id, assignee_id: user.id, db_obj: @ght.db})
+      
       issue_comments = create(:issue_comment, :github_comment, 
-          { user:  {'login' => user.name_email} } )
+          {user_id: user.id,  user:  {'login' => user.name_email} } )
       issue.pull_request = nil
       
       @ght.stubs(:retrieve_issues).returns([issue])
@@ -101,7 +104,7 @@ class GhtIssueCommentTest
       user = create(:user)
       repo = create(:repo )
       issue = create(:issue)
-      comment = create(:commit_comment, {id:  Faker::Number.number(4), db_obj: @db})   
+      comment = create(:commit_comment)   
       @ght.stubs(:ensure_repo).returns repo
       @ght.stubs(:ensure_issue).returns issue
       @ght.stubs(:retrieve_issue_comment).returns nil
@@ -122,12 +125,16 @@ class GhtIssueCommentTest
           committer: user,
           commit:  { :comment_count => 0, :author => user, :committer => user},
           parents: [], db_obj: @ght.db} )  
+          
       pull_request = create(:pull_request, :github_pr, {base_repo_id: repo.id, 
           base_commit_id: commit.id, db_obj: @ght.db })
+          
       issue = create(:issue,:github_issue, 
         {repo_id: repo.id, assignee_id: user.id, db_obj: @ght.db})
+        
       issue_comments = create(:issue_comment, :github_comment, 
-          { issue_id: issue.id, user:  {'login' => user.name_email}, db_obj: @ght.db } )  
+          { issue_id: issue.id, user_id: user.id, user:  {'login' => user.name_email}, db_obj: @ght.db } )  
+
       @ght.stubs(:ensure_repo).returns repo
       @ght.stubs(:ensure_issue).returns issue
       @ght.stubs(:retrieve_issue_comment).returns nil

@@ -10,11 +10,14 @@ describe GHTorrent::Mirror do
       end
 
       before do
-        @user = create(:user, {id: 999999, db_obj: db})
-        @user_id = @user.id
+        @ght = ght
+        @db = db
       end
 
       it 'should create a user record mini_it method' do
+        @user = create(:user, {id: 999999, db_obj: @db})
+        @user_id = @user.id
+
         puts "Check user.id --> #{@user.id}"
 
         assert @user.id

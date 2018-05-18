@@ -56,13 +56,15 @@ class GhtorrentTest
  
     it 'should test the db method' do
       assert @db.tables.any?
-      ## close the connection
-      @ght.dispose
     end
  
     it 'should test the persister method' do
       persister = @ght.persister
       assert persister
+
+      # reset persister to nil
+      @ght.stubs(:persister).returns nil
+      assert @ght.persister.nil?
     end
  
     it 'should test the stages method' do

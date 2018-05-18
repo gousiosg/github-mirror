@@ -19,17 +19,26 @@ class GhtIssueEventTest
       repo = create(:repo, :github_project, { owner_id: user.id, 
           owner: { 'login' => user.name_email }, db_obj: @db } )
       
+      commit = create(:sha, :github_commit, {project_id: repo.id, committer_id: user.id,  
+          author: user,
+          committer: user,
+          commit:  { :comment_count => 0, :author => user, :committer => user},
+          parents: [], db_obj: @ght.db} )
+    
       pull_request = create(:pull_request, :github_pr, {base_repo_id: repo.id, 
-                              db_obj: @db })
+                            base_commit_id: commit.id, db_obj: @db })
+      
       issue = create(:issue,:github_issue, {repo_id: repo.id, db_obj: @db})
-                  
-      issue_event = create(:issue_event,:github_issue_event, {issue_id: issue.id, actor_id: user.id, db_obj: @db})
+
+      issue_event = create(:issue_event,:github_issue_event, 
+                        {issue_id: issue.id, actor_id: user.id, db_obj: @db})
       # Need to nil out pull_request stores value as integer but tests for nil?  -- this is a problem
-      issue.pull_request = ni   
+      issue.pull_request = nil   
+
       @ght.stubs(:retrieve_issues).returns([issue])
       @ght.stubs(:retrieve_issue).returns(issue)
       @ght.stubs(:retrieve_issue_events).returns ([issue_event])
-      @ght.stubs(:retrieve_issue_event).returns issue_even   
+      @ght.stubs(:retrieve_issue_event).returns issue_event   
       retval = @ght.ensure_issue_event(user.name_email, repo.name,
           issue.issue_id, issue_event.event_id)
       assert retval
@@ -39,12 +48,19 @@ class GhtIssueEventTest
 
     it 'should successfully call ensure_issue_events method' do
       user = create(:user, db_obj: @db)
-          
+
       repo = create(:repo, :github_project, { owner_id: user.id, 
           owner: { 'login' => user.name_email }, db_obj: @db } )
       
+      commit = create(:sha, :github_commit, {project_id: repo.id, committer_id: user.id,  
+          author: user,
+          committer: user,
+          commit:  { :comment_count => 0, :author => user, :committer => user},
+          parents: [], db_obj: @db} )  
+      
       pull_request = create(:pull_request, :github_pr, {base_repo_id: repo.id, 
-                              db_obj: @db })
+                          base_commit_id: commit.id, db_obj: @db })
+
       issue = create(:issue,:github_issue, {repo_id: repo.id, db_obj: @db})
               
       issue_event = create(:issue_event,:github_issue_event, {issue_id: issue.id, actor_id: user.id})
@@ -56,6 +72,7 @@ class GhtIssueEventTest
       @ght.stubs(:retrieve_issue).returns(issue)
       @ght.stubs(:retrieve_issue_events).returns ([issue_event])
       @ght.stubs(:retrieve_issue_event).returns issue_event
+      @ght.stubs(:retrieve_user_byemail).returns user
   
       retval = @ght.ensure_issue_events(user.name_email, user.name_email, repo.name)
       assert retval

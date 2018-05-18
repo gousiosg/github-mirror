@@ -151,7 +151,9 @@ class GhtRepoTest
     end
  
     it 'should create persist a fake project' do
-      project = create(:project, db_obj: @db) 
+      user = create(:user, db_obj: @db)
+      project = create(:project, :github_project, 
+        { owner_id: user.id, owner: {'login' => user.login}, db_obj: @db } ) 
       assert project
       saved_project = @db[:projects].where(id: project.id).first
       saved_project[:name].must_equal project.name 
