@@ -6,7 +6,7 @@ FactoryGirl.define do
       url {Faker::Internet.url('github.com/repos/', 
         "#{Faker::Internet.user_name}<#{Faker::Internet.email}>/#{Faker::Internet.user_name}")}
       owner_id  {Faker::Number.number(4) }
-      name Faker::Name.name 
+      name { Faker::Name.name }
       description {Faker::Lorem.paragraph}
       language {Faker::ProgrammingLanguage.name }
       created_at {DateTime.now.strftime('%FT%T%:z')  }
