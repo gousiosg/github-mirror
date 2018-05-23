@@ -143,7 +143,7 @@ class GhtIssueCommentTest
       retval = @ght.ensure_issue_comment(user.name_email, repo.name,issue.issue_id, issue_comments.id)
       assert retval
       assert retval[:issue_id].must_equal issue.id
-      assert retval[:comment_id].must_equal issue_comments.id
+      assert retval[:comment_id].to_i.must_equal issue_comments.id.to_i
     end
   end
 end

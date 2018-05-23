@@ -5,7 +5,7 @@ FactoryGirl.define do
     id nil
     name  {Faker::Name.name}
     email {Faker::Internet.email}
-    login {"#{name}<#{email}>"}
+    sequence(:login) { |n| "#{name}_#{n}<#{email}>" }
     company nil
     type 'people'
     fake false

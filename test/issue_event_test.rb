@@ -73,8 +73,9 @@ class GhtIssueEventTest
       @ght.stubs(:retrieve_issue_events).returns ([issue_event])
       @ght.stubs(:retrieve_issue_event).returns issue_event
       @ght.stubs(:retrieve_user_byemail).returns user
+      issue_number = Faker::Number.number(2)
 
-      retval = @ght.ensure_issue_events(user.name_email, user.name_email, repo.name)
+      retval = @ght.ensure_issue_events(user.name_email, user.name_email, issue_number)
       assert retval
     end
 
