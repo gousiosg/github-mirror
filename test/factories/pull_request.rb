@@ -1,8 +1,8 @@
 
 FactoryGirl.define do
-    
+
     factory :pull_request, :class => OpenStruct do
-    
+
       skip_create
         id nil
         head_repo_id nil
@@ -11,11 +11,11 @@ FactoryGirl.define do
         base_commit_id {Faker::Number.number(4) }
         pullreq_id {Faker::Number.number(4) }
         intra_branch false
-  
+
         transient do
             db_obj nil
         end
-        
+
         trait :github_pr do
           transient do
             base {}
@@ -37,26 +37,25 @@ FactoryGirl.define do
           override_hash = evaluator.instance_variable_get('@overrides')
           if override_hash.key?(:github)
             override_hash.delete(:github)
-    
-            override_hash[:base] ||= { 'repo' => { 'owner' => { 'login' => "#{Faker::Internet.user_name}<#{Faker::Internet.email}>" }, 
-            'name' => Faker::Name.name }, 'sha' => SecureRandom.hex } 
-            
+
+            override_hash[:base] ||= { 'repo' => { 'owner' => { 'login' => "#{Faker::Internet.user_name}<#{Faker::Internet.email}>" },
+            'name' => Faker::Name.name }, 'sha' => SecureRandom.hex }
+
             override_hash[:head]  ||=  override_hash[:base]
-            override_hash[:user] ||= { 'login' => "#{Faker::Internet.user_name}<#{Faker::Internet.email}>" } 
-            
-            override_hash[:merged_at] ||= nil 
-            override_hash[:closed_at] ||= nil 
+            override_hash[:user] ||= { 'login' => "#{Faker::Internet.user_name}<#{Faker::Internet.email}>" }
+
+            override_hash[:merged_at] ||= nil
+            override_hash[:closed_at] ||= nil
 
             override_hash[:number] ||= override_hash[:pullreq_id]
             override_hash[:created_at] ||= DateTime.now.strftime('%FT%T%:z')
-          end  
-          
+          end
+
           attributes = apply_overrides_and_transients(:pull_request, evaluator)
-  
+
           if pull_request.db_obj
-            pull_request.id = pull_request.db_obj[:pull_requests].insert(attributes) 
+            pull_request.id = pull_request.db_obj[:pull_requests].insert(attributes)
           end
         end
       end
     end
- 

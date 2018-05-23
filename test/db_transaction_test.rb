@@ -3,7 +3,7 @@ require 'byebug'
 
 describe GHTorrent::Mirror do
     describe 'testing transaction around method' do
-      around do | test | 
+      around do | test |
         ght_trx do
           test.call
         end

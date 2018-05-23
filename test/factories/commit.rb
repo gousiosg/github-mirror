@@ -1,15 +1,15 @@
 
 FactoryGirl.define do
-    
+
   factory :commit, :class => OpenStruct, aliases: [:sha] do
     skip_create
       id nil
       sha { SecureRandom.hex }
       author_id nil
       committer_id nil
-      project_id { Faker::Number.number(2) } 
+      project_id { Faker::Number.number(2) }
       created_at { DateTime.now.strftime('%FT%T%:z') }
-      
+
       transient do
           db_obj nil
       end
@@ -30,11 +30,11 @@ FactoryGirl.define do
           override_hash[:id] ||= override_hash[:comment_id]
           override_hash[:user] ||= { 'login' => "#{Faker::Internet.user_name}<#{Faker::Internet.email}>" }
         end
-      
+
 
         attributes = apply_overrides_and_transients(:commit, evaluator)
         if commit.db_obj
-          commit.id = commit.db_obj[:commits].insert(attributes) 
+          commit.id = commit.db_obj[:commits].insert(attributes)
         end
       end
     end

@@ -9,7 +9,7 @@ FactoryGirl.define do
     position { Faker::Number.number(2) }
     comment_id { Faker::Number.number(2) }
     created_at { DateTime.now.strftime('%FT%T%:z') }
-            
+
     transient do
       db_obj nil
     end
@@ -18,13 +18,13 @@ FactoryGirl.define do
         transient do
           user {}
         end
-      end  
+      end
 
-    
+
     after(:create) do | commit_comment, evaluator |
       attributes = apply_overrides_and_transients(:commit_comment, evaluator)
       if commit_comment.db_obj
-        commit_comment.id = commit_comment.db_obj[:commit_comments].insert(attributes) 
+        commit_comment.id = commit_comment.db_obj[:commit_comments].insert(attributes)
       end
     end
   end

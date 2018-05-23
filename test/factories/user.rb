@@ -32,13 +32,13 @@ FactoryGirl.define do
         override_hash = evaluator.instance_variable_get('@overrides')
         if override_hash.key?(:github)
           override_hash.delete(:github)
-          override_hash[:name_email] ||= "#{override_hash[:name]}<#{override_hash[:email]}>" 
+          override_hash[:name_email] ||= "#{override_hash[:name]}<#{override_hash[:email]}>"
         end
 
         attributes = apply_overrides_and_transients(:user, evaluator)
-        
+
         if user.db_obj
-          user.id = user.db_obj[:users].insert(attributes) 
+          user.id = user.db_obj[:users].insert(attributes)
         end
       end
     end
