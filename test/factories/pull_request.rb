@@ -48,7 +48,7 @@ FactoryGirl.define do
             override_hash[:closed_at] ||= nil
 
             override_hash[:number] ||= override_hash[:pullreq_id]
-            override_hash[:created_at] ||= DateTime.now.strftime('%FT%T%:z')
+            override_hash[:created_at] ||= Time.now.utc.strftime('%F %T')
           end
 
           attributes = apply_overrides_and_transients(:pull_request, evaluator)

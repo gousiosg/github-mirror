@@ -49,13 +49,12 @@ class GhtFollowerTest
 
         @ght.stubs(:retrieve_user_follower).returns follower
         @ght.stubs(:retrieve_user_byemail).returns nil
-        time_stamp = (Date.today + 1).strftime('%FT%T %z')
+        time_stamp = (Time.now.utc + 1).strftime('%F %T')
 
         refute follower.created_at == time_stamp
         retval = @ght.ensure_user_follower(followed.name_email, follower_user.name_email, time_stamp)
-        assert retval[:created_at].strftime('%FT%T %z').must_equal time_stamp
+        assert retval[:created_at].strftime('%F %T').must_equal time_stamp
       end
-
 
       it 'calls ensure_user_follower method without any follower' do
         followed = create(:user, db_obj: @db )
@@ -65,7 +64,7 @@ class GhtFollowerTest
         @ght.stubs(:retrieve_user_byemail).returns follower_user
         @ght.expects(:warn).returns("Could not retrieve follower #{follower_user.name_email} for #{followed.name_email}")
 
-        retval = @ght.ensure_user_follower(followed.name_email, follower_user.name_email, DateTime.now.strftime('%FT%T%:z'))
+        retval = @ght.ensure_user_follower(followed.name_email, follower_user.name_email, Time.now.utc.strftime('%F %T'))
         refute retval
       end
 

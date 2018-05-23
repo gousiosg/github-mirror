@@ -35,7 +35,7 @@ class GhtPullRequestTest
                       commit:  { :comment_count => 0, :author => user, :committer => user},
                       parents: [],  db_obj: @ght.db } )
 
-      now = DateTime.now.strftime('%FT%T%:z')
+      now = Time.now.utc.strftime('%F %T')
       pull_request = create(:pull_request, :github_pr, {base_repo_id: repo.id,
                             merged_at: now,
                             base_commit_id: commit.id,

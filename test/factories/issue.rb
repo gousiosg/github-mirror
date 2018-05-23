@@ -10,7 +10,7 @@ FactoryGirl.define do
       assignee_id nil
       pull_request 0
       pull_request_id nil
-      created_at { DateTime.now.strftime('%FT%T%:z') }
+      created_at { Time.now.utc.strftime('%F %T') }
       issue_id {Faker::Number.number(2) }
 
         transient do

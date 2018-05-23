@@ -9,10 +9,10 @@ FactoryGirl.define do
       name { Faker::Name.name }
       description {Faker::Lorem.paragraph}
       language {Faker::ProgrammingLanguage.name }
-      created_at {DateTime.now.strftime('%FT%T%:z')  }
+      created_at { Time.now.utc.strftime('%F %T') }
       forked_from nil
       deleted false
-      updated_at {DateTime.now.strftime('%FT%T%:z') }
+      updated_at { Time.now.utc.strftime('%F %T') }
 
       transient do
           db_obj nil

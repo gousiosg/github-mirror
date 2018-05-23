@@ -186,7 +186,7 @@ class GhtCommitTest
     it 'calls ensure_commits method with unsaved saved commit' do
       user = create(:user, db_obj: @db)
       repo = create(:repo, { owner_id: user.id, db_obj: @db})
-      user.date = DateTime.now.strftime('%FT%T%:z')
+      user.date = Time.now.utc.strftime('%F %T')
       commit = create(:commit, :github_commit, {project_id: repo.id, committer_id: user.id,
                       author: user,
                       committer: user,

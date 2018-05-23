@@ -4,7 +4,7 @@ FactoryGirl.define do
       skip_create
         repo_id {Faker::Number.number(2) }
         user_id {Faker::Number.number(2) }
-        created_at {DateTime.now.strftime('%FT%T%:z')  }
+        created_at { Time.now.utc.strftime('%F %T') }
 
         transient do
             db_obj nil

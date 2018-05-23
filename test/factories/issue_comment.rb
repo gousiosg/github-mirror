@@ -4,7 +4,7 @@ FactoryGirl.define do
       issue_id { Faker::Number.number(4) }
       user_id { Faker::Number.number(4) }
       comment_id { Faker::Number.number(4) }
-      created_at { DateTime.now.strftime('%FT%T%:z') }
+      created_at { Time.now.utc.strftime('%F %T') }
 
       transient do
         db_obj nil

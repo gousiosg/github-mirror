@@ -16,7 +16,7 @@ FactoryGirl.define do
     state nil
     city nil
     location nil
-    created_at {DateTime.now.strftime('%FT%T%:z')}
+    created_at { Time.now.utc.strftime('%F %T') }
 
       transient do
         name_email {nil }

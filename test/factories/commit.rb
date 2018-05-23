@@ -8,7 +8,7 @@ FactoryGirl.define do
       author_id nil
       committer_id nil
       project_id { Faker::Number.number(2) }
-      created_at { DateTime.now.strftime('%FT%T%:z') }
+      created_at { Time.now.utc.strftime('%F %T') }
 
       transient do
           db_obj nil

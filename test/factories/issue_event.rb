@@ -9,7 +9,7 @@ FactoryGirl.define do
       actor_id nil
       action {Faker::Lorem.paragraph}
       action_specific {Faker::Lorem.word}
-      created_at { DateTime.now.strftime('%FT%T%:z') }
+      created_at { Time.now.utc.strftime('%F %T') }
 
         transient do
             db_obj nil
