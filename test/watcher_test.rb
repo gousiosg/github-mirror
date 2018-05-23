@@ -27,7 +27,7 @@ class GhtWatcherTest
     assert retval[0][:user_id] == watcher_user.id
    end
 
-   it 'should call the ensure_watchers method with a saved watcher; returns []' do
+   it 'should call the ensure_watchers method with a saved watcher and return data' do
     user = create(:user, db_obj: @db)
     watcher_user = create(:user, db_obj: @db)
     watcher_user.login = watcher_user.name_email
@@ -38,7 +38,8 @@ class GhtWatcherTest
     @ght.stubs(:retrieve_watcher).returns watcher_user
 
     retval = @ght.ensure_watchers(user.name_email, repo.name)
-    assert retval.empty?
+    retval.first[:repo_id].must_equal repo.id
+    retval.first[:user_id].must_equal watcher_user.id
    end
 
    it 'should call the ensure_watchers method without a saved repository' do
