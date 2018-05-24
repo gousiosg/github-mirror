@@ -7,7 +7,7 @@ FactoryGirl.define do
         "#{Faker::Internet.user_name}<#{Faker::Internet.email}>/#{Faker::Internet.user_name}")}
       owner_id  {Faker::Number.number(4) }
       name { Faker::Name.name }
-      description {Faker::Lorem.paragraph}
+      description {Faker::Lorem.paragraph[0..254]}
       language {Faker::ProgrammingLanguage.name }
       created_at { Time.now.utc.strftime('%F %T') }
       forked_from nil

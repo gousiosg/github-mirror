@@ -417,7 +417,6 @@ class GhtPullRequestTest
                       committer: user,
                       commit:  { :comment_count => 0, :author => user, :committer => user},
                       parents: [], db_obj: @ght.db} )
-
       commit['commit']['author'] = user
       commit['commit']['committer'] = user
       commit['commit']['author'].date = commit.created_at
