@@ -1,7 +1,7 @@
 require 'test_helper'
 
-class TestRetriever
-  def initialize(config, queue, options)
+class TestClientRetriever
+  def initialize(conf, queue, options)
   end
 end
 
@@ -9,7 +9,7 @@ class TestProcessClient < MultiprocessQueueClient
   attr_reader :exit
 
   def clazz
-    TestRetriever
+    TestClientRetriever
   end
 end
 
@@ -30,10 +30,10 @@ describe 'MultiprocessQueueClient' do
       client.stubs(:settings).returns(settings)
       client.stubs(:options).returns({ inproc: true })
       File.stubs(:open).returns(stub(readlines: mapping_file.split(/\n/)))
-      TestRetriever.any_instance.stubs(:stop)
+      TestClientRetriever.any_instance.stubs(:stop)
       Process.stubs(:waitpid)
-
-      TestRetriever.any_instance.expects(:run).at_least(process_count)
+      
+      TestClientRetriever.any_instance.expects(:run).at_least(process_count)
 
       client.go
     end
@@ -49,8 +49,8 @@ describe 'MultiprocessQueueClient' do
       client.stubs(:settings).returns(settings)
       client.stubs(:options).returns({ inproc: false })
       File.stubs(:open).returns(stub(readlines: mapping_file.split(/\n/)))
-      TestRetriever.any_instance.stubs(:stop)
-      TestRetriever.stubs(:run)
+      TestClientRetriever.any_instance.stubs(:stop)
+      TestClientRetriever.stubs(:run)
 
       pid = Faker::Number.number(2)
       Process.expects(:fork).returns(pid).twice
