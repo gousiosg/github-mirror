@@ -8,7 +8,7 @@ FactoryGirl.define do
       user_id {Faker::Number.number(2) }
       comment_id {Faker::Number.number(2) }
       position {Faker::Number.number(2)}
-      body {Faker::Lorem.paragraph}
+      body {Faker::Lorem.sentence}
       commit_id {Faker::Number.number(2) }
       created_at { Time.now.utc.strftime('%F %T') }
 
