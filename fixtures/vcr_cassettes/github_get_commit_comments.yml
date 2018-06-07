@@ -1,0 +1,305 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://api.github.com/repos/Priya5/Test-Project/commits/6076dd729adf62fe36c4d62d2ea5ec1e2e4f7b9f/comments?per_page=100
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - ghtorrent
+      Authorization:
+      - token 46e54d0f00babfda05a5342133fce027a3585615
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - GitHub.com
+      Date:
+      - Tue, 29 May 2018 11:31:37 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Content-Length:
+      - '2'
+      Status:
+      - 200 OK
+      X-Ratelimit-Limit:
+      - '5000'
+      X-Ratelimit-Remaining:
+      - '4993'
+      X-Ratelimit-Reset:
+      - '1527594910'
+      Cache-Control:
+      - private, max-age=60, s-maxage=60
+      Vary:
+      - Accept, Authorization, Cookie, X-GitHub-OTP
+      Etag:
+      - '"68f6cb68681e3068114d8aac4119ac50"'
+      X-Oauth-Scopes:
+      - public_repo, read:user, user:email
+      X-Accepted-Oauth-Scopes:
+      - ''
+      X-Oauth-Client-Id:
+      - 843645bc490706cfbb49
+      X-Github-Media-Type:
+      - github.v3
+      Access-Control-Expose-Headers:
+      - ETag, Link, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      X-Runtime-Rack:
+      - '0.035685'
+      X-Github-Request-Id:
+      - BD93:3972:2182D08:491BACC:5B0D3A19
+    body:
+      encoding: UTF-8
+      string: "[]"
+    http_version: 
+  recorded_at: Tue, 29 May 2018 11:31:37 GMT
+- request:
+    method: get
+    uri: https://api.github.com/repos/Priya5/Test-Project/commits/3ea09dbd4d643220ddac94d9ada3c001a820a4dc/comments?per_page=100
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - ghtorrent
+      Authorization:
+      - token 46e54d0f00babfda05a5342133fce027a3585615
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - GitHub.com
+      Date:
+      - Wed, 30 May 2018 09:59:47 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Transfer-Encoding:
+      - chunked
+      Status:
+      - 200 OK
+      X-Ratelimit-Limit:
+      - '5000'
+      X-Ratelimit-Remaining:
+      - '4999'
+      X-Ratelimit-Reset:
+      - '1527677987'
+      Cache-Control:
+      - private, max-age=60, s-maxage=60
+      Vary:
+      - Accept, Authorization, Cookie, X-GitHub-OTP
+      Etag:
+      - W/"122e4d8bda9367147d3fe3e09813d7d1"
+      X-Oauth-Scopes:
+      - public_repo, read:user, user:email
+      X-Accepted-Oauth-Scopes:
+      - ''
+      X-Oauth-Client-Id:
+      - 843645bc490706cfbb49
+      X-Github-Media-Type:
+      - github.v3
+      Access-Control-Expose-Headers:
+      - ETag, Link, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      X-Runtime-Rack:
+      - '0.107902'
+      X-Github-Request-Id:
+      - AB0B:3973:3B7E235:7930D25:5B0E7612
+    body:
+      encoding: ASCII-8BIT
+      string: '[{"url":"https://api.github.com/repos/Priya5/Test-Project/comments/29177690","html_url":"https://github.com/Priya5/Test-Project/commit/3ea09dbd4d643220ddac94d9ada3c001a820a4dc#commitcomment-29177690","id":29177690,"user":{"login":"Priya5","id":16774475,"avatar_url":"https://avatars1.githubusercontent.com/u/16774475?v=4","gravatar_id":"","url":"https://api.github.com/users/Priya5","html_url":"https://github.com/Priya5","followers_url":"https://api.github.com/users/Priya5/followers","following_url":"https://api.github.com/users/Priya5/following{/other_user}","gists_url":"https://api.github.com/users/Priya5/gists{/gist_id}","starred_url":"https://api.github.com/users/Priya5/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/Priya5/subscriptions","organizations_url":"https://api.github.com/users/Priya5/orgs","repos_url":"https://api.github.com/users/Priya5/repos","events_url":"https://api.github.com/users/Priya5/events{/privacy}","received_events_url":"https://api.github.com/users/Priya5/received_events","type":"User","site_admin":false},"position":null,"line":null,"path":null,"commit_id":"3ea09dbd4d643220ddac94d9ada3c001a820a4dc","created_at":"2018-05-30T09:57:39Z","updated_at":"2018-05-30T09:57:39Z","author_association":"OWNER","body":"Need
+        to test"}]'
+    http_version: 
+  recorded_at: Wed, 30 May 2018 09:59:47 GMT
+- request:
+    method: get
+    uri: https://api.github.com/repos/Priya5/Test-Project/comments/1?per_page=100
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - ghtorrent
+      Authorization:
+      - token 46e54d0f00babfda05a5342133fce027a3585615
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 404
+      message: Not Found
+    headers:
+      Server:
+      - GitHub.com
+      Date:
+      - Wed, 30 May 2018 10:09:05 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Transfer-Encoding:
+      - chunked
+      Status:
+      - 404 Not Found
+      X-Ratelimit-Limit:
+      - '5000'
+      X-Ratelimit-Remaining:
+      - '4998'
+      X-Ratelimit-Reset:
+      - '1527677987'
+      X-Oauth-Scopes:
+      - public_repo, read:user, user:email
+      X-Accepted-Oauth-Scopes:
+      - ''
+      X-Oauth-Client-Id:
+      - 843645bc490706cfbb49
+      X-Github-Media-Type:
+      - github.v3
+      Access-Control-Expose-Headers:
+      - ETag, Link, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      X-Runtime-Rack:
+      - '0.031883'
+      X-Github-Request-Id:
+      - A351:3972:2839B3C:577E43A:5B0E7841
+    body:
+      encoding: ASCII-8BIT
+      string: '{"message":"Not Found","documentation_url":"https://developer.github.com/v3/repos/comments/#get-a-single-commit-comment"}'
+    http_version: 
+  recorded_at: Wed, 30 May 2018 10:09:05 GMT
+- request:
+    method: get
+    uri: https://api.github.com/repos/Priya5/Test-Project/comments/29177690?per_page=100
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - ghtorrent
+      Authorization:
+      - token 46e54d0f00babfda05a5342133fce027a3585615
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - GitHub.com
+      Date:
+      - Wed, 30 May 2018 10:14:20 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Transfer-Encoding:
+      - chunked
+      Status:
+      - 200 OK
+      X-Ratelimit-Limit:
+      - '5000'
+      X-Ratelimit-Remaining:
+      - '4997'
+      X-Ratelimit-Reset:
+      - '1527677987'
+      Cache-Control:
+      - private, max-age=60, s-maxage=60
+      Vary:
+      - Accept, Authorization, Cookie, X-GitHub-OTP
+      Etag:
+      - W/"6952da55b40690921f3f1a26faa3e71e"
+      Last-Modified:
+      - Wed, 30 May 2018 09:57:39 GMT
+      X-Oauth-Scopes:
+      - public_repo, read:user, user:email
+      X-Accepted-Oauth-Scopes:
+      - ''
+      X-Oauth-Client-Id:
+      - 843645bc490706cfbb49
+      X-Github-Media-Type:
+      - github.v3
+      Access-Control-Expose-Headers:
+      - ETag, Link, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      X-Runtime-Rack:
+      - '0.056943'
+      X-Github-Request-Id:
+      - ACF4:3974:500EAC9:941BF81:5B0E797B
+    body:
+      encoding: ASCII-8BIT
+      string: '{"url":"https://api.github.com/repos/Priya5/Test-Project/comments/29177690","html_url":"https://github.com/Priya5/Test-Project/commit/3ea09dbd4d643220ddac94d9ada3c001a820a4dc#commitcomment-29177690","id":29177690,"user":{"login":"Priya5","id":16774475,"avatar_url":"https://avatars1.githubusercontent.com/u/16774475?v=4","gravatar_id":"","url":"https://api.github.com/users/Priya5","html_url":"https://github.com/Priya5","followers_url":"https://api.github.com/users/Priya5/followers","following_url":"https://api.github.com/users/Priya5/following{/other_user}","gists_url":"https://api.github.com/users/Priya5/gists{/gist_id}","starred_url":"https://api.github.com/users/Priya5/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/Priya5/subscriptions","organizations_url":"https://api.github.com/users/Priya5/orgs","repos_url":"https://api.github.com/users/Priya5/repos","events_url":"https://api.github.com/users/Priya5/events{/privacy}","received_events_url":"https://api.github.com/users/Priya5/received_events","type":"User","site_admin":false},"position":null,"line":null,"path":null,"commit_id":"3ea09dbd4d643220ddac94d9ada3c001a820a4dc","created_at":"2018-05-30T09:57:39Z","updated_at":"2018-05-30T09:57:39Z","author_association":"OWNER","body":"Need
+        to test"}'
+    http_version: 
+  recorded_at: Wed, 30 May 2018 10:14:20 GMT
+recorded_with: VCR 4.0.0

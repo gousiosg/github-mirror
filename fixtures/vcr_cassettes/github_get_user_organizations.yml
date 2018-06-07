@@ -1,0 +1,234 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://api.github.com/users/Priya5/orgs?per_page=100
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - ghtorrent
+      Authorization:
+      - token 46e54d0f00babfda05a5342133fce027a3585615
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - GitHub.com
+      Date:
+      - Sun, 27 May 2018 18:13:30 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Content-Length:
+      - '2'
+      Status:
+      - 200 OK
+      X-Ratelimit-Limit:
+      - '5000'
+      X-Ratelimit-Remaining:
+      - '4997'
+      X-Ratelimit-Reset:
+      - '1527446695'
+      Cache-Control:
+      - private, max-age=60, s-maxage=60
+      Vary:
+      - Accept, Authorization, Cookie, X-GitHub-OTP
+      Etag:
+      - '"3af34d68e3496077d84420f92c13c50c"'
+      X-Oauth-Scopes:
+      - public_repo, read:user, user:email
+      X-Accepted-Oauth-Scopes:
+      - ''
+      X-Oauth-Client-Id:
+      - 843645bc490706cfbb49
+      X-Github-Media-Type:
+      - github.v3
+      Access-Control-Expose-Headers:
+      - ETag, Link, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      X-Runtime-Rack:
+      - '0.030472'
+      X-Github-Request-Id:
+      - C918:6AAF:1FBC89B:42771B0:5B0AF54A
+    body:
+      encoding: UTF-8
+      string: "[]"
+    http_version: 
+  recorded_at: Sun, 27 May 2018 18:13:30 GMT
+- request:
+    method: get
+    uri: https://api.github.com/users/Priya/orgs?per_page=100
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - ghtorrent
+      Authorization:
+      - token 46e54d0f00babfda05a5342133fce027a3585615
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - GitHub.com
+      Date:
+      - Tue, 29 May 2018 10:55:10 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Transfer-Encoding:
+      - chunked
+      Status:
+      - 200 OK
+      X-Ratelimit-Limit:
+      - '5000'
+      X-Ratelimit-Remaining:
+      - '4999'
+      X-Ratelimit-Reset:
+      - '1527594910'
+      Cache-Control:
+      - private, max-age=60, s-maxage=60
+      Vary:
+      - Accept, Authorization, Cookie, X-GitHub-OTP
+      Etag:
+      - W/"fc892a294c8827c40b4a76f2b0b81af7"
+      X-Oauth-Scopes:
+      - public_repo, read:user, user:email
+      X-Accepted-Oauth-Scopes:
+      - ''
+      X-Oauth-Client-Id:
+      - 843645bc490706cfbb49
+      X-Github-Media-Type:
+      - github.v3
+      Access-Control-Expose-Headers:
+      - ETag, Link, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      X-Runtime-Rack:
+      - '0.033636'
+      X-Github-Request-Id:
+      - B08B:3973:31EFED0:65DC11B:5B0D318E
+    body:
+      encoding: ASCII-8BIT
+      string: '[{"login":"ghtorrent","id":431461,"url":"https://api.github.com/orgs/ghtorrent","repos_url":"https://api.github.com/orgs/ghtorrent/repos","events_url":"https://api.github.com/orgs/ghtorrent/events","hooks_url":"https://api.github.com/orgs/ghtorrent/hooks","issues_url":"https://api.github.com/orgs/ghtorrent/issues","members_url":"https://api.github.com/orgs/ghtorrent/members{/member}","public_members_url":"https://api.github.com/orgs/ghtorrent/public_members{/member}","avatar_url":"https://avatars0.githubusercontent.com/u/431461?v=4","description":""}]'
+    http_version: 
+  recorded_at: Tue, 29 May 2018 10:55:10 GMT
+- request:
+    method: get
+    uri: https://api.github.com/users/ghtorrent?per_page=100
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - ghtorrent
+      Authorization:
+      - token 46e54d0f00babfda05a5342133fce027a3585615
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - GitHub.com
+      Date:
+      - Tue, 29 May 2018 10:55:11 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Transfer-Encoding:
+      - chunked
+      Status:
+      - 200 OK
+      X-Ratelimit-Limit:
+      - '5000'
+      X-Ratelimit-Remaining:
+      - '4998'
+      X-Ratelimit-Reset:
+      - '1527594910'
+      Cache-Control:
+      - private, max-age=60, s-maxage=60
+      Vary:
+      - Accept, Authorization, Cookie, X-GitHub-OTP
+      Etag:
+      - W/"78d51f294f59927d8b97b7cd45de6116"
+      Last-Modified:
+      - Thu, 03 May 2018 09:36:35 GMT
+      X-Oauth-Scopes:
+      - public_repo, read:user, user:email
+      X-Accepted-Oauth-Scopes:
+      - ''
+      X-Oauth-Client-Id:
+      - 843645bc490706cfbb49
+      X-Github-Media-Type:
+      - github.v3
+      Access-Control-Expose-Headers:
+      - ETag, Link, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      X-Runtime-Rack:
+      - '0.035969'
+      X-Github-Request-Id:
+      - BC65:3974:43A3EC6:7CB1A4A:5B0D318F
+    body:
+      encoding: ASCII-8BIT
+      string: '{"login":"ghtorrent","id":1,"avatar_url":"https://avatars0.githubusercontent.com/u/431461?v=4","gravatar_id":"","url":"https://api.github.com/users/ghtorrent","html_url":"https://github.com/ghtorrent","followers_url":"https://api.github.com/users/ghtorrent/followers","following_url":"https://api.github.com/users/ghtorrent/following{/other_user}","gists_url":"https://api.github.com/users/ghtorrent/gists{/gist_id}","starred_url":"https://api.github.com/users/ghtorrent/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/ghtorrent/subscriptions","organizations_url":"https://api.github.com/users/ghtorrent/orgs","repos_url":"https://api.github.com/users/ghtorrent/repos","events_url":"https://api.github.com/users/ghtorrent/events{/privacy}","received_events_url":"https://api.github.com/users/ghtorrent/received_events","type":"Organization","site_admin":false,"name":"GHTorrent.","company":null,"blog":"https://www.ghtorrent.com/technology/integrations","location":"Burlington,
+        MA","email":"ght@ghtorrent.com","hireable":null,"bio":null,"public_repos":140,"public_gists":0,"followers":0,"following":0,"created_at":"2010-10-07T19:09:56Z","updated_at":"2018-05-03T09:36:35Z"}'
+    http_version: 
+  recorded_at: Tue, 29 May 2018 10:55:11 GMT
+recorded_with: VCR 4.0.0

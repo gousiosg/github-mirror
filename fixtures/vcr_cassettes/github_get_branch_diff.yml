@@ -1,0 +1,103 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://api.github.com/repos/Priya5/Test-Project/compare/master...Priya5:test
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - ghtorrent
+      Authorization:
+      - token 46e54d0f00babfda05a5342133fce027a3585615
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - GitHub.com
+      Date:
+      - Tue, 29 May 2018 06:02:37 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Transfer-Encoding:
+      - chunked
+      Status:
+      - 200 OK
+      X-Ratelimit-Limit:
+      - '5000'
+      X-Ratelimit-Remaining:
+      - '4998'
+      X-Ratelimit-Reset:
+      - '1527576699'
+      Cache-Control:
+      - private, max-age=60, s-maxage=60
+      Vary:
+      - Accept, Authorization, Cookie, X-GitHub-OTP
+      Etag:
+      - W/"c66d1957cb2940d270893708f94c5353"
+      Last-Modified:
+      - Mon, 28 May 2018 09:21:48 GMT
+      X-Oauth-Scopes:
+      - public_repo, read:user, user:email
+      X-Accepted-Oauth-Scopes:
+      - ''
+      X-Oauth-Client-Id:
+      - 843645bc490706cfbb49
+      X-Github-Media-Type:
+      - github.v3
+      Access-Control-Expose-Headers:
+      - ETag, Link, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      X-Runtime-Rack:
+      - '0.111022'
+      X-Github-Request-Id:
+      - 37C5:3971:158DAE4:30CDF00:5B0CECFC
+    body:
+      encoding: ASCII-8BIT
+      string: '{"url":"https://api.github.com/repos/Priya5/Test-Project/compare/master...Priya5:test","html_url":"https://github.com/Priya5/Test-Project/compare/master...Priya5:test","permalink_url":"https://github.com/Priya5/Test-Project/compare/Priya5:84005a3...Priya5:6076dd7","diff_url":"https://github.com/Priya5/Test-Project/compare/master...Priya5:test.diff","patch_url":"https://github.com/Priya5/Test-Project/compare/master...Priya5:test.patch","base_commit":{"sha":"84005a38b989c84c7ff6242071c05a14a4c5d476","commit":{"author":{"name":"Priya
+        Rani","email":"priya.rani549@gmail.com","date":"2018-05-27T18:03:25Z"},"committer":{"name":"GitHub","email":"noreply@github.com","date":"2018-05-27T18:03:25Z"},"message":"Create
+        hello.rb","tree":{"sha":"4eba2e1f766ef1ad725e23270309c809190b62e6","url":"https://api.github.com/repos/Priya5/Test-Project/git/trees/4eba2e1f766ef1ad725e23270309c809190b62e6"},"url":"https://api.github.com/repos/Priya5/Test-Project/git/commits/84005a38b989c84c7ff6242071c05a14a4c5d476","comment_count":0,"verification":{"verified":true,"reason":"valid","signature":"-----BEGIN
+        PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJbCvLtCRBK7hj4Ov3rIwAAdHIIAF3zDMkCZnXkpc3kh2EqXg9s\nOAuHCwJza+LGYWr0sWkmU5uIup5JrTI4nNXhbWMRfxVH+Y3ZqaWt8PaJYP5sAMmm\nk/se5qAldLVEMhGbp18b6Xfk13c+oe5Xqerhed9C2/ygIrgGihH9ReTaOPBi8yaC\nU7CrLW/zltMJrc2svKoFNcC/XM3i35XN7Dzsp9oo1kXxoZLKRJWME2LpGBPlHzoP\nBIPAv+NZKuhIZRRzDrY7i3lDtahDfsyMtWs6/R7bliJWjDoCovnmcbIccucSH0ly\nJU6vhppkPkLXJ4vPgTLMUZVz6KUBoUHtq0zBpI8PocfoINHzU2Hs/gq0NB3kJSU=\n=rReS\n-----END
+        PGP SIGNATURE-----\n","payload":"tree 4eba2e1f766ef1ad725e23270309c809190b62e6\nparent
+        e1f1ada440fb107366d68599107aa365c1e14255\nauthor Priya Rani <priya.rani549@gmail.com>
+        1527444205 +0530\ncommitter GitHub <noreply@github.com> 1527444205 +0530\n\nCreate
+        hello.rb"}},"url":"https://api.github.com/repos/Priya5/Test-Project/commits/84005a38b989c84c7ff6242071c05a14a4c5d476","html_url":"https://github.com/Priya5/Test-Project/commit/84005a38b989c84c7ff6242071c05a14a4c5d476","comments_url":"https://api.github.com/repos/Priya5/Test-Project/commits/84005a38b989c84c7ff6242071c05a14a4c5d476/comments","author":{"login":"Priya5","id":16774475,"avatar_url":"https://avatars1.githubusercontent.com/u/16774475?v=4","gravatar_id":"","url":"https://api.github.com/users/Priya5","html_url":"https://github.com/Priya5","followers_url":"https://api.github.com/users/Priya5/followers","following_url":"https://api.github.com/users/Priya5/following{/other_user}","gists_url":"https://api.github.com/users/Priya5/gists{/gist_id}","starred_url":"https://api.github.com/users/Priya5/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/Priya5/subscriptions","organizations_url":"https://api.github.com/users/Priya5/orgs","repos_url":"https://api.github.com/users/Priya5/repos","events_url":"https://api.github.com/users/Priya5/events{/privacy}","received_events_url":"https://api.github.com/users/Priya5/received_events","type":"User","site_admin":false},"committer":{"login":"web-flow","id":19864447,"avatar_url":"https://avatars3.githubusercontent.com/u/19864447?v=4","gravatar_id":"","url":"https://api.github.com/users/web-flow","html_url":"https://github.com/web-flow","followers_url":"https://api.github.com/users/web-flow/followers","following_url":"https://api.github.com/users/web-flow/following{/other_user}","gists_url":"https://api.github.com/users/web-flow/gists{/gist_id}","starred_url":"https://api.github.com/users/web-flow/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/web-flow/subscriptions","organizations_url":"https://api.github.com/users/web-flow/orgs","repos_url":"https://api.github.com/users/web-flow/repos","events_url":"https://api.github.com/users/web-flow/events{/privacy}","received_events_url":"https://api.github.com/users/web-flow/received_events","type":"User","site_admin":false},"parents":[{"sha":"e1f1ada440fb107366d68599107aa365c1e14255","url":"https://api.github.com/repos/Priya5/Test-Project/commits/e1f1ada440fb107366d68599107aa365c1e14255","html_url":"https://github.com/Priya5/Test-Project/commit/e1f1ada440fb107366d68599107aa365c1e14255"}]},"merge_base_commit":{"sha":"84005a38b989c84c7ff6242071c05a14a4c5d476","commit":{"author":{"name":"Priya
+        Rani","email":"priya.rani549@gmail.com","date":"2018-05-27T18:03:25Z"},"committer":{"name":"GitHub","email":"noreply@github.com","date":"2018-05-27T18:03:25Z"},"message":"Create
+        hello.rb","tree":{"sha":"4eba2e1f766ef1ad725e23270309c809190b62e6","url":"https://api.github.com/repos/Priya5/Test-Project/git/trees/4eba2e1f766ef1ad725e23270309c809190b62e6"},"url":"https://api.github.com/repos/Priya5/Test-Project/git/commits/84005a38b989c84c7ff6242071c05a14a4c5d476","comment_count":0,"verification":{"verified":true,"reason":"valid","signature":"-----BEGIN
+        PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJbCvLtCRBK7hj4Ov3rIwAAdHIIAF3zDMkCZnXkpc3kh2EqXg9s\nOAuHCwJza+LGYWr0sWkmU5uIup5JrTI4nNXhbWMRfxVH+Y3ZqaWt8PaJYP5sAMmm\nk/se5qAldLVEMhGbp18b6Xfk13c+oe5Xqerhed9C2/ygIrgGihH9ReTaOPBi8yaC\nU7CrLW/zltMJrc2svKoFNcC/XM3i35XN7Dzsp9oo1kXxoZLKRJWME2LpGBPlHzoP\nBIPAv+NZKuhIZRRzDrY7i3lDtahDfsyMtWs6/R7bliJWjDoCovnmcbIccucSH0ly\nJU6vhppkPkLXJ4vPgTLMUZVz6KUBoUHtq0zBpI8PocfoINHzU2Hs/gq0NB3kJSU=\n=rReS\n-----END
+        PGP SIGNATURE-----\n","payload":"tree 4eba2e1f766ef1ad725e23270309c809190b62e6\nparent
+        e1f1ada440fb107366d68599107aa365c1e14255\nauthor Priya Rani <priya.rani549@gmail.com>
+        1527444205 +0530\ncommitter GitHub <noreply@github.com> 1527444205 +0530\n\nCreate
+        hello.rb"}},"url":"https://api.github.com/repos/Priya5/Test-Project/commits/84005a38b989c84c7ff6242071c05a14a4c5d476","html_url":"https://github.com/Priya5/Test-Project/commit/84005a38b989c84c7ff6242071c05a14a4c5d476","comments_url":"https://api.github.com/repos/Priya5/Test-Project/commits/84005a38b989c84c7ff6242071c05a14a4c5d476/comments","author":{"login":"Priya5","id":16774475,"avatar_url":"https://avatars1.githubusercontent.com/u/16774475?v=4","gravatar_id":"","url":"https://api.github.com/users/Priya5","html_url":"https://github.com/Priya5","followers_url":"https://api.github.com/users/Priya5/followers","following_url":"https://api.github.com/users/Priya5/following{/other_user}","gists_url":"https://api.github.com/users/Priya5/gists{/gist_id}","starred_url":"https://api.github.com/users/Priya5/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/Priya5/subscriptions","organizations_url":"https://api.github.com/users/Priya5/orgs","repos_url":"https://api.github.com/users/Priya5/repos","events_url":"https://api.github.com/users/Priya5/events{/privacy}","received_events_url":"https://api.github.com/users/Priya5/received_events","type":"User","site_admin":false},"committer":{"login":"web-flow","id":19864447,"avatar_url":"https://avatars3.githubusercontent.com/u/19864447?v=4","gravatar_id":"","url":"https://api.github.com/users/web-flow","html_url":"https://github.com/web-flow","followers_url":"https://api.github.com/users/web-flow/followers","following_url":"https://api.github.com/users/web-flow/following{/other_user}","gists_url":"https://api.github.com/users/web-flow/gists{/gist_id}","starred_url":"https://api.github.com/users/web-flow/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/web-flow/subscriptions","organizations_url":"https://api.github.com/users/web-flow/orgs","repos_url":"https://api.github.com/users/web-flow/repos","events_url":"https://api.github.com/users/web-flow/events{/privacy}","received_events_url":"https://api.github.com/users/web-flow/received_events","type":"User","site_admin":false},"parents":[{"sha":"e1f1ada440fb107366d68599107aa365c1e14255","url":"https://api.github.com/repos/Priya5/Test-Project/commits/e1f1ada440fb107366d68599107aa365c1e14255","html_url":"https://github.com/Priya5/Test-Project/commit/e1f1ada440fb107366d68599107aa365c1e14255"}]},"status":"ahead","ahead_by":1,"behind_by":0,"total_commits":1,"commits":[{"sha":"6076dd729adf62fe36c4d62d2ea5ec1e2e4f7b9f","commit":{"author":{"name":"Priya
+        Rani","email":"priya.rani549@gmail.com","date":"2018-05-28T09:21:48Z"},"committer":{"name":"GitHub","email":"noreply@github.com","date":"2018-05-28T09:21:48Z"},"message":"Create
+        test.rb","tree":{"sha":"7441e048a9a713c2f08bd28af8588526bbc571ac","url":"https://api.github.com/repos/Priya5/Test-Project/git/trees/7441e048a9a713c2f08bd28af8588526bbc571ac"},"url":"https://api.github.com/repos/Priya5/Test-Project/git/commits/6076dd729adf62fe36c4d62d2ea5ec1e2e4f7b9f","comment_count":0,"verification":{"verified":true,"reason":"valid","signature":"-----BEGIN
+        PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJbC8osCRBK7hj4Ov3rIwAAdHIIAAizlaES/cxaxOL0Snw8Ufvk\ncaHXrQMpeFkR6VlCvdUSTmBs+D8TmLIH68ndW6fTUqvNxoC+QuhhMAZ4jusv4e0e\nxU1V4+HEKhibZe6B4yYnZcId2Ne0iZzA4vlEZ9+EuQ0Qa1XiWQCVvOFD4F/tn1Uj\nms9F2TvItT00W37080k5HEon0kTOTGkRALVYlmYHP/TNVmFlQX0fy2U8mR8uAvBK\nN/pGVG6ZjmOvHbHpSwvWG4PZDf0ahSVjXRi0Bo2hZjPSCZSrya8+77q+DzLEUb4g\nH5CEJzMjyL6xYRrhSVw5XZSCe4zNE73US1i3eNtHHjjltFzH/VUx9qHlNApBZMM=\n=x77s\n-----END
+        PGP SIGNATURE-----\n","payload":"tree 7441e048a9a713c2f08bd28af8588526bbc571ac\nparent
+        84005a38b989c84c7ff6242071c05a14a4c5d476\nauthor Priya Rani <priya.rani549@gmail.com>
+        1527499308 +0530\ncommitter GitHub <noreply@github.com> 1527499308 +0530\n\nCreate
+        test.rb"}},"url":"https://api.github.com/repos/Priya5/Test-Project/commits/6076dd729adf62fe36c4d62d2ea5ec1e2e4f7b9f","html_url":"https://github.com/Priya5/Test-Project/commit/6076dd729adf62fe36c4d62d2ea5ec1e2e4f7b9f","comments_url":"https://api.github.com/repos/Priya5/Test-Project/commits/6076dd729adf62fe36c4d62d2ea5ec1e2e4f7b9f/comments","author":{"login":"Priya5","id":16774475,"avatar_url":"https://avatars1.githubusercontent.com/u/16774475?v=4","gravatar_id":"","url":"https://api.github.com/users/Priya5","html_url":"https://github.com/Priya5","followers_url":"https://api.github.com/users/Priya5/followers","following_url":"https://api.github.com/users/Priya5/following{/other_user}","gists_url":"https://api.github.com/users/Priya5/gists{/gist_id}","starred_url":"https://api.github.com/users/Priya5/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/Priya5/subscriptions","organizations_url":"https://api.github.com/users/Priya5/orgs","repos_url":"https://api.github.com/users/Priya5/repos","events_url":"https://api.github.com/users/Priya5/events{/privacy}","received_events_url":"https://api.github.com/users/Priya5/received_events","type":"User","site_admin":false},"committer":{"login":"web-flow","id":19864447,"avatar_url":"https://avatars3.githubusercontent.com/u/19864447?v=4","gravatar_id":"","url":"https://api.github.com/users/web-flow","html_url":"https://github.com/web-flow","followers_url":"https://api.github.com/users/web-flow/followers","following_url":"https://api.github.com/users/web-flow/following{/other_user}","gists_url":"https://api.github.com/users/web-flow/gists{/gist_id}","starred_url":"https://api.github.com/users/web-flow/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/web-flow/subscriptions","organizations_url":"https://api.github.com/users/web-flow/orgs","repos_url":"https://api.github.com/users/web-flow/repos","events_url":"https://api.github.com/users/web-flow/events{/privacy}","received_events_url":"https://api.github.com/users/web-flow/received_events","type":"User","site_admin":false},"parents":[{"sha":"84005a38b989c84c7ff6242071c05a14a4c5d476","url":"https://api.github.com/repos/Priya5/Test-Project/commits/84005a38b989c84c7ff6242071c05a14a4c5d476","html_url":"https://github.com/Priya5/Test-Project/commit/84005a38b989c84c7ff6242071c05a14a4c5d476"}]}],"files":[{"sha":"6c03ce25410614ba0d6ac80921ce1594b86c7c81","filename":"test.rb","status":"added","additions":1,"deletions":0,"changes":1,"blob_url":"https://github.com/Priya5/Test-Project/blob/6076dd729adf62fe36c4d62d2ea5ec1e2e4f7b9f/test.rb","raw_url":"https://github.com/Priya5/Test-Project/raw/6076dd729adf62fe36c4d62d2ea5ec1e2e4f7b9f/test.rb","contents_url":"https://api.github.com/repos/Priya5/Test-Project/contents/test.rb?ref=6076dd729adf62fe36c4d62d2ea5ec1e2e4f7b9f","patch":"@@
+        -0,0 +1 @@\n+puts \"test\""}]}'
+    http_version: 
+  recorded_at: Tue, 29 May 2018 06:02:37 GMT
+recorded_with: VCR 4.0.0
