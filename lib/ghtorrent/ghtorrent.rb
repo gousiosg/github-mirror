@@ -1,6 +1,6 @@
 require 'sequel'
 
-require 'ghtorrent/time'
+require 'ghtorrent/ghtime'
 require 'ghtorrent/logging'
 require 'ghtorrent/settings'
 require 'ghtorrent/retriever'
