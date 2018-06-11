@@ -29,6 +29,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'sequel', '~> 4.5', '>= 4.5.0'
   s.add_runtime_dependency 'bunny', '~> 2.3', '>= 2.3.0'
 
+  s.add_development_dependency 'sqlite3', '1.3.13'
   s.add_development_dependency 'influxdb', '0.3.5'
 
   s.add_development_dependency "minitest", "~> 4.7.3"
