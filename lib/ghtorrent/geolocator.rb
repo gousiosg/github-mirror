@@ -43,7 +43,7 @@ module GHTorrent
   module Geolocator
     module Bing
 
-      COUNTRY_CODES = File.open(File.join(File.dirname(__FILE__), 'country_codes.txt')).\
+      COUNTRY_CODES = File.open(File.join(File.dirname(__FILE__), 'country_codes.txt'), "r:UTF-8").\
         readlines.\
         inject({}) do |acc, x|
           name, code = x.split(/','/)
