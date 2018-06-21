@@ -32,6 +32,7 @@ FactoryGirl.define do
         attributes = apply_overrides_and_transients(:repo_label, evaluator)
 
         if repo_label.db_obj
+          attributes = attributes.except(:id)
           repo_label.id = repo_label.db_obj[:repo_labels].insert(attributes)
         end
       end

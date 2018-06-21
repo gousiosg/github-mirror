@@ -51,7 +51,7 @@ module GHTorrent
         :amqp_prefetch  => 1,
 
         :sql_url => 'sqlite://github.db',
-        #:sql_url => 'mysql2://ghtorrent:ghtorrent@localhost/ghtorrent',
+        # :sql_url => 'mysql2://ghtorrent:ghtorrent@localhost/ghtorrent',
 
         :mirror_urlbase => 'https://api.github.com/',
         :mirror_persister => 'noop',

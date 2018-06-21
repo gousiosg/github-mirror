@@ -14,6 +14,7 @@ FactoryGirl.define do
           attributes = apply_overrides_and_transients(:follower, evaluator)
 
           if follower.db_obj
+            attributes = attributes.except(:id)
             follower.id = follower.db_obj[:followers].insert(attributes)
           end
         end

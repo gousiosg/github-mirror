@@ -32,7 +32,7 @@ describe 'MultiprocessQueueClient' do
       File.stubs(:open).returns(stub(readlines: mapping_file.split(/\n/)))
       TestClientRetriever.any_instance.stubs(:stop)
       Process.stubs(:waitpid)
-      
+
       TestClientRetriever.any_instance.expects(:run).at_least(process_count)
 
       client.go

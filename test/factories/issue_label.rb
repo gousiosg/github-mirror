@@ -31,6 +31,7 @@ FactoryGirl.define do
         attributes = apply_overrides_and_transients(:issue_label, evaluator)
 
         if issue_label.db_obj
+          attributes = attributes.except(:id)
           issue_label.db_obj[:issue_labels].insert(attributes)
         end
       end

@@ -277,9 +277,9 @@ module GHTorrent
           users.filter(:login => login).delete
           users.filter(:email => email).update(
               :login => login,
-              :company => added['company'],
-              :location => added['location'],
-              :created_at => added['created_at']
+              :company => added[:company],
+              :location => added[:location],
+              :created_at => added[:created_at]
           )
         end
       else

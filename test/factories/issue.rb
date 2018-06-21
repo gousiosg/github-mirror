@@ -8,7 +8,7 @@ FactoryGirl.define do
       repo_id nil
       reporter_id nil
       assignee_id nil
-      pull_request 0
+      pull_request false
       pull_request_id nil
       created_at { Time.now.utc.strftime('%F %T') }
       issue_id {Faker::Number.number(2) }
@@ -48,6 +48,7 @@ FactoryGirl.define do
 
           attributes = apply_overrides_and_transients(:issue, evaluator)
           if issue.db_obj
+            attributes = attributes.except(:id)
             issue.id = issue.db_obj[:issues].insert(attributes)
           end
         end
