@@ -54,6 +54,7 @@ FactoryGirl.define do
           attributes = apply_overrides_and_transients(:pull_request, evaluator)
 
           if pull_request.db_obj
+            attributes = attributes.except(:id)
             pull_request.id = pull_request.db_obj[:pull_requests].insert(attributes)
           end
         end

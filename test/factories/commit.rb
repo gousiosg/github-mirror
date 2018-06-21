@@ -34,6 +34,7 @@ FactoryGirl.define do
 
         attributes = apply_overrides_and_transients(:commit, evaluator)
         if commit.db_obj
+          attributes = attributes.except(:id)
           commit.id = commit.db_obj[:commits].insert(attributes)
         end
       end

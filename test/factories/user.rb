@@ -38,6 +38,7 @@ FactoryGirl.define do
         attributes = apply_overrides_and_transients(:user, evaluator)
 
         if user.db_obj
+          attributes = attributes.except(:id)
           user.id = user.db_obj[:users].insert(attributes)
         end
       end
