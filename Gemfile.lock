@@ -48,7 +48,7 @@ GEM
     mongo (2.5.1)
       bson (>= 4.3.0, < 5.0.0)
     multi_json (1.13.1)
-    mysql2 (0.5.1)
+    pg (1.0.0)
     public_suffix (3.0.2)
     rake (12.3.1)
     safe_yaml (1.0.4)
@@ -82,7 +82,7 @@ DEPENDENCIES
   minitest (~> 4.7.3)
   minitest-around
   mocha
-  mysql2
+  pg
   rake
   simplecov
   simplecov-rcov

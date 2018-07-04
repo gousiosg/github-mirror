@@ -40,7 +40,7 @@ module GHTorrent
             return
           else
             ght.transaction do
-              ght.db.from(:users).where(:login => login).update(Sequel.qualify('users', 'deleted') => true)
+              ght.db.from(:users).where(:login => login).update(deleted: true)
             end
             warn "User #{login} marked as deleted"
             return
@@ -62,20 +62,20 @@ module GHTorrent
 
         ght.db.from(:users).where(:login => login).update(
             # Geolocation info
-            Sequel.qualify('users', 'long')         => geo['long'].to_f,
-            Sequel.qualify('users', 'lat')          => geo['lat'].to_f,
-            Sequel.qualify('users', 'country_code') => geo['country_code'],
-            Sequel.qualify('users', 'state')        => geo['state'],
-            Sequel.qualify('users', 'city')         => geo['city'],
-            Sequel.qualify('users', 'location')     => on_github['location'],
+            long: geo['long'].to_f,
+            lat: geo['lat'].to_f,
+            country_code: geo['country_code'],
+            state: geo['state'],
+            city: geo['city'],
+            location: on_github['location'],
 
             # user details
-            Sequel.qualify('users', 'name')    => on_github['name'],
-            Sequel.qualify('users', 'company') => on_github['company'],
-            Sequel.qualify('users', 'email')   => on_github['email'],
-            Sequel.qualify('users', 'deleted') => false,
-            Sequel.qualify('users', 'fake')    => false,
-            Sequel.qualify('users', 'type')    => user_type(on_github['type'])
+            name: on_github['name'],
+            company: on_github['company'],
+            email: on_github['email'],
+            deleted: false,
+            fake: false,
+            type: user_type(on_github['type'])
         )
 
         user = user_entry[:login]
