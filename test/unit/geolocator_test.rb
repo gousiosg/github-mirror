@@ -22,7 +22,7 @@ describe 'Geolocator' do
         retriever.persister.expects(:find).returns([])
         retriever.persister.expects(:store).once
         data = retriever.geolocate(location: location, from_cache: false)
-        data[:country].must_equal 'Philippines'
+        data[:key].must_equal 'san francisco'
       end
     end
 
