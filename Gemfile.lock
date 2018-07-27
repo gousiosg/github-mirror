@@ -83,6 +83,7 @@ DEPENDENCIES
   minitest-around
   mocha
   mysql2
+  rake
   simplecov
   simplecov-rcov
   sqlite3 (= 1.3.13)
@@ -90,4 +91,4 @@ DEPENDENCIES
   webmock
 
 BUNDLED WITH
-   1.16.1
+   1.16.3
