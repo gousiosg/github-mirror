@@ -10,7 +10,6 @@ user="ghtorrent"
 passwd=""
 host="localhost"
 db="ghtorrent"
-engine="MyISAM"
 
 usage()
 {
@@ -22,8 +21,6 @@ Add private user data from CSV and SQL files in dump_dir
     -p database passwd (default: $passwd)
     -h database host (default: $host)
     -d database to restore to. Must exist. (default: $db)
-    -e db engine: MyISAM for fast import and querying speed
-                  InnoDB for normal operations (default: $engine)
 
 The dump directory must contain a file named users_private.csv with the users'
 emails and names.  See http://ghtorrent.org/pers-data.html for instructions
@@ -37,14 +34,13 @@ then
   exit 1
 fi
 
-while getopts "u:p:h:d:e:" o
+while getopts "u:p:h:d:" o
 do
   case $o in
   u)  user=$OPTARG ;;
   p)  passwd=$OPTARG ;;
   h)  host=$OPTARG ;;
   d)  db=$OPTARG ;;
-  e)  engine=$OPTARG ;;
   \?)     echo "Invalid option: -$OPTARG" >&2
     usage
     exit 1
@@ -52,12 +48,12 @@ do
   esac
 done
 
-# Setup MySQL command line
-if [ -z "$passwd" ]; then
-  mysql="mysql -u $user -s -h $host -D $db"
-else
-  mysql="mysql -u $user --password=$passwd -s -h $host -D $db"
+# Setup PostgreSQL command line
+if ! [ -z $passwd ]; then
+  export PGPASSWORD=$passwd
 fi
+
+psql="psql -U $user -t -q -h $host -d $db"
 
 shift $(expr $OPTIND - 1)
 dumpDir="$1"
@@ -77,7 +73,7 @@ if [ ! -r "$sqlFile" ]; then
   exit 1
 fi
 
-dataFile="$dumpDir/users_private.csv"
+dataFile="$dumpDir/users_private.csv.gz"
 
 if [ ! -r "$dataFile" ]; then
   echo "Cannot read $dataFile to import the data" 1>&2
@@ -85,12 +81,6 @@ if [ ! -r "$dataFile" ]; then
 fi
 
 echo "`date` Updating the database"
-sed -e "
-s/\`ghtorrent\`/\`$db\`/
-s/InnoDB/$engine/
-s/USERS_PRIVATE_FILE/$dataFile/
-/^--/d
-" $sqlFile |
-$mysql
+sed -e 's|USERS_PRIVATE_FILE|'$dataFile'|g' $sqlFile | $psql
 
 #: ft=bash
