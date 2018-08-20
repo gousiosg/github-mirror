@@ -32,6 +32,10 @@ module GHTorrent
       @persister.close unless @persister.nil?
     end
 
+    def ght
+      self
+    end
+
     # Get a connection to the database
     def db
       return @db unless @db.nil?
@@ -559,6 +563,16 @@ module GHTorrent
         warn "Could not find user #{user}"
         return
       end
+      
+      #          New functionality
+      # Always persist updated repositories.  
+      # etag functionality will be used to ensure we don't
+      # hit the repo api too often
+      r = persist_repo(user, repo)
+      if r.nil?
+        warn "Could not retrieve repo #{user}/#{repo}"
+        return
+      end
 
       currepo = repos.first(:owner_id => curuser[:id], :name => repo)
 
@@ -566,14 +580,7 @@ module GHTorrent
         debug "Repo #{user}/#{repo} exists"
         return currepo
       end
-
-      r = retrieve_repo(user, repo, true)
-
-      if r.nil?
-        warn "Could not retrieve repo #{user}/#{repo}"
-        return
-      end
-
+      
       if r['owner']['login'] != curuser[:login]
         info "Repo changed owner from #{curuser[:login]} to #{r['owner']['login']}"
         curuser = ensure_user(r['owner']['login'], false, false)

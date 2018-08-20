@@ -49,6 +49,7 @@ describe 'GhtIssue' do
 
       ght.stubs(:retrieve_issues).returns([issue])
       ght.stubs(:retrieve_issue).returns(nil)
+      ght.stubs(:persist_repo).returns repo
 
       retval = ght.ensure_issues(user.name_email, repo.name)
       assert retval.empty?
@@ -80,6 +81,8 @@ describe 'GhtIssue' do
       ght.stubs(:ensure_issue_events).returns nil
       ght.stubs(:ensure_issue_comments).returns nil
       ght.stubs(:ensure_issue_labels).returns nil
+      ght.stubs(:persist_repo).returns repo
+
       retval = ght.ensure_issues(user.name_email, repo.name)
       assert retval
       assert retval[0][:id].must_equal issue.id
@@ -112,6 +115,8 @@ describe 'GhtIssue' do
       ght.stubs(:ensure_issue_events).returns nil
       ght.stubs(:ensure_issue_comments).returns nil
       ght.stubs(:ensure_issue_labels).returns nil
+      ght.stubs(:persist_repo).returns repo
+
       retval = ght.ensure_issues(user.name_email, repo.name)
       refute retval.empty?
       assert retval[0][:id].must_equal issue.id
@@ -155,6 +160,7 @@ describe 'GhtIssue' do
       ght.stubs(:ensure_issue_comments).returns nil
       ght.stubs(:ensure_issue_labels).returns nil
       ght.stubs(:ensure_user).returns user
+      ght.stubs(:persist_repo).returns repo
 
       fake_issue_id = Faker::Number.number(3).to_i
 
@@ -204,6 +210,7 @@ describe 'GhtIssue' do
       ght.stubs(:ensure_issue_labels).returns nil
       ght.stubs(:ensure_commit).returns(commit)
       ght.stubs(:retrieve_user_byemail).returns user
+      ght.stubs(:persist_repo).returns repo
 
       retval = ght.ensure_issue(user.name_email, repo.name, issue.issue_id, false, false, false)
       assert retval

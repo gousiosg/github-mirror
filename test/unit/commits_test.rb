@@ -30,6 +30,7 @@ describe 'GhtCommit' do
       ght.stubs(:retrieve_commit_comment).returns comment
       ght.stubs(:retrieve_commit_comments).returns commit
       ght.stubs(:retrieve_commit).returns(commit)
+      ght.stubs(:persist_repo).returns repo
 
       retval = ght.ensure_commit_comment(user.name_email, repo.name, commit.sha, comment.id)
 
@@ -134,6 +135,7 @@ describe 'GhtCommit' do
 
       ght.stubs(:retrieve_commit).returns(commit)
       ght.stubs(:retrieve_commit_comments).returns []
+      ght.stubs(:persist_repo).returns repo
       sha = commit.sha
 
       db_commit = ght.ensure_commit(repo.name, sha, user.name_email)
@@ -150,6 +152,7 @@ describe 'GhtCommit' do
                           parents: []})
 
       ght.stubs(:retrieve_commit).returns(nil)
+      ght.stubs(:persist_repo).returns repo
       sha = commit.sha
       returned_commit = ght.ensure_commit(repo.name, sha, user.name_email)
       assert returned_commit.nil?
@@ -165,6 +168,7 @@ describe 'GhtCommit' do
                           db_obj: db})
 
       ght.stubs(:retrieve_repo).returns(repo)
+      ght.stubs(:persist_repo).returns(repo)
       ght.stubs(:retrieve_commit).returns(commit)
       ght.stubs(:retrieve_commits).returns ([commit])
       sha = commit.sha
@@ -198,6 +202,7 @@ describe 'GhtCommit' do
       ght.stubs(:retrieve_commits).returns ([commit,commit2])
 
       ght.stubs(:retrieve_commit).returns(commit)
+      ght.stubs(:persist_repo).returns repo
       sha = commit.sha
 
       retval = ght.ensure_commits(user.name_email, repo.name, sha: sha,
@@ -224,6 +229,7 @@ describe 'GhtCommit' do
                       parents: [] })
 
       ght.stubs(:retrieve_repo).returns(nil)
+      ght.stubs(:persist_repo).returns(repo)
 
       ght.stubs(:retrieve_commit).returns(commit)
       sha = commit.sha
@@ -250,6 +256,7 @@ describe 'GhtCommit' do
       commit['commit']['committer'] = user
       commit['commit']['author'].date = commit.created_at
 
+      ght.stubs(:persist_repo).returns repo
       retval = ght.store_commit(commit, repo.name, user.name_email)
 
       assert retval[:sha].must_equal commit.sha
@@ -261,7 +268,10 @@ describe 'GhtCommit' do
       # add github fields to user
       user.author = user
       user.committer = user
-      repo = create(:repo, { owner_id: user.id })
+      repo = create(:repo, :github_project, { owner_id: user.id,
+        owner: { 'login' => user.name_email },
+        db_obj: db })
+        
       commit = create(:sha, :github_commit, {project_id: repo.id, committer_id: user.id,
                       author: user,
                       committer: user,
@@ -273,6 +283,8 @@ describe 'GhtCommit' do
       commit['commit']['author'].date = commit.created_at
 
       ght.stubs(:retrieve_repo).returns(nil)
+      ght.stubs(:persist_repo).returns(repo)
+      
       retval = ght.store_commit(commit, repo.name, user.name_email)
 
       assert retval[:sha].must_equal commit.sha

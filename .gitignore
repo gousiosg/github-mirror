@@ -15,3 +15,4 @@ doc/build
 /coverage/
 *.json
 .byebug_history
+logs/*

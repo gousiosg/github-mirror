@@ -9,6 +9,8 @@ describe 'GHTRepoLabel' do
       repo = create(:project, :github_project, { owner_id: user.id, owner: {'login' => user.login} } )
       ght.stubs(:retrieve_repo).returns(repo)
       ght.stubs(:retrieve_repo_label).returns(nil)
+      ght.stubs(:persist_repo).returns repo
+
       ght.expects(:warn).returns("Could not retrieve repo_label #{user.name_email}/#{repo.name} -> master")
 
       retval = ght.ensure_repo_label(user.name_email, repo.name, 'master')
@@ -29,6 +31,7 @@ describe 'GHTRepoLabel' do
       user = create(:user, db_obj: db)
       repo = create(:project, :github_project, { owner_id: user.id, owner: {'login' => user.login} } )
       ght.stubs(:retrieve_repo).returns(repo)
+      ght.stubs(:persist_repo).returns repo
       ght.stubs(:retrieve_repo_label).returns(['master'])
 
       retval = ght.ensure_repo_label(user.name_email, repo.name, 'master')
@@ -40,6 +43,8 @@ describe 'GHTRepoLabel' do
       repo = create(:project, :github_project, { owner_id: user.id, owner: {'login' => user.login} } )
       ght.stubs(:ensure_user).returns user
       ght.stubs(:retrieve_repo).returns(nil)
+      ght.stubs(:persist_repo).returns nil
+
       ght.expects(:warn)
           .returns("Could not find #{user.name_email}/#{repo.name} for retrieving issue labels")
           .at_least_once
@@ -53,6 +58,7 @@ describe 'GHTRepoLabel' do
       repo = create(:project, :github_project, { owner_id: user.id, owner: {'login' => user.login} } )
 
       ght.stubs(:retrieve_repo).returns(repo)
+      ght.stubs(:persist_repo).returns repo 
       ght.stubs(:retrieve_repo_labels).returns(['master'])
       ght.stubs(:ensure_repo_label).returns('master')
 
@@ -66,6 +72,8 @@ describe 'GHTRepoLabel' do
       ght.stubs(:retrieve_user_byemail).returns(user)
       ght.stubs(:retrieve_repo).returns(nil)
       ght.stubs(:retrieve_repo_label).returns(['master'])
+      ght.stubs(:persist_repo).returns nil
+
       retval = ght.ensure_repo_label(user.name_email, repo.name, 'master')
       refute retval
     end

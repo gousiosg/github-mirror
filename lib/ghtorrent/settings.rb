@@ -25,7 +25,7 @@ module GHTorrent
         :store_pull_request_commits => 'mirror.store_pull_request_commits',
 
         :github_token => 'mirror.token',
-
+        :etag_refresh_hours => 'mirror.etag_refresh_hours',
         :attach_ip => 'mirror.attach_ip',
 
         :rescue_loops => 'mirror.rescue_loops',
@@ -52,6 +52,7 @@ module GHTorrent
 
         :sql_url => 'sqlite://github.db',
         # :sql_url => 'mysql2://ghtorrent:ghtorrent@localhost/ghtorrent',
+        # :sql_url => 'postgres://ght_admin:oh-Postgres!8@ght-db01.eastus.cloudapp.azure.com:5432/ght_development',
 
         :mirror_urlbase => 'https://api.github.com/',
         :mirror_persister => 'noop',
@@ -60,6 +61,7 @@ module GHTorrent
         :store_pull_request_commits => 'false',
 
         :github_token => 'place your github token here',
+        :etag_refresh_hours => 12,
 
         :attach_ip => '0.0.0.0',
 

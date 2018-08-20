@@ -30,6 +30,8 @@ describe 'GhtIssueEvent' do
       ght.stubs(:retrieve_issue).returns(issue)
       ght.stubs(:retrieve_issue_events).returns ([issue_event])
       ght.stubs(:retrieve_issue_event).returns issue_event
+      ght.stubs(:persist_repo).returns repo
+
       retval = ght.ensure_issue_event(user.name_email, repo.name,
           issue.issue_id, issue_event.event_id)
       assert retval
@@ -128,6 +130,7 @@ describe 'GhtIssueEvent' do
       ght.stubs(:retrieve_issue).returns(issue)
       ght.stubs(:retrieve_issue_events).returns ([issue_event])
       ght.stubs(:retrieve_issue_event).returns issue_event
+      ght.stubs(:persist_repo).returns repo
 
       issue.pull_request = nil
 
@@ -157,6 +160,8 @@ describe 'GhtIssueEvent' do
       ght.stubs(:retrieve_issue).returns(issue)
       ght.stubs(:retrieve_issue_events).returns ([issue_event])
       ght.stubs(:retrieve_issue_event).returns issue_event
+      ght.stubs(:persist_repo).returns repo
+
       issue.pull_request = nil
       retval = ght.ensure_issue_event(user.name_email, repo.name,issue.issue_id, issue_event.event_id)
       assert retval

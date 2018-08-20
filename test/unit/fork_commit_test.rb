@@ -27,6 +27,7 @@ describe 'GhtForkCommit' do
         parents: [] })
 
       ght.stubs(:retrieve_repo).returns(repo)
+      ght.stubs(:persist_repo).returns(repo)
       ght.stubs(:retrieve_commits).returns ([commit])
 
       ght.stubs(:retrieve_commit).returns(commit)

@@ -13,6 +13,7 @@ describe 'GhtWatcher' do
       # ght.stubs(:retrieve_repo).returns repo
       ght.stubs(:retrieve_watchers).returns [watcher_user]
       ght.stubs(:retrieve_watcher).returns watcher_user
+      ght.stubs(:persist_repo).returns repo
 
       retval = ght.ensure_watchers(user.name_email, repo.name)
       assert retval[0][:user_id] == watcher_user.id
@@ -27,6 +28,7 @@ describe 'GhtWatcher' do
 
       ght.stubs(:retrieve_watchers).returns [watcher_user]
       ght.stubs(:retrieve_watcher).returns watcher_user
+      ght.stubs(:persist_repo).returns repo
 
       retval = ght.ensure_watchers(user.name_email, repo.name)
       retval.first[:repo_id].must_equal repo.id
@@ -40,6 +42,7 @@ describe 'GhtWatcher' do
       repo = create(:repo, {owner_id: user.id, owner: {'login' => user.login} } )
 
       ght.stubs(:retrieve_repo).returns(nil)
+      ght.stubs(:persist_repo).returns nil
 
       retval = ght.ensure_watchers(user.name_email, repo.name)
       refute retval
@@ -54,6 +57,7 @@ describe 'GhtWatcher' do
       ght.stubs(:retrieve_watchers).returns [watcher_user]
       ght.stubs(:retrieve_watcher).returns nil
       ght.stubs(:retrieve_repo).returns(nil)
+      ght.stubs(:persist_repo).returns nil
 
       retval = ght.ensure_watcher(user.name_email, repo.name, watcher_user.name_email, DateTime.now)
       refute retval
@@ -68,6 +72,7 @@ describe 'GhtWatcher' do
       ght.stubs(:retrieve_watchers).returns [watcher_user]
       ght.stubs(:retrieve_watcher).returns nil
       ght.stubs(:retrieve_repo).returns(repo)
+      ght.stubs(:persist_repo).returns(repo)
 
       retval = ght.ensure_watcher(user.name_email, repo.name, watcher_user.name_email, DateTime.now)
       refute retval

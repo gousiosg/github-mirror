@@ -59,6 +59,10 @@ all GitHub users or repositories and add the non-existing ones to the database.
     @ght
   end
 
+  def db
+    ght.db
+  end
+
   def go
     @last_load_file = "mass-harvester.lasturl"
 

@@ -27,6 +27,8 @@ describe 'GhtIssueLabel' do
       ght.stubs(:retrieve_issue_labels).returns ([issue_label])
       ght.stubs(:retrieve_issue_label).returns issue_label
       ght.stubs(:retrieve_repo_label).returns repo_label
+      ght.stubs(:persist_repo).returns repo
+
       ght.expects(:info)
         .returns("Added issue_label #{issue_label.name} to issue #{user.name_email}/#{repo.name} -> #{issue.issue_id}")
       retval = ght.ensure_issue_labels(user.name_email, repo.name, issue.issue_id)
@@ -61,6 +63,7 @@ describe 'GhtIssueLabel' do
       ght.stubs(:retrieve_issue_labels).returns ([issue_label])
       ght.stubs(:retrieve_issue_label).returns issue_label
       ght.stubs(:retrieve_repo_label).returns repo_label
+      ght.stubs(:persist_repo).returns repo
 
       retval = ght.ensure_issue_labels(user.name_email, repo.name, issue.issue_id)
       assert retval.empty?
@@ -128,6 +131,8 @@ describe 'GhtIssueLabel' do
       ght.stubs(:retrieve_issue_labels).returns ([issue_label])
       ght.stubs(:retrieve_issue_label).returns issue_label
       ght.stubs(:retrieve_repo_label).returns repo_label
+      ght.stubs(:persist_repo).returns repo
+
       ght.expects(:debug)
         .returns("Issue label #{issue_label.name} to issue #{user.name_email}/#{repo.name} -> #{issue_label.issue_id} exists")
         .at_least_once

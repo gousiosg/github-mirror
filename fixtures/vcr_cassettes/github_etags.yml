@@ -1,0 +1,74 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://api.github.com/users/linus/followers?page=43&per_page=2
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - ghtorrent
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - GitHub.com
+      Date:
+      - Mon, 18 Jun 2018 06:08:06 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Transfer-Encoding:
+      - chunked
+      Status:
+      - 200 OK
+      X-Ratelimit-Limit:
+      - '60'
+      X-Ratelimit-Remaining:
+      - '49'
+      X-Ratelimit-Reset:
+      - '1529304526'
+      Cache-Control:
+      - public, max-age=60, s-maxage=60
+      Vary:
+      - Accept
+      Etag:
+      - W/"05d357bde1fe90eb9bd50bd7737e7d7f"
+      X-Github-Media-Type:
+      - github.v3
+      Link:
+      - <https://api.github.com/user/105278/followers?page=42&per_page=2>; rel="prev",
+        <https://api.github.com/user/105278/followers?page=1&per_page=2>; rel="first"
+      Access-Control-Expose-Headers:
+      - ETag, Link, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      X-Runtime-Rack:
+      - '0.027791'
+      X-Github-Request-Id:
+      - 97E0:6144:458CE33:968B9D5:5B274C45
+    body:
+      encoding: ASCII-8BIT
+      string: '[{"login":"hiroki-tkg","id":5345000,"node_id":"MDQ6VXNlcjUzNDUwMDA=","avatar_url":"https://avatars2.githubusercontent.com/u/5345000?v=4","gravatar_id":"","url":"https://api.github.com/users/hiroki-tkg","html_url":"https://github.com/hiroki-tkg","followers_url":"https://api.github.com/users/hiroki-tkg/followers","following_url":"https://api.github.com/users/hiroki-tkg/following{/other_user}","gists_url":"https://api.github.com/users/hiroki-tkg/gists{/gist_id}","starred_url":"https://api.github.com/users/hiroki-tkg/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/hiroki-tkg/subscriptions","organizations_url":"https://api.github.com/users/hiroki-tkg/orgs","repos_url":"https://api.github.com/users/hiroki-tkg/repos","events_url":"https://api.github.com/users/hiroki-tkg/events{/privacy}","received_events_url":"https://api.github.com/users/hiroki-tkg/received_events","type":"User","site_admin":false}]'
+    http_version: 
+  recorded_at: Mon, 18 Jun 2018 06:08:06 GMT
+recorded_with: VCR 4.0.0

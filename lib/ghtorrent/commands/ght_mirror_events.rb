@@ -39,6 +39,14 @@ are also queued, to ensure no additional information is gone missing.
     @persister ||= connect(:mongo, @settings)
     @persister
   end
+  
+  def ght
+    @ght ||= TransactedGHTorrent.new(settings)
+  end
+
+  def db
+    ght.db
+  end
 
   def store_count(events)
     stored = Array.new

@@ -9,6 +9,7 @@ describe 'GhtRepo' do
      repo = create(:project, { owner_id: user.id, db_obj: db })
 
      assert repo.owner_id = user.id
+     ght.stubs(:persist_repo).returns repo
      repo = ght.ensure_repo(user.name_email, repo.name)
 
      assert repo
@@ -19,6 +20,7 @@ describe 'GhtRepo' do
      repo = create(:repo, {owner_id: user.id, owner: {'login' => user.login} } )
 
      ght.stubs(:retrieve_repo).returns(nil)
+     ght.stubs(:persist_repo).returns nil
      ght.expects(:warn).returns("Could not retrieve repo #{user.name_email}/#{repo.name}")
 
      repo = ght.ensure_repo(user.name_email, repo.name)
@@ -40,6 +42,7 @@ describe 'GhtRepo' do
      repo = create(:repo, {owner_id: user.id, owner: {'login' => user.login} })
 
      ght.stubs(:retrieve_repo).returns(repo)
+     ght.stubs(:persist_repo).returns repo
      ght.stubs(:ensure_fork_point).returns nil
 
      retval = ght.ensure_repo(user.name_email, repo.name)
@@ -60,6 +63,7 @@ describe 'GhtRepo' do
                    parent: {'name'  => parent_repo.name, 'owner' => {'login' =>parent_user.login}} } )
 
      ght.stubs(:retrieve_repo).returns(repo)
+     ght.stubs(:persist_repo).returns repo
 
      db_repo = ght.ensure_repo(user.name_email, repo.name)
      assert db_repo[:url].must_equal repo.url
@@ -75,6 +79,7 @@ describe 'GhtRepo' do
                    parent: {'name'  => parent_repo.name, 'owner' => {'login' =>parent_user.login}} } )
 
      ght.stubs(:retrieve_repo).returns(repo)
+     ght.stubs(:persist_repo).returns repo
      ght.stubs(:ensure_fork_point).returns nil
      db_repo = ght.ensure_repo(user.name_email, repo.name)
      assert db_repo[:url].must_equal repo.url
@@ -101,6 +106,7 @@ describe 'GhtRepo' do
       ght.stubs(:ensure_commit).returns(commit)
       ght.stubs(:retrieve_commit).returns(commit)
       ght.stubs(:retrieve_commit_comments).returns []
+      ght.stubs(:persist_repo).returns repo
       sha = commit.sha
 
       retval = ght.ensure_repo_commit(user.name_email, repo.name, sha)
@@ -117,6 +123,7 @@ describe 'GhtRepo' do
       user = create(:user, db_obj: db)
       repo = create(:project, :github_project, { owner_id: user.id, owner: {'login' => user.login} } )
       ght.stubs(:retrieve_repo).returns(repo)
+      ght.stubs(:persist_repo).returns repo
       ght.stubs(:retrieve_languages).returns({"Ruby"=>35941, "HTML"=>6085, "JavaScript"=>2239, "CSS"=>1728})
 
       ght.ensure_languages(user.name_email, repo.name)

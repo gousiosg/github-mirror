@@ -1,0 +1,140 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://api.github.com/users/linus/followers?page=44&per_page=2
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - ghtorrent
+      Accept:
+      - application/json
+      If-None-Match:
+      - W/"7e96712c73e285b2d348146921ccc000"
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 304
+      message: Not Modified
+    headers:
+      Server:
+      - GitHub.com
+      Date:
+      - Sun, 15 Jul 2018 23:15:45 GMT
+      Content-Type:
+      - application/octet-stream
+      Status:
+      - 304 Not Modified
+      X-Ratelimit-Limit:
+      - '60'
+      X-Ratelimit-Remaining:
+      - '47'
+      X-Ratelimit-Reset:
+      - '1531698971'
+      Cache-Control:
+      - public, max-age=60, s-maxage=60
+      Vary:
+      - Accept
+      Etag:
+      - '"7e96712c73e285b2d348146921ccc000"'
+      Access-Control-Expose-Headers:
+      - ETag, Link, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      X-Runtime-Rack:
+      - '0.027950'
+      X-Github-Request-Id:
+      - CFFE:12A4:691AAA8:C433E2A:5B4BD5A0
+    body:
+      encoding: UTF-8
+      string: ''
+    http_version: 
+  recorded_at: Sun, 15 Jul 2018 23:15:45 GMT
+- request:
+    method: get
+    uri: https://api.github.com/users/linus/followers?per_page=2
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - ghtorrent
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - GitHub.com
+      Date:
+      - Sun, 15 Jul 2018 23:15:47 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Transfer-Encoding:
+      - chunked
+      Status:
+      - 200 OK
+      X-Ratelimit-Limit:
+      - '60'
+      X-Ratelimit-Remaining:
+      - '46'
+      X-Ratelimit-Reset:
+      - '1531698971'
+      Cache-Control:
+      - public, max-age=60, s-maxage=60
+      Vary:
+      - Accept
+      Etag:
+      - W/"014f26d1b4b9c926514b93e2cb287f1a"
+      X-Github-Media-Type:
+      - github.v3
+      Link:
+      - <https://api.github.com/user/105278/followers?per_page=2&page=2>; rel="next",
+        <https://api.github.com/user/105278/followers?per_page=2&page=44>; rel="last"
+      Access-Control-Expose-Headers:
+      - ETag, Link, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      X-Runtime-Rack:
+      - '0.036079'
+      X-Github-Request-Id:
+      - D000:12A2:2BADFA8:654DAE1:5B4BD5A2
+    body:
+      encoding: ASCII-8BIT
+      string: '[{"login":"aredridel","id":2876,"node_id":"MDQ6VXNlcjI4NzY=","avatar_url":"https://avatars3.githubusercontent.com/u/2876?v=4","gravatar_id":"","url":"https://api.github.com/users/aredridel","html_url":"https://github.com/aredridel","followers_url":"https://api.github.com/users/aredridel/followers","following_url":"https://api.github.com/users/aredridel/following{/other_user}","gists_url":"https://api.github.com/users/aredridel/gists{/gist_id}","starred_url":"https://api.github.com/users/aredridel/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/aredridel/subscriptions","organizations_url":"https://api.github.com/users/aredridel/orgs","repos_url":"https://api.github.com/users/aredridel/repos","events_url":"https://api.github.com/users/aredridel/events{/privacy}","received_events_url":"https://api.github.com/users/aredridel/received_events","type":"User","site_admin":false},{"login":"skanev","id":10382,"node_id":"MDQ6VXNlcjEwMzgy","avatar_url":"https://avatars1.githubusercontent.com/u/10382?v=4","gravatar_id":"","url":"https://api.github.com/users/skanev","html_url":"https://github.com/skanev","followers_url":"https://api.github.com/users/skanev/followers","following_url":"https://api.github.com/users/skanev/following{/other_user}","gists_url":"https://api.github.com/users/skanev/gists{/gist_id}","starred_url":"https://api.github.com/users/skanev/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/skanev/subscriptions","organizations_url":"https://api.github.com/users/skanev/orgs","repos_url":"https://api.github.com/users/skanev/repos","events_url":"https://api.github.com/users/skanev/events{/privacy}","received_events_url":"https://api.github.com/users/skanev/received_events","type":"User","site_admin":false}]'
+    http_version: 
+  recorded_at: Sun, 15 Jul 2018 23:15:47 GMT
+recorded_with: VCR 4.0.0

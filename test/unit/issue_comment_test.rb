@@ -29,6 +29,7 @@ describe 'GhtIssueComment' do
       ght.stubs(:retrieve_issue).returns(issue)
       ght.stubs(:retrieve_issue_comments).returns ([issue_comments])
       ght.stubs(:retrieve_issue_comment).returns issue_comments
+      ght.stubs(:persist_repo).returns repo
 
       retval = ght.ensure_issue_comments(user.name_email, repo.name,issue.issue_id)
       assert retval

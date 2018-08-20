@@ -22,6 +22,7 @@ describe 'GhtFork' do
           owner: { 'login' => user.name_email },
           db_obj: db })
       ght.stubs(:retrieve_fork).returns repo
+      ght.stubs(:persist_repo).returns repo
 
       fork_owner = repo.url.split(/\//)[4]
 
@@ -62,6 +63,7 @@ describe 'GhtFork' do
           db_obj: db })
       ght.stubs(:retrieve_fork).returns repo
       ght.stubs(:retrieve_forks).returns([repo])
+      ght.stubs(:persist_repo).returns repo
 
       fork_owner = repo.url.split(/\//)[4]
 
@@ -81,6 +83,7 @@ describe 'GhtFork' do
           db_obj: db })
 
       ght.stubs(:retrieve_fork).returns repo
+      ght.stubs(:persist_repo).returns repo
       ght.stubs(:retrieve_forks).returns([repo])
 
       retval = ght.ensure_forks(user.name_email, fork_repo.name)

@@ -2,9 +2,10 @@ require 'test_helper'
 
 class TestGHTorrentRetriever
   include GHTorrent::Retriever
+  attr_accessor :ght, :db
 
   def persister
-    @persister ||= GHTorrent::Mirror.new(1).persister
+    @persister ||= ght.persister
   end
 
   def debug(_string); end
@@ -23,8 +24,8 @@ describe GHTorrent::Retriever do
   let(:username)        { 'Priya5' }
 
   before do
-    session = 1
-    @ght = GHTorrent::Mirror.new(session)
+    retriever.db = db
+    retriever.ght = ght
   end
 
   it 'should raise error' do
@@ -159,24 +160,24 @@ describe GHTorrent::Retriever do
 
   describe 'retrieve_pull_request_commit' do
     it 'should return a pull request commit' do
-      @ght.db.transaction(rollback: :always) do
-        user = create(:user, db_obj: @ght.db)
+      db.transaction(rollback: :always) do
+        user = create(:user, db_obj: db)
         repo = create(:repo, :github_project, owner_id: user.id,
                                               owner: { 'login' => user.name_email },
-                                              db_obj: @ght.db)
+                                              db_obj: db)
 
         commit = create(:sha, :github_commit,  project_id: repo.id, committer_id: user.id,
                                                author: user,
                                                committer: user,
                                                commit:  { comment_count: 0, author: user,
                                                           committer: user },
-                                               parents: [], db_obj: @ght.db)
+                                               parents: [], db_obj: db)
         pull_request = create(:pull_request, :github_pr, base_repo_id: repo.id,
-                                                         base_commit_id: commit.id, db_obj: @ght.db)
+                                                         base_commit_id: commit.id, db_obj: db)
 
         pr_commit = create(:pull_request_commit, :github_pr_commit,
                            pull_request_id: pull_request.id, commit_id: commit.id, repo_name: repo.name,
-                           owner: user.name_email, sha: commit.sha, db_obj: @ght.db)
+                           owner: user.name_email, sha: commit.sha, db_obj: db)
         retriever.persister.stubs(:find).with(:pull_request_commits, 'sha' => pr_commit.sha).returns([pr_commit])
         retriever.retrieve_pull_request_commit(pull_request, repo, pr_commit.sha, user).must_equal pr_commit
       end
@@ -420,21 +421,22 @@ describe GHTorrent::Retriever do
         retriever.retrieve_pull_request(username, repo_name, '10').must_be_nil
       end
     end
+
     it 'should fetch pull_requests details from github and refresh the data' do
-      @ght.db.transaction(rollback: :always) do
-        user = create(:user, db_obj: @ght.db)
+      db.transaction(rollback: :always) do
+        user = create(:user, db_obj: db)
         repo = create(:repo, :github_project, owner_id: user.id,
                                               owner: { 'login' => user.name_email },
-                                              db_obj: @ght.db)
+                                              db_obj: db)
 
         commit = create(:sha, :github_commit,  project_id: repo.id, committer_id: user.id,
                                                author: user,
                                                committer: user,
                                                commit:  { comment_count: 0, author: user,
                                                           committer: user },
-                                               parents: [], db_obj: @ght.db)
+                                               parents: [], db_obj: db)
         pull_request = create(:pull_request, :github_pr, base_repo_id: repo.id,
-                                                         base_commit_id: commit.id, db_obj: @ght.db)
+                                                         base_commit_id: commit.id, db_obj: db)
         VCR.use_cassette('github_get_repo_prs') do
           retriever.persister.stubs(:find).with(:pull_requests, 'repo' => repo_name,
                                                                 'owner' => username, 'number' => pull_request.id).returns([pull_request])

@@ -80,6 +80,10 @@ module GHTorrent
       end
     end
 
+    def check_entity_exists(entity)
+      raise "Persister: Entity #{entity} not known" unless bsearch(ENTITIES, entity)
+    end
+
     # Get a raw connection to the underlying data store. The connection is
     # implementaiton dependent.
     def get_underlying_connection

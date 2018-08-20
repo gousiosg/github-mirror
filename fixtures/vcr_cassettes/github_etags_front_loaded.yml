@@ -1,0 +1,78 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://api.github.com/repos/blackducksoftware/ohcount/events?page=1&per_page=2
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - ghtorrent
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - GitHub.com
+      Date:
+      - Mon, 18 Jun 2018 06:13:59 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Transfer-Encoding:
+      - chunked
+      Status:
+      - 200 OK
+      X-Ratelimit-Limit:
+      - '60'
+      X-Ratelimit-Remaining:
+      - '46'
+      X-Ratelimit-Reset:
+      - '1529304526'
+      Cache-Control:
+      - public, max-age=60, s-maxage=60
+      Vary:
+      - Accept
+      Etag:
+      - W/"994a7ec716e09c6e54191b603e88d788"
+      Last-Modified:
+      - Sun, 17 Jun 2018 06:35:29 GMT
+      X-Poll-Interval:
+      - '60'
+      X-Github-Media-Type:
+      - github.v3
+      Link:
+      - <https://api.github.com/repositories/1029520/events?page=2&per_page=2>; rel="next",
+        <https://api.github.com/repositories/1029520/events?page=22&per_page=2>; rel="last"
+      Access-Control-Expose-Headers:
+      - ETag, Link, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      X-Runtime-Rack:
+      - '0.075215'
+      X-Github-Request-Id:
+      - 97E8:6144:4599D18:96A83A4:5B274DA6
+    body:
+      encoding: ASCII-8BIT
+      string: '[{"id":"7835480810","type":"WatchEvent","actor":{"id":227771,"login":"scjung","display_login":"scjung","gravatar_id":"","url":"https://api.github.com/users/scjung","avatar_url":"https://avatars.githubusercontent.com/u/227771?"},"repo":{"id":1029520,"name":"blackducksoftware/ohcount","url":"https://api.github.com/repos/blackducksoftware/ohcount"},"payload":{"action":"started"},"public":true,"created_at":"2018-06-17T06:35:29Z","org":{"id":431461,"login":"blackducksoftware","gravatar_id":"","url":"https://api.github.com/orgs/blackducksoftware","avatar_url":"https://avatars.githubusercontent.com/u/431461?"}},{"id":"7815990636","type":"WatchEvent","actor":{"id":17812226,"login":"43h","display_login":"43h","gravatar_id":"","url":"https://api.github.com/users/43h","avatar_url":"https://avatars.githubusercontent.com/u/17812226?"},"repo":{"id":1029520,"name":"blackducksoftware/ohcount","url":"https://api.github.com/repos/blackducksoftware/ohcount"},"payload":{"action":"started"},"public":true,"created_at":"2018-06-13T01:46:04Z","org":{"id":431461,"login":"blackducksoftware","gravatar_id":"","url":"https://api.github.com/orgs/blackducksoftware","avatar_url":"https://avatars.githubusercontent.com/u/431461?"}}]'
+    http_version: 
+  recorded_at: Mon, 18 Jun 2018 06:14:00 GMT
+recorded_with: VCR 4.0.0

@@ -18,6 +18,10 @@ module GHTorrent
         @ghtorrent
       end
 
+      def db
+        ght.db
+      end
+
       def update_persister(login, new_user)
         r = persister.del(:users, {'login' => login})
         persister.store(:users, new_user)
