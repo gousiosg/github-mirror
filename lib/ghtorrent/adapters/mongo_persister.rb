@@ -60,6 +60,12 @@ module GHTorrent
       mongo[entity].insert_one(data).to_s
     end
 
+    def replace(entity, query, new_entry, upsert = true)
+      check_entity_exists(entity)		
+      r = mongo[entity].update_one(query, new_entry, {:upsert => upsert}) 
+      r
+    end
+
     def find(entity, query = {})
       super
       mongo[entity].

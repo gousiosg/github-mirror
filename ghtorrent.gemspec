@@ -1,4 +1,3 @@
-require 'rake'
 require File.expand_path('../lib/version', __FILE__)
 
 Gem::Specification.new do |s|
@@ -18,10 +17,10 @@ Gem::Specification.new do |s|
                      'ght-retrieve-repo', 'ght-retrieve-user',
                      'ght-retrieve-repos', 'ght-retrieve-users',
                      'ght-mass-harvester']
-  s.files         = FileList['lib/**/*.rb',
+  s.files         = Dir.glob(['lib/**/*.rb',
                              'bin/*',
                              '[A-Z]*',
-                             'lib/ghtorrent/country_codes.txt'].to_a
+                             'lib/ghtorrent/country_codes.txt'])
   s.required_ruby_version = '~> 2.0'
 
   s.add_runtime_dependency 'mongo', '~> 2.4', '>= 2.4.3'
@@ -29,8 +28,21 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'sequel', '~> 4.5', '>= 4.5.0'
   s.add_runtime_dependency 'bunny', '~> 2.3', '>= 2.3.0'
 
+  s.add_development_dependency 'sqlite3', '1.3.13'
   s.add_development_dependency 'influxdb', '0.3.5'
 
+  s.add_development_dependency "minitest", "~> 4.7.3"
+  s.add_development_dependency 'm', '~> 1.5.0'
+  s.add_development_dependency 'simplecov'
+  s.add_development_dependency 'simplecov-rcov'
+  s.add_development_dependency 'mocha'
+  s.add_development_dependency 'factory_girl'
+  s.add_development_dependency 'faker'
+  s.add_development_dependency 'byebug'
+  s.add_development_dependency 'vcr'
+  s.add_development_dependency 'webmock'
+  s.add_development_dependency 'minitest-around'
+  s.add_development_dependency 'rake'
   begin
     require 'changelog'
     s.post_install_message = CHANGELOG.new.version_changes

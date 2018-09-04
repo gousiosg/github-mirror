@@ -39,6 +39,10 @@ If event_id is provided, only this event is processed.
     @gh
   end
 
+  def db
+    ght.db
+  end
+
   def logger
     ght.logger
   end
@@ -49,6 +53,7 @@ If event_id is provided, only this event is processed.
 
   def retrieve_event(evt_id)
     event = persister.find(:events, {'id' => evt_id}).first
+    return unless event
     event.delete '_id'
     data = JSON.parse(event.to_json)
     debug "Processing event: #{data['type']}-#{data['id']}"
@@ -94,10 +99,16 @@ If event_id is provided, only this event is processed.
         start = Time.now
         begin
           data = retrieve_event(msg)
-          send(h, data)
+          
+          if data
+            send(h, data)
 
-          channel.acknowledge(headers.delivery_tag, false)
-          info "Success processing event. Type: #{data['type']}, ID: #{data['id']}, Time: #{Time.now.to_ms - start.to_ms} ms"
+            channel.acknowledge(headers.delivery_tag, false)
+            info "Success processing event. Type: #{data['type']}, ID: #{data['id']}, Time: #{Time.now.to_ms - start.to_ms} ms"
+          else
+            channel.reject(headers.delivery_tag, false)  
+            warn "Error processing event. #{msg} not found"
+          end
         rescue StandardError => e
           # Give a message a chance to be reprocessed
           if headers.redelivered?

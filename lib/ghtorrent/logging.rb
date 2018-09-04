@@ -28,12 +28,13 @@ module GHTorrent
       @logger ||= proc do
         @logger_uniq ||= config(:logging_uniq)
 
-        logger = if config(:logging_file).casecmp('stdout')
+        logging_file = config(:logging_file).downcase
+        logger = if logging_file == 'stdout'
                    Logger.new(STDOUT)
-                 elsif config(:logging_file).casecmp('stderr')
+                 elsif logging_file == 'stderr'
                    Logger.new(STDERR)
                  else
-                   Logger.new(config(:logging_file))
+                   Logger.new(logging_file)
                  end
 
         logger.level =
@@ -80,7 +81,6 @@ module GHTorrent
 
     # Log a message at the given level.
     def log(level, msg)
-
       case level
         when :fatal then
           loggerr.fatal (retrieve_caller + msg)

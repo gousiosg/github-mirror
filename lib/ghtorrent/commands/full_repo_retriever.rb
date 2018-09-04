@@ -27,6 +27,10 @@ module GHTorrent
         @ghtorrent
       end
 
+      def db
+        ght.db
+      end
+
       def persister
         ght.persister
       end

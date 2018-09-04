@@ -217,12 +217,24 @@ module GHTorrent
       end.select{|x| not x.nil?}
     end
 
+    def request_repo(user, repo)
+      url = ghurl "repos/#{user}/#{repo}"
+      r = api_request(url)
+    end
+
+    def persist_repo(user,repo)
+      repo = request_repo(user, repo)
+      return unless repo and !repo.empty?
+      persister.replace(:repos, {'name' => repo['name'], 'owner.login' => repo['owner']['login']}, repo)
+      info "Added or updated repo #{user} -> #{repo['name']}"
+      repo	
+    end
+
     def retrieve_repo(user, repo, refresh = false)
       stored_repo = persister.find(:repos, {'owner.login' => user,
                                              'name' => repo })
       if stored_repo.empty? or refresh
-        url = ghurl "repos/#{user}/#{repo}"
-        r = api_request(url)
+       r = request_repo(user, repo)
 
         if r.nil? or r.empty?
           return

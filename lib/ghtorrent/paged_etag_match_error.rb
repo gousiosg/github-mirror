@@ -1,0 +1,2 @@
+class PagedEtagMatchError < StandardError
+end

@@ -1,0 +1,267 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://api.github.com/repos/blackducksoftware/ohcount/events?page=1&per_page=2
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - ghtorrent
+      Accept:
+      - application/json
+      If-None-Match:
+      - W/"c483d6f23e912a62cb1ae11316662174"
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 304
+      message: Not Modified
+    headers:
+      Server:
+      - GitHub.com
+      Date:
+      - Sun, 15 Jul 2018 23:03:26 GMT
+      Content-Type:
+      - application/octet-stream
+      Status:
+      - 304 Not Modified
+      X-Ratelimit-Limit:
+      - '60'
+      X-Ratelimit-Remaining:
+      - '57'
+      X-Ratelimit-Reset:
+      - '1531698971'
+      Cache-Control:
+      - public, max-age=60, s-maxage=60
+      Vary:
+      - Accept
+      Etag:
+      - '"c483d6f23e912a62cb1ae11316662174"'
+      Last-Modified:
+      - Sat, 23 Jun 2018 13:16:21 GMT
+      Access-Control-Expose-Headers:
+      - ETag, Link, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      X-Runtime-Rack:
+      - '0.064837'
+      X-Github-Request-Id:
+      - CFB4:12A4:6908F77:C412E3F:5B4BD2BD
+    body:
+      encoding: UTF-8
+      string: ''
+    http_version: 
+  recorded_at: Sun, 15 Jul 2018 23:03:26 GMT
+- request:
+    method: get
+    uri: https://api.github.com/repos/blackducksoftware/ohcount/events?page=1&per_page=2
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - ghtorrent
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - GitHub.com
+      Date:
+      - Sun, 15 Jul 2018 23:03:28 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Transfer-Encoding:
+      - chunked
+      Status:
+      - 200 OK
+      X-Ratelimit-Limit:
+      - '60'
+      X-Ratelimit-Remaining:
+      - '56'
+      X-Ratelimit-Reset:
+      - '1531698971'
+      Cache-Control:
+      - public, max-age=60, s-maxage=60
+      Vary:
+      - Accept
+      Etag:
+      - W/"c483d6f23e912a62cb1ae11316662174"
+      Last-Modified:
+      - Sat, 23 Jun 2018 13:16:21 GMT
+      X-Poll-Interval:
+      - '60'
+      X-Github-Media-Type:
+      - github.v3
+      Link:
+      - <https://api.github.com/repositories/1029520/events?page=2&per_page=2>; rel="next",
+        <https://api.github.com/repositories/1029520/events?page=21&per_page=2>; rel="last"
+      Access-Control-Expose-Headers:
+      - ETag, Link, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      X-Runtime-Rack:
+      - '0.062763'
+      X-Github-Request-Id:
+      - CFB5:12A4:690906D:C413007:5B4BD2BF
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        W3siaWQiOiI3ODY3Nzc3MTA4IiwidHlwZSI6Iklzc3VlQ29tbWVudEV2ZW50
+        IiwiYWN0b3IiOnsiaWQiOjczMzMyNiwibG9naW4iOiJzeWx2ZXN0cmUiLCJk
+        aXNwbGF5X2xvZ2luIjoic3lsdmVzdHJlIiwiZ3JhdmF0YXJfaWQiOiIiLCJ1
+        cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3VzZXJzL3N5bHZlc3RyZSIs
+        ImF2YXRhcl91cmwiOiJodHRwczovL2F2YXRhcnMuZ2l0aHVidXNlcmNvbnRl
+        bnQuY29tL3UvNzMzMzI2PyJ9LCJyZXBvIjp7ImlkIjoxMDI5NTIwLCJuYW1l
+        IjoiYmxhY2tkdWNrc29mdHdhcmUvb2hjb3VudCIsInVybCI6Imh0dHBzOi8v
+        YXBpLmdpdGh1Yi5jb20vcmVwb3MvYmxhY2tkdWNrc29mdHdhcmUvb2hjb3Vu
+        dCJ9LCJwYXlsb2FkIjp7ImFjdGlvbiI6ImNyZWF0ZWQiLCJpc3N1ZSI6eyJ1
+        cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL2JsYWNrZHVja3Nv
+        ZnR3YXJlL29oY291bnQvaXNzdWVzLzU0IiwicmVwb3NpdG9yeV91cmwiOiJo
+        dHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL2JsYWNrZHVja3NvZnR3YXJl
+        L29oY291bnQiLCJsYWJlbHNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNv
+        bS9yZXBvcy9ibGFja2R1Y2tzb2Z0d2FyZS9vaGNvdW50L2lzc3Vlcy81NC9s
+        YWJlbHN7L25hbWV9IiwiY29tbWVudHNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0
+        aHViLmNvbS9yZXBvcy9ibGFja2R1Y2tzb2Z0d2FyZS9vaGNvdW50L2lzc3Vl
+        cy81NC9jb21tZW50cyIsImV2ZW50c191cmwiOiJodHRwczovL2FwaS5naXRo
+        dWIuY29tL3JlcG9zL2JsYWNrZHVja3NvZnR3YXJlL29oY291bnQvaXNzdWVz
+        LzU0L2V2ZW50cyIsImh0bWxfdXJsIjoiaHR0cHM6Ly9naXRodWIuY29tL2Js
+        YWNrZHVja3NvZnR3YXJlL29oY291bnQvcHVsbC81NCIsImlkIjoyNTU0MjY2
+        ODUsIm5vZGVfaWQiOiJNREV4T2xCMWJHeFNaWEYxWlhOME1UTTVORE0wTmpB
+        MyIsIm51bWJlciI6NTQsInRpdGxlIjoiU29tZSBmaXhlcyBmb3IgYnVpbGRp
+        bmcgb24gRmVkb3JhIiwidXNlciI6eyJsb2dpbiI6ImJsdWVkcmVhbWVyIiwi
+        aWQiOjc1MzYxMCwibm9kZV9pZCI6Ik1EUTZWWE5sY2pjMU16WXhNQT09Iiwi
+        YXZhdGFyX3VybCI6Imh0dHBzOi8vYXZhdGFyczEuZ2l0aHVidXNlcmNvbnRl
+        bnQuY29tL3UvNzUzNjEwP3Y9NCIsImdyYXZhdGFyX2lkIjoiIiwidXJsIjoi
+        aHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS91c2Vycy9ibHVlZHJlYW1lciIsImh0
+        bWxfdXJsIjoiaHR0cHM6Ly9naXRodWIuY29tL2JsdWVkcmVhbWVyIiwiZm9s
+        bG93ZXJzX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vdXNlcnMvYmx1
+        ZWRyZWFtZXIvZm9sbG93ZXJzIiwiZm9sbG93aW5nX3VybCI6Imh0dHBzOi8v
+        YXBpLmdpdGh1Yi5jb20vdXNlcnMvYmx1ZWRyZWFtZXIvZm9sbG93aW5ney9v
+        dGhlcl91c2VyfSIsImdpc3RzX3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5j
+        b20vdXNlcnMvYmx1ZWRyZWFtZXIvZ2lzdHN7L2dpc3RfaWR9Iiwic3RhcnJl
+        ZF91cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3VzZXJzL2JsdWVkcmVh
+        bWVyL3N0YXJyZWR7L293bmVyfXsvcmVwb30iLCJzdWJzY3JpcHRpb25zX3Vy
+        bCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vdXNlcnMvYmx1ZWRyZWFtZXIv
+        c3Vic2NyaXB0aW9ucyIsIm9yZ2FuaXphdGlvbnNfdXJsIjoiaHR0cHM6Ly9h
+        cGkuZ2l0aHViLmNvbS91c2Vycy9ibHVlZHJlYW1lci9vcmdzIiwicmVwb3Nf
+        dXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS91c2Vycy9ibHVlZHJlYW1l
+        ci9yZXBvcyIsImV2ZW50c191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29t
+        L3VzZXJzL2JsdWVkcmVhbWVyL2V2ZW50c3svcHJpdmFjeX0iLCJyZWNlaXZl
+        ZF9ldmVudHNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS91c2Vycy9i
+        bHVlZHJlYW1lci9yZWNlaXZlZF9ldmVudHMiLCJ0eXBlIjoiVXNlciIsInNp
+        dGVfYWRtaW4iOmZhbHNlfSwibGFiZWxzIjpbXSwic3RhdGUiOiJvcGVuIiwi
+        bG9ja2VkIjpmYWxzZSwiYXNzaWduZWUiOm51bGwsImFzc2lnbmVlcyI6W10s
+        Im1pbGVzdG9uZSI6bnVsbCwiY29tbWVudHMiOjcsImNyZWF0ZWRfYXQiOiIy
+        MDE3LTA5LTA1VDIyOjI1OjM0WiIsInVwZGF0ZWRfYXQiOiIyMDE4LTA2LTIz
+        VDEzOjE2OjIxWiIsImNsb3NlZF9hdCI6bnVsbCwiYXV0aG9yX2Fzc29jaWF0
+        aW9uIjoiTk9ORSIsInB1bGxfcmVxdWVzdCI6eyJ1cmwiOiJodHRwczovL2Fw
+        aS5naXRodWIuY29tL3JlcG9zL2JsYWNrZHVja3NvZnR3YXJlL29oY291bnQv
+        cHVsbHMvNTQiLCJodG1sX3VybCI6Imh0dHBzOi8vZ2l0aHViLmNvbS9ibGFj
+        a2R1Y2tzb2Z0d2FyZS9vaGNvdW50L3B1bGwvNTQiLCJkaWZmX3VybCI6Imh0
+        dHBzOi8vZ2l0aHViLmNvbS9ibGFja2R1Y2tzb2Z0d2FyZS9vaGNvdW50L3B1
+        bGwvNTQuZGlmZiIsInBhdGNoX3VybCI6Imh0dHBzOi8vZ2l0aHViLmNvbS9i
+        bGFja2R1Y2tzb2Z0d2FyZS9vaGNvdW50L3B1bGwvNTQucGF0Y2gifSwiYm9k
+        eSI6IkZpeCBlcnJvciBjYXVzZWQgZnJvbSBGZWRvcmEgL2V0Yy9pc3N1ZSBm
+        aWxlIGNvbnRhaW5pbmcgYFxcU2AgZXNjYXBlIHNlcXVlbmNlXHJcbmBgYFxy
+        XG51bmhhbmRsZWQgL2V0Yy9pc3N1ZSByZXN1bHQ6IFxcc1xyXG5CdWlsZGlu
+        ZyBPaGNvdW50XHJcblxyXG5gYGBcclxuRml4IGNvbXBpbGUgZXJyb3Igd2l0
+        aCBkaWZmZXJlbnQgZnVuY3Rpb24gc2lnbmF0dXJlc1xyXG5cclxubGFuZ3Vh
+        Z2VzLmdwZXJmOjY2OjE6IGVycm9yOiBjb25mbGljdGluZyB0eXBlcyBmb3Ig
+        4oCYb2hjb3VudF9oYXNoX2xhbmd1YWdlX2Zyb21fbmFtZeKAmVxyXG5JbiBm
+        aWxlIGluY2x1ZGVkIGZyb20gbGFuZ3VhZ2VzLmdwZXJmOjI6MDpcclxuc3Jj
+        L2hhc2gvLi4vbGFuZ3VhZ2VzLmg6MTIyOjIxOiBub3RlOiBwcmV2aW91cyBk
+        ZWNsYXJhdGlvbiBvZiDigJhvaGNvdW50X2hhc2hfbGFuZ3VhZ2VfZnJvbV9u
+        YW1l4oCZIHdhcyBoZXJlXHJcbiBzdHJ1Y3QgTGFuZ3VhZ2VNYXAgKm9oY291
+        bnRfaGFzaF9sYW5ndWFnZV9mcm9tX25hbWUocmVnaXN0ZXIgY29uc3QgY2hh
+        ciAqc3RyLCByZWdpc3RlciB1bnNpZ25lZCBpbnQgbGVuKTtcclxuICAgICAg
+        ICAgICAgICAgICAgICAgXn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+
+        flxyXG4ifSwiY29tbWVudCI6eyJ1cmwiOiJodHRwczovL2FwaS5naXRodWIu
+        Y29tL3JlcG9zL2JsYWNrZHVja3NvZnR3YXJlL29oY291bnQvaXNzdWVzL2Nv
+        bW1lbnRzLzM5OTY3Nzg0NSIsImh0bWxfdXJsIjoiaHR0cHM6Ly9naXRodWIu
+        Y29tL2JsYWNrZHVja3NvZnR3YXJlL29oY291bnQvcHVsbC81NCNpc3N1ZWNv
+        bW1lbnQtMzk5Njc3ODQ1IiwiaXNzdWVfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0
+        aHViLmNvbS9yZXBvcy9ibGFja2R1Y2tzb2Z0d2FyZS9vaGNvdW50L2lzc3Vl
+        cy81NCIsImlkIjozOTk2Nzc4NDUsIm5vZGVfaWQiOiJNREV5T2tsemMzVmxR
+        Mjl0YldWdWRETTVPVFkzTnpnME5RPT0iLCJ1c2VyIjp7ImxvZ2luIjoic3ls
+        dmVzdHJlIiwiaWQiOjczMzMyNiwibm9kZV9pZCI6Ik1EUTZWWE5sY2pjek16
+        TXlOZz09IiwiYXZhdGFyX3VybCI6Imh0dHBzOi8vYXZhdGFyczIuZ2l0aHVi
+        dXNlcmNvbnRlbnQuY29tL3UvNzMzMzI2P3Y9NCIsImdyYXZhdGFyX2lkIjoi
+        IiwidXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS91c2Vycy9zeWx2ZXN0
+        cmUiLCJodG1sX3VybCI6Imh0dHBzOi8vZ2l0aHViLmNvbS9zeWx2ZXN0cmUi
+        LCJmb2xsb3dlcnNfdXJsIjoiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS91c2Vy
+        cy9zeWx2ZXN0cmUvZm9sbG93ZXJzIiwiZm9sbG93aW5nX3VybCI6Imh0dHBz
+        Oi8vYXBpLmdpdGh1Yi5jb20vdXNlcnMvc3lsdmVzdHJlL2ZvbGxvd2luZ3sv
+        b3RoZXJfdXNlcn0iLCJnaXN0c191cmwiOiJodHRwczovL2FwaS5naXRodWIu
+        Y29tL3VzZXJzL3N5bHZlc3RyZS9naXN0c3svZ2lzdF9pZH0iLCJzdGFycmVk
+        X3VybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vdXNlcnMvc3lsdmVzdHJl
+        L3N0YXJyZWR7L293bmVyfXsvcmVwb30iLCJzdWJzY3JpcHRpb25zX3VybCI6
+        Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vdXNlcnMvc3lsdmVzdHJlL3N1YnNj
+        cmlwdGlvbnMiLCJvcmdhbml6YXRpb25zX3VybCI6Imh0dHBzOi8vYXBpLmdp
+        dGh1Yi5jb20vdXNlcnMvc3lsdmVzdHJlL29yZ3MiLCJyZXBvc191cmwiOiJo
+        dHRwczovL2FwaS5naXRodWIuY29tL3VzZXJzL3N5bHZlc3RyZS9yZXBvcyIs
+        ImV2ZW50c191cmwiOiJodHRwczovL2FwaS5naXRodWIuY29tL3VzZXJzL3N5
+        bHZlc3RyZS9ldmVudHN7L3ByaXZhY3l9IiwicmVjZWl2ZWRfZXZlbnRzX3Vy
+        bCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vdXNlcnMvc3lsdmVzdHJlL3Jl
+        Y2VpdmVkX2V2ZW50cyIsInR5cGUiOiJVc2VyIiwic2l0ZV9hZG1pbiI6ZmFs
+        c2V9LCJjcmVhdGVkX2F0IjoiMjAxOC0wNi0yM1QxMzoxNjoyMVoiLCJ1cGRh
+        dGVkX2F0IjoiMjAxOC0wNi0yM1QxMzoxNjoyMVoiLCJhdXRob3JfYXNzb2Np
+        YXRpb24iOiJOT05FIiwiYm9keSI6IkBtc2s5OTkgV291bGQgYmUgZ3JlYXQg
+        aWYgeW91IGNvdWxkIG1lcmdlIHRoYXQgaW4gdGhlIG5leHQgcmVsZWFzZSEg
+        VGhhbmtzISJ9fSwicHVibGljIjp0cnVlLCJjcmVhdGVkX2F0IjoiMjAxOC0w
+        Ni0yM1QxMzoxNjoyMVoiLCJvcmciOnsiaWQiOjQzMTQ2MSwibG9naW4iOiJi
+        bGFja2R1Y2tzb2Z0d2FyZSIsImdyYXZhdGFyX2lkIjoiIiwidXJsIjoiaHR0
+        cHM6Ly9hcGkuZ2l0aHViLmNvbS9vcmdzL2JsYWNrZHVja3NvZnR3YXJlIiwi
+        YXZhdGFyX3VybCI6Imh0dHBzOi8vYXZhdGFycy5naXRodWJ1c2VyY29udGVu
+        dC5jb20vdS80MzE0NjE/In19LHsiaWQiOiI3ODQ0Mjg0Nzk0IiwidHlwZSI6
+        IldhdGNoRXZlbnQiLCJhY3RvciI6eyJpZCI6MTYzNzcxMSwibG9naW4iOiJu
+        b3RhbGV4IiwiZGlzcGxheV9sb2dpbiI6Im5vdGFsZXgiLCJncmF2YXRhcl9p
+        ZCI6IiIsInVybCI6Imh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vdXNlcnMvbm90
+        YWxleCIsImF2YXRhcl91cmwiOiJodHRwczovL2F2YXRhcnMuZ2l0aHVidXNl
+        cmNvbnRlbnQuY29tL3UvMTYzNzcxMT8ifSwicmVwbyI6eyJpZCI6MTAyOTUy
+        MCwibmFtZSI6ImJsYWNrZHVja3NvZnR3YXJlL29oY291bnQiLCJ1cmwiOiJo
+        dHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL2JsYWNrZHVja3NvZnR3YXJl
+        L29oY291bnQifSwicGF5bG9hZCI6eyJhY3Rpb24iOiJzdGFydGVkIn0sInB1
+        YmxpYyI6dHJ1ZSwiY3JlYXRlZF9hdCI6IjIwMTgtMDYtMTlUMDk6MTA6NTda
+        Iiwib3JnIjp7ImlkIjo0MzE0NjEsImxvZ2luIjoiYmxhY2tkdWNrc29mdHdh
+        cmUiLCJncmF2YXRhcl9pZCI6IiIsInVybCI6Imh0dHBzOi8vYXBpLmdpdGh1
+        Yi5jb20vb3Jncy9ibGFja2R1Y2tzb2Z0d2FyZSIsImF2YXRhcl91cmwiOiJo
+        dHRwczovL2F2YXRhcnMuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3UvNDMxNDYx
+        PyJ9fV0=
+    http_version: 
+  recorded_at: Sun, 15 Jul 2018 23:03:29 GMT
+recorded_with: VCR 4.0.0

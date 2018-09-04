@@ -12,4 +12,7 @@
 *.db
 config.yaml
 doc/build
-
+/coverage/
+*.json
+.byebug_history
+logs/*

@@ -1,6 +1,6 @@
 require 'sequel'
 
-require 'ghtorrent/time'
+require 'ghtorrent/ghtime'
 require 'ghtorrent/logging'
 require 'ghtorrent/settings'
 require 'ghtorrent/retriever'
@@ -30,6 +30,10 @@ module GHTorrent
     def dispose
       @db.disconnect unless @db.nil?
       @persister.close unless @persister.nil?
+    end
+
+    def ght
+      self
     end
 
     # Get a connection to the database
@@ -277,9 +281,9 @@ module GHTorrent
           users.filter(:login => login).delete
           users.filter(:email => email).update(
               :login => login,
-              :company => added['company'],
-              :location => added['location'],
-              :created_at => added['created_at']
+              :company => added[:company],
+              :location => added[:location],
+              :created_at => added[:created_at]
           )
         end
       else
@@ -559,6 +563,16 @@ module GHTorrent
         warn "Could not find user #{user}"
         return
       end
+      
+      #          New functionality
+      # Always persist updated repositories.  
+      # etag functionality will be used to ensure we don't
+      # hit the repo api too often
+      r = persist_repo(user, repo)
+      if r.nil?
+        warn "Could not retrieve repo #{user}/#{repo}"
+        return
+      end
 
       currepo = repos.first(:owner_id => curuser[:id], :name => repo)
 
@@ -566,14 +580,7 @@ module GHTorrent
         debug "Repo #{user}/#{repo} exists"
         return currepo
       end
-
-      r = retrieve_repo(user, repo, true)
-
-      if r.nil?
-        warn "Could not retrieve repo #{user}/#{repo}"
-        return
-      end
-
+      
       if r['owner']['login'] != curuser[:login]
         info "Repo changed owner from #{curuser[:login]} to #{r['owner']['login']}"
         curuser = ensure_user(r['owner']['login'], false, false)
