@@ -6,7 +6,7 @@ require 'json'
 
 require 'ghtorrent/logging'
 require 'ghtorrent/settings'
-require 'ghtorrent/time'
+require 'ghtorrent/ghtime'
 require 'version'
 
 module GHTorrent
