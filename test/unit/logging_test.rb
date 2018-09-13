@@ -51,6 +51,7 @@ describe 'Logging' do
   end
 
   it 'should log to a file' do
+    FileUtils::mkdir_p('test/log')
     TestLogging::DEFAULTS[:logging_file] = 'test/log/test.log'
     log.config(:logging_file).stubs(:casecmp).returns(false)
     log.error(msg)

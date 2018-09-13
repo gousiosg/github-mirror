@@ -1,0 +1,12 @@
+LOAD DATABASE
+  FROM {{MYSQL_DB_URI}}
+  INTO {{PG_DB_URI}}
+  WITH truncate, data only, disable triggers, include no drop, no foreign keys
+  SET PostgreSQL PARAMETERS
+    maintenance_work_mem to '128MB',
+    work_mem to '12MB'
+  SET MySQL PARAMETERS
+      net_read_timeout  = '120',
+      net_write_timeout = '240'
+  EXCLUDING TABLE NAMES MATCHING 'commits', 'project_commits', 'issues'
+  alter schema '{{SCHEMA_NAME}}' rename to 'public';

@@ -13,7 +13,7 @@ describe 'OrgTest' do
 
     it 'should call the ensure orgs method with an organization' do
       fake_name_login = Faker::Name.first_name
-      user = create(:user, {name: fake_name_login, login: fake_name_login, type: 'org', db_obj: db})
+      user = create(:user, {name: fake_name_login, login: fake_name_login, type: 'ORG', db_obj: db})
       org_member = create(:user,db_obj: db)
       ght.stubs(:retrieve_orgs).returns([user])
       ght.stubs(:retrieve_org_members).returns([user])

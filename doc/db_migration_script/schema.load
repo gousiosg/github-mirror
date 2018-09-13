@@ -1,0 +1,14 @@
+LOAD DATABASE
+  FROM {{MYSQL_DB_URI}}
+  INTO {{PG_DB_URI}}
+  WITH schema only, create no indexes, no foreign keys
+  SET maintenance_work_mem to '128MB', work_mem to '12MB'
+  CAST
+     type int when (<= precision 11) to int drop typemod,
+     type datetime to timestamp,
+     type timestamp to timestamp,
+     type date to date,
+     type datetime when default '0000-00-00 00:00:00' to timestamp using zero-dates-to-null,
+     type timestamp when default '0000-00-00 00:00:00' to timestamp using zero-dates-to-null,
+     type date when default "0000-00-00" to date drop default using zero-dates-to-null
+  alter schema '{{SCHEMA_NAME}}' rename to 'public';
