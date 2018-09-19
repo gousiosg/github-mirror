@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+
+# defaults
+user="ghtorrent"
+passwd=""
+host="localhost"
+db="ghtorrent"
+
+usage()
+{
+  echo "Usage: $0 [-u dbuser ] [-p dbpasswd ] [-h dbhost] [-d database ] dump_dir"
+  echo
+  echo "Restore a database from CSV and SQL files in dump_dir"
+  echo "    -u database user (default: $user)"
+  echo "    -p database passwd (default: $passwd)"
+  echo "    -h database host (default: $host)"
+  echo "    -d database to restore to. Must exist. (default: $db)"
+}
+
+if [ -z $1 ]
+then
+  usage
+  exit 1
+fi
+
+while getopts "u:p:h:d:" o
+do
+  case $o in
+  u)  user=$OPTARG ;;
+  p)  passwd=$OPTARG ;;
+  h)  host=$OPTARG ;;
+  d)  db=$OPTARG ;;
+  \?)     echo "Invalid option: -$OPTARG" >&2
+    usage
+    exit 1
+    ;;
+  esac
+done
+
+# Setup PostgreSQL command line
+if ! [ -z $passwd ]; then
+  export PGPASSWORD=$passwd
+fi
+
+psql="psql -U $user -t -q -h $host -d $db"
+
+shift $(expr $OPTIND - 1)
+dumpDir=$1
+
+if [ ! -e $dumpDir ]; then
+  echo "Cannot find directory to restore from"
+  exit 1
+fi
+
+# Convert to full path
+dumpDir="`pwd`/$dumpDir"
+
+pgDir=`echo $dumpDir/pg_scipts`
+
+if [ ! -e $pgDir/schema.sql ]; then
+  echo "Cannot find $pgDir/schema.sql to create DB schema"
+  exit 1
+fi
+
+# 1. Create db schema
+echo "`date` Creating the DB schema"
+cat $pgDir/schema.sql | $psql
+
+count=`ls -1 $dumpDir/*.csv | wc -l`
+if [ $count != 0 ]; then
+   for f in $dumpDir/*.csv ; do
+     gzip $f
+   done
+fi
+
+# 2. Restore CSV files with disabled FK checks
+for f in $dumpDir/*.csv.gz ; do
+  table=`basename $f|cut -f1 -d'.'`
+  echo "`date` Restoring table $table"
+  echo "COPY $table FROM PROGRAM 'zcat < $f' WITH (FORMAT 'csv', QUOTE E'\"', ESCAPE '\', NULL '\N');" | $psql || exit 1
+done
+
+# 3. Reset sequences
+if [ ! -e $pgDir/reset_sequences.sql ]; then
+  echo "Cannot find $pgDir/reset_sequences.sql to create DB indexes and foreign keys"
+  exit 1
+fi
+
+echo "`date` Resetting sequences"
+cat $pgDir/reset_sequences.sql |
+while read idx; do
+  echo "`date` $idx"
+  echo $idx | $psql || exit 1
+done
+
+# 4. Create indexes
+if [ ! -e $pgDir/indexes_and_foreign_keys.sql ]; then
+  echo "Cannot find $pgDir/indexes_and_foreign_keys.sql to create DB indexes and foreign keys"
+  exit 1
+fi
+
+echo "`date` Creating indexes"
+cat $pgDir/indexes_and_foreign_keys.sql |
+while read idx; do
+  echo "`date` $idx"
+  echo $idx | $psql || exit 1
+done
+
+#: ft=bash

@@ -1,314 +1,479 @@
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = off;
-SET check_function_bodies = false;
-SET client_min_messages = warning;
+SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
+SET @OLD_TIME_ZONE=@@session.time_zone;
 
-DROP SEQUENCE IF EXISTS commit_comments_id_seq CASCADE;
-CREATE SEQUENCE commit_comments_id_seq INCREMENT BY 1
-                                  NO MAXVALUE NO MINVALUE CACHE 1;
-SELECT pg_catalog.setval('commit_comments_id_seq', 1, true);
+DROP SCHEMA IF EXISTS `ghtorrent` ;
+CREATE SCHEMA IF NOT EXISTS `ghtorrent` DEFAULT CHARACTER SET utf8 ;
+USE `ghtorrent` ;
 
--- Table: commit_comments
-DROP TABLE IF EXISTS "commit_comments" CASCADE;
-CREATE TABLE "commit_comments" (
-  "id" integer DEFAULT nextval('commit_comments_id_seq'::regclass) NOT NULL,
-  "commit_id" integer NOT NULL,
-  "user_id" integer NOT NULL,
-  "body" character varying(256),
-  "line" integer,
-  "position" integer,
-  "comment_id" integer NOT NULL,
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-)
-WITHOUT OIDS;
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`users`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`users` ;
 
--- Table: commit_parents
-DROP TABLE IF EXISTS "commit_parents" CASCADE;
-CREATE TABLE "commit_parents" (
-  "commit_id" integer NOT NULL,
-  "parent_id" integer NOT NULL
-)
-WITHOUT OIDS;
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`users` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '',
+  `login` VARCHAR(255) NOT NULL COMMENT '',
+  `company` VARCHAR(255) NULL DEFAULT NULL COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  `type` VARCHAR(255) NOT NULL DEFAULT 'USR' COMMENT '',
+  `fake` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
+  `deleted` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
+  `long` DECIMAL(11,8) COMMENT '',
+  `lat` DECIMAL(10,8) COMMENT '',
+  `country_code` CHAR(3) COMMENT '',
+  `state` VARCHAR(255) COMMENT '',
+  `city` VARCHAR(255) COMMENT '',
+  `location` VARCHAR(255) NULL DEFAULT NULL COMMENT '',
+  PRIMARY KEY (`id`)  COMMENT '')
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
-DROP SEQUENCE IF EXISTS commits_id_seq CASCADE;
-CREATE SEQUENCE commits_id_seq INCREMENT BY 1
-                                  NO MAXVALUE NO MINVALUE CACHE 1;
-SELECT pg_catalog.setval('commits_id_seq', 1, true);
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`projects`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`projects` ;
 
--- Table: commits
-DROP TABLE IF EXISTS "commits" CASCADE;
-CREATE TABLE "commits" (
-  "id" integer DEFAULT nextval('commits_id_seq'::regclass) NOT NULL,
-  "sha" character varying(40),
-  "author_id" integer,
-  "committer_id" integer,
-  "project_id" integer,
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-)
-WITHOUT OIDS;
+SET time_zone='+0:00';
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`projects` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '',
+  `url` VARCHAR(255) NULL DEFAULT NULL COMMENT '',
+  `owner_id` INT(11) NULL DEFAULT NULL COMMENT '',
+  `name` VARCHAR(255) NOT NULL COMMENT '',
+  `description` VARCHAR(255) NULL DEFAULT NULL COMMENT '',
+  `language` VARCHAR(255) NULL DEFAULT NULL COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  `forked_from` INT(11) NULL DEFAULT NULL COMMENT '',
+  `deleted` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
+  `updated_at` TIMESTAMP NOT NULL DEFAULT '1970-01-01 00:00:01' COMMENT '',
+  PRIMARY KEY (`id`)  COMMENT '',
+  CONSTRAINT `projects_ibfk_1`
+    FOREIGN KEY (`owner_id`)
+    REFERENCES `ghtorrent`.`users` (`id`),
+  CONSTRAINT `projects_ibfk_2`
+    FOREIGN KEY (`forked_from`)
+    REFERENCES `ghtorrent`.`projects` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
+SET time_zone=@OLD_TIME_ZONE;
 
--- Table: followers
-DROP TABLE IF EXISTS "followers" CASCADE;
-CREATE TABLE "followers" (
-  "follower_id" integer NOT NULL,
-  "user_id" integer NOT NULL,
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-)
-WITHOUT OIDS;
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`commits`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`commits` ;
 
--- Table: issue_comments
-DROP TABLE IF EXISTS "issue_comments" CASCADE;
-CREATE TABLE "issue_comments" (
-  "issue_id" integer NOT NULL,
-  "user_id" integer NOT NULL,
-  "comment_id" text NOT NULL,
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-)
-WITHOUT OIDS;
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`commits` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '',
+  `sha` VARCHAR(40) NULL DEFAULT NULL COMMENT '',
+  `author_id` INT(11) NULL DEFAULT NULL COMMENT '',
+  `committer_id` INT(11) NULL DEFAULT NULL COMMENT '',
+  `project_id` INT(11) NULL DEFAULT NULL COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  PRIMARY KEY (`id`)  COMMENT '',
+  CONSTRAINT `commits_ibfk_1`
+    FOREIGN KEY (`author_id`)
+    REFERENCES `ghtorrent`.`users` (`id`),
+  CONSTRAINT `commits_ibfk_2`
+    FOREIGN KEY (`committer_id`)
+    REFERENCES `ghtorrent`.`users` (`id`),
+  CONSTRAINT `commits_ibfk_3`
+    FOREIGN KEY (`project_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
--- Table: issue_events
-DROP TABLE IF EXISTS "issue_events" CASCADE;
-CREATE TABLE "issue_events" (
-  "event_id" text NOT NULL,
-  "issue_id" integer NOT NULL,
-  "actor_id" integer NOT NULL,
-  "action" character varying(255) NOT NULL,
-  "action_specific" character varying(50),
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-)
-WITHOUT OIDS;
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`commit_comments`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`commit_comments` ;
 
--- Table: issue_labels
-DROP TABLE IF EXISTS "issue_labels" CASCADE;
-CREATE TABLE "issue_labels" (
-  "label_id" integer NOT NULL,
-  "issue_id" integer NOT NULL
-)
-WITHOUT OIDS;
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`commit_comments` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '',
+  `commit_id` INT(11) NOT NULL COMMENT '',
+  `user_id` INT(11) NOT NULL COMMENT '',
+  `body` VARCHAR(256) NULL DEFAULT NULL COMMENT '',
+  `line` INT(11) NULL DEFAULT NULL COMMENT '',
+  `position` INT(11) NULL DEFAULT NULL COMMENT '',
+  `comment_id` INT(11) NOT NULL COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  PRIMARY KEY (`id`)  COMMENT '',
+  CONSTRAINT `commit_comments_ibfk_1`
+    FOREIGN KEY (`commit_id`)
+    REFERENCES `ghtorrent`.`commits` (`id`),
+  CONSTRAINT `commit_comments_ibfk_2`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `ghtorrent`.`users` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
-DROP SEQUENCE IF EXISTS issues_id_seq CASCADE;
-CREATE SEQUENCE issues_id_seq INCREMENT BY 1
-                                  NO MAXVALUE NO MINVALUE CACHE 1;
-SELECT pg_catalog.setval('issues_id_seq', 1, true);
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`commit_parents`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`commit_parents` ;
 
--- Table: issues
-DROP TABLE IF EXISTS "issues" CASCADE;
-CREATE TABLE "issues" (
-  "id" integer DEFAULT nextval('issues_id_seq'::regclass) NOT NULL,
-  "repo_id" integer,
-  "reporter_id" integer,
-  "assignee_id" integer,
-  "pull_request" boolean NOT NULL,
-  "pull_request_id" integer,
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  "issue_id" integer NOT NULL
-)
-WITHOUT OIDS;
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`commit_parents` (
+  `commit_id` INT(11) NOT NULL COMMENT '',
+  `parent_id` INT(11) NOT NULL COMMENT '',
+  CONSTRAINT `commit_parents_ibfk_1`
+    FOREIGN KEY (`commit_id`)
+    REFERENCES `ghtorrent`.`commits` (`id`),
+  CONSTRAINT `commit_parents_ibfk_2`
+    FOREIGN KEY (`parent_id`)
+    REFERENCES `ghtorrent`.`commits` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
--- Table: organization_members
-DROP TABLE IF EXISTS "organization_members" CASCADE;
-CREATE TABLE "organization_members" (
-  "org_id" integer NOT NULL,
-  "user_id" integer NOT NULL,
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-)
-WITHOUT OIDS;
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`followers`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`followers` ;
 
--- Table: project_commits
-DROP TABLE IF EXISTS "project_commits" CASCADE;
-CREATE TABLE "project_commits" (
-  "project_id" integer DEFAULT 0 NOT NULL,
-  "commit_id" integer DEFAULT 0 NOT NULL
-)
-WITHOUT OIDS;
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`followers` (
+  `follower_id` INT(11) NOT NULL COMMENT '',
+  `user_id` INT(11) NOT NULL COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  PRIMARY KEY (`follower_id`, `user_id`)  COMMENT '',
+  CONSTRAINT `follower_fk1`
+    FOREIGN KEY (`follower_id`)
+    REFERENCES `ghtorrent`.`users` (`id`),
+  CONSTRAINT `follower_fk2`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `ghtorrent`.`users` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
--- Table: project_languages
-DROP TABLE IF EXISTS "project_languages" CASCADE;
-CREATE TABLE "project_languages" (
-  "project_id" integer NOT NULL,
-  "language" character varying(255),
-  "bytes" integer,
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-)
-WITHOUT OIDS;
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`pull_requests`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`pull_requests` ;
 
--- Table: project_members
-DROP TABLE IF EXISTS "project_members" CASCADE;
-CREATE TABLE "project_members" (
-  "repo_id" integer NOT NULL,
-  "user_id" integer NOT NULL,
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  "ext_ref_id" character varying(24) DEFAULT '0'::character varying NOT NULL
-)
-WITHOUT OIDS;
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`pull_requests` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '',
+  `head_repo_id` INT(11) NULL DEFAULT NULL COMMENT '',
+  `base_repo_id` INT(11) NOT NULL COMMENT '',
+  `head_commit_id` INT(11) NULL DEFAULT NULL COMMENT '',
+  `base_commit_id` INT(11) NOT NULL COMMENT '',
+  `pullreq_id` INT(11) NOT NULL COMMENT '',
+  `intra_branch` TINYINT(1) NOT NULL COMMENT '',
+  PRIMARY KEY (`id`)  COMMENT '',
+  CONSTRAINT `pull_requests_ibfk_1`
+    FOREIGN KEY (`head_repo_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`),
+  CONSTRAINT `pull_requests_ibfk_2`
+    FOREIGN KEY (`base_repo_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`),
+  CONSTRAINT `pull_requests_ibfk_3`
+    FOREIGN KEY (`head_commit_id`)
+    REFERENCES `ghtorrent`.`commits` (`id`),
+  CONSTRAINT `pull_requests_ibfk_4`
+    FOREIGN KEY (`base_commit_id`)
+    REFERENCES `ghtorrent`.`commits` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
--- Table: project_topics
-DROP TABLE IF EXISTS "project_topics" CASCADE;
-CREATE TABLE "project_topics" (
-  "project_id" integer NOT NULL,
-  "topic_name" character varying(255) NOT NULL,
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  "deleted" boolean DEFAULT false NOT NULL
-)
-WITHOUT OIDS;
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`issues`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`issues` ;
 
-DROP SEQUENCE IF EXISTS projects_id_seq CASCADE;
-CREATE SEQUENCE projects_id_seq INCREMENT BY 1
-                                  NO MAXVALUE NO MINVALUE CACHE 1;
-SELECT pg_catalog.setval('projects_id_seq', 1, true);
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`issues` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '',
+  `repo_id` INT(11) NULL DEFAULT NULL COMMENT '',
+  `reporter_id` INT(11) NULL DEFAULT NULL COMMENT '',
+  `assignee_id` INT(11) NULL DEFAULT NULL COMMENT '',
+  `pull_request` TINYINT(1) NOT NULL COMMENT '',
+  `pull_request_id` INT(11) NULL DEFAULT NULL COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  `issue_id` INT(11) NOT NULL COMMENT '',
+  PRIMARY KEY (`id`)  COMMENT '',
+  CONSTRAINT `issues_ibfk_1`
+    FOREIGN KEY (`repo_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`),
+  CONSTRAINT `issues_ibfk_2`
+    FOREIGN KEY (`reporter_id`)
+    REFERENCES `ghtorrent`.`users` (`id`),
+  CONSTRAINT `issues_ibfk_3`
+    FOREIGN KEY (`assignee_id`)
+    REFERENCES `ghtorrent`.`users` (`id`),
+  CONSTRAINT `issues_ibfk_4`
+    FOREIGN KEY (`pull_request_id`)
+    REFERENCES `ghtorrent`.`pull_requests` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
--- Table: projects
-DROP TABLE IF EXISTS "projects" CASCADE;
-CREATE TABLE "projects" (
-  "id" integer DEFAULT nextval('projects_id_seq'::regclass) NOT NULL,
-  "url" character varying(255),
-  "owner_id" integer,
-  "name" character varying(255) NOT NULL,
-  "description" character varying(255),
-  "language" character varying(255),
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  "forked_from" integer,
-  "deleted" boolean DEFAULT false NOT NULL,
-  "updated_at" timestamp without time zone DEFAULT '1970-01-01 05:30:01' NOT NULL,
-  "forked_commit_id" integer
-)
-WITHOUT OIDS;
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`issue_comments`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`issue_comments` ;
 
--- Table: pull_request_comments
-DROP TABLE IF EXISTS "pull_request_comments" CASCADE;
-CREATE TABLE "pull_request_comments" (
-  "pull_request_id" integer NOT NULL,
-  "user_id" integer NOT NULL,
-  "comment_id" text NOT NULL,
-  "position" integer,
-  "body" character varying(256),
-  "commit_id" integer NOT NULL,
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-)
-WITHOUT OIDS;
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`issue_comments` (
+  `issue_id` INT(11) NOT NULL COMMENT '',
+  `user_id` INT(11) NOT NULL COMMENT '',
+  `comment_id` MEDIUMTEXT NOT NULL COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  CONSTRAINT `issue_comments_ibfk_1`
+    FOREIGN KEY (`issue_id`)
+    REFERENCES `ghtorrent`.`issues` (`id`),
+  CONSTRAINT `issue_comments_ibfk_2`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `ghtorrent`.`users` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
--- Table: pull_request_commits
-DROP TABLE IF EXISTS "pull_request_commits" CASCADE;
-CREATE TABLE "pull_request_commits" (
-  "pull_request_id" integer NOT NULL,
-  "commit_id" integer NOT NULL
-)
-WITHOUT OIDS;
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`issue_events`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`issue_events` ;
 
-DROP SEQUENCE IF EXISTS pull_request_history_id_seq CASCADE;
-CREATE SEQUENCE pull_request_history_id_seq INCREMENT BY 1
-                                  NO MAXVALUE NO MINVALUE CACHE 1;
-SELECT pg_catalog.setval('pull_request_history_id_seq', 1, true);
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`issue_events` (
+  `event_id` MEDIUMTEXT NOT NULL COMMENT '',
+  `issue_id` INT(11) NOT NULL COMMENT '',
+  `actor_id` INT(11) NOT NULL COMMENT '',
+  `action` VARCHAR(255) NOT NULL COMMENT '',
+  `action_specific` VARCHAR(50) NULL DEFAULT NULL COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  CONSTRAINT `issue_events_ibfk_1`
+    FOREIGN KEY (`issue_id`)
+    REFERENCES `ghtorrent`.`issues` (`id`),
+  CONSTRAINT `issue_events_ibfk_2`
+    FOREIGN KEY (`actor_id`)
+    REFERENCES `ghtorrent`.`users` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
--- Table: pull_request_history
-DROP TABLE IF EXISTS "pull_request_history" CASCADE;
-CREATE TABLE "pull_request_history" (
-  "id" integer DEFAULT nextval('pull_request_history_id_seq'::regclass) NOT NULL,
-  "pull_request_id" integer NOT NULL,
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  "action" character varying(255) NOT NULL,
-  "actor_id" integer
-)
-WITHOUT OIDS;
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`repo_labels`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`repo_labels` ;
 
-DROP SEQUENCE IF EXISTS pull_requests_id_seq CASCADE;
-CREATE SEQUENCE pull_requests_id_seq INCREMENT BY 1
-                                  NO MAXVALUE NO MINVALUE CACHE 1;
-SELECT pg_catalog.setval('pull_requests_id_seq', 1, true);
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`repo_labels` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '',
+  `repo_id` INT(11) NULL DEFAULT NULL COMMENT '',
+  `name` VARCHAR(24) NOT NULL COMMENT '',
+  PRIMARY KEY (`id`)  COMMENT '',
+  CONSTRAINT `repo_labels_ibfk_1`
+    FOREIGN KEY (`repo_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
--- Table: pull_requests
-DROP TABLE IF EXISTS "pull_requests" CASCADE;
-CREATE TABLE "pull_requests" (
-  "id" integer DEFAULT nextval('pull_requests_id_seq'::regclass) NOT NULL,
-  "head_repo_id" integer,
-  "base_repo_id" integer NOT NULL,
-  "head_commit_id" integer,
-  "base_commit_id" integer NOT NULL,
-  "pullreq_id" integer NOT NULL,
-  "intra_branch" boolean NOT NULL
-)
-WITHOUT OIDS;
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`issue_labels`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`issue_labels` ;
 
-DROP SEQUENCE IF EXISTS repo_labels_id_seq CASCADE;
-CREATE SEQUENCE repo_labels_id_seq INCREMENT BY 1
-                                  NO MAXVALUE NO MINVALUE CACHE 1;
-SELECT pg_catalog.setval('repo_labels_id_seq', 1, true);
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`issue_labels` (
+  `label_id` INT(11) NOT NULL COMMENT '',
+  `issue_id` INT(11) NOT NULL COMMENT '',
+  PRIMARY KEY (`issue_id`, `label_id`)  COMMENT '',
+  CONSTRAINT `issue_labels_ibfk_1`
+    FOREIGN KEY (`label_id`)
+    REFERENCES `ghtorrent`.`repo_labels` (`id`),
+  CONSTRAINT `issue_labels_ibfk_2`
+    FOREIGN KEY (`issue_id`)
+    REFERENCES `ghtorrent`.`issues` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
--- Table: repo_labels
-DROP TABLE IF EXISTS "repo_labels" CASCADE;
-CREATE TABLE "repo_labels" (
-  "id" integer DEFAULT nextval('repo_labels_id_seq'::regclass) NOT NULL,
-  "repo_id" integer,
-  "name" character varying(24) NOT NULL
-)
-WITHOUT OIDS;
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`organization_members`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`organization_members` ;
 
-DROP SEQUENCE IF EXISTS repo_milestones_id_seq CASCADE;
-CREATE SEQUENCE repo_milestones_id_seq INCREMENT BY 1
-                                  NO MAXVALUE NO MINVALUE CACHE 1;
-SELECT pg_catalog.setval('repo_milestones_id_seq', 1, true);
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`organization_members` (
+  `org_id` INT(11) NOT NULL COMMENT '',
+  `user_id` INT(11) NOT NULL COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  PRIMARY KEY (`org_id`, `user_id`)  COMMENT '',
+  CONSTRAINT `organization_members_ibfk_1`
+    FOREIGN KEY (`org_id`)
+    REFERENCES `ghtorrent`.`users` (`id`),
+  CONSTRAINT `organization_members_ibfk_2`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `ghtorrent`.`users` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
--- Table: repo_milestones
-DROP TABLE IF EXISTS "repo_milestones" CASCADE;
-CREATE TABLE "repo_milestones" (
-  "id" integer DEFAULT nextval('repo_milestones_id_seq'::regclass) NOT NULL,
-  "repo_id" integer,
-  "name" character varying(24) NOT NULL
-)
-WITHOUT OIDS;
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`project_commits`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`project_commits` ;
 
--- Table: schema_info
-DROP TABLE IF EXISTS "schema_info" CASCADE;
-CREATE TABLE "schema_info" (
-  "version" integer DEFAULT 0 NOT NULL
-)
-WITHOUT OIDS;
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_commits` (
+  `project_id` INT(11) NOT NULL DEFAULT '0' COMMENT '',
+  `commit_id` INT(11) NOT NULL DEFAULT '0' COMMENT '',
+  CONSTRAINT `project_commits_ibfk_1`
+    FOREIGN KEY (`project_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`),
+  CONSTRAINT `project_commits_ibfk_2`
+    FOREIGN KEY (`commit_id`)
+    REFERENCES `ghtorrent`.`commits` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
-DROP SEQUENCE IF EXISTS users_id_seq CASCADE;
-CREATE SEQUENCE users_id_seq INCREMENT BY 1
-                                  NO MAXVALUE NO MINVALUE CACHE 1;
-SELECT pg_catalog.setval('users_id_seq', 1, true);
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`project_members`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`project_members` ;
 
--- Table: users
-DROP TABLE IF EXISTS "users" CASCADE;
-CREATE TABLE "users" (
-  "id" integer DEFAULT nextval('users_id_seq'::regclass) NOT NULL,
-  "login" character varying(255) NOT NULL,
-  "company" character varying(255),
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  "type" character varying(255) DEFAULT 'USR'::character varying NOT NULL,
-  "fake" boolean DEFAULT false NOT NULL,
-  "deleted" boolean DEFAULT false NOT NULL,
-  "long" numeric(11, 8),
-  "lat" numeric(10, 8),
-  "country_code" character(3),
-  "state" character varying(255),
-  "city" character varying(255),
-  "location" character varying(255)
-)
-WITHOUT OIDS;
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_members` (
+  `repo_id` INT(11) NOT NULL COMMENT '',
+  `user_id` INT(11) NOT NULL COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  `ext_ref_id` VARCHAR(24) NOT NULL DEFAULT '0' COMMENT '',
+  PRIMARY KEY (`repo_id`, `user_id`)  COMMENT '',
+  CONSTRAINT `project_members_ibfk_1`
+    FOREIGN KEY (`repo_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`),
+  CONSTRAINT `project_members_ibfk_2`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `ghtorrent`.`users` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
--- Table: watchers
-DROP TABLE IF EXISTS "watchers" CASCADE;
-CREATE TABLE "watchers" (
-  "repo_id" integer NOT NULL,
-  "user_id" integer NOT NULL,
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-)
-WITHOUT OIDS;
-ALTER TABLE "commit_comments" ADD CONSTRAINT "commit_comments_id_pkey" PRIMARY KEY(id);
-ALTER TABLE "commits" ADD CONSTRAINT "commits_id_pkey" PRIMARY KEY(id);
-ALTER TABLE "followers" ADD CONSTRAINT "followers_follower_id_user_id_pkey" PRIMARY KEY(follower_id, user_id);
-ALTER TABLE "issue_labels" ADD CONSTRAINT "issue_labels_issue_id_label_id_pkey" PRIMARY KEY(issue_id, label_id);
-ALTER TABLE "issues" ADD CONSTRAINT "issues_id_pkey" PRIMARY KEY(id);
-ALTER TABLE "organization_members" ADD CONSTRAINT "organization_members_org_id_user_id_pkey" PRIMARY KEY(org_id, user_id);
-ALTER TABLE "project_members" ADD CONSTRAINT "project_members_repo_id_user_id_pkey" PRIMARY KEY(repo_id, user_id);
-ALTER TABLE "project_topics" ADD CONSTRAINT "project_topics_project_id_topic_name_pkey" PRIMARY KEY(project_id, topic_name);
-ALTER TABLE "projects" ADD CONSTRAINT "projects_id_pkey" PRIMARY KEY(id);
-ALTER TABLE "pull_request_commits" ADD CONSTRAINT "pull_request_commits_pull_request_id_commit_id_pkey" PRIMARY KEY(pull_request_id, commit_id);
-ALTER TABLE "pull_request_history" ADD CONSTRAINT "pull_request_history_id_pkey" PRIMARY KEY(id);
-ALTER TABLE "pull_requests" ADD CONSTRAINT "pull_requests_id_pkey" PRIMARY KEY(id);
-ALTER TABLE "repo_labels" ADD CONSTRAINT "repo_labels_id_pkey" PRIMARY KEY(id);
-ALTER TABLE "repo_milestones" ADD CONSTRAINT "repo_milestones_id_pkey" PRIMARY KEY(id);
-ALTER TABLE "users" ADD CONSTRAINT "users_id_pkey" PRIMARY KEY(id);
-ALTER TABLE "watchers" ADD CONSTRAINT "watchers_repo_id_user_id_pkey" PRIMARY KEY(repo_id, user_id);
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`project_languages`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`project_languages` ;
+
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_languages` (
+  `project_id` INT(11) NOT NULL COMMENT '',
+  `language` VARCHAR(255) NULL DEFAULT NULL COMMENT '',
+  `bytes` INT(11) COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  CONSTRAINT `project_languages_ibfk_1`
+    FOREIGN KEY (`project_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
+
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`project_topics`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`project_topics` ;
+
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`project_topics` (
+  `project_id` INT(11) NOT NULL COMMENT '',
+  `topic_name` VARCHAR(255) COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  `deleted` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
+  PRIMARY KEY (`project_id`, `topic_name`)  COMMENT '',
+  CONSTRAINT `project_topics_ibfk_1`
+    FOREIGN KEY (`project_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
+
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`pull_request_comments`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`pull_request_comments` ;
+
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`pull_request_comments` (
+  `pull_request_id` INT(11) NOT NULL COMMENT '',
+  `user_id` INT(11) NOT NULL COMMENT '',
+  `comment_id` MEDIUMTEXT NOT NULL COMMENT '',
+  `position` INT(11) NULL DEFAULT NULL COMMENT '',
+  `body` VARCHAR(256) NULL DEFAULT NULL COMMENT '',
+  `commit_id` INT(11) NOT NULL COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  CONSTRAINT `pull_request_comments_ibfk_1`
+    FOREIGN KEY (`pull_request_id`)
+    REFERENCES `ghtorrent`.`pull_requests` (`id`),
+  CONSTRAINT `pull_request_comments_ibfk_2`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `ghtorrent`.`users` (`id`),
+  CONSTRAINT `pull_request_comments_ibfk_3`
+    FOREIGN KEY (`commit_id`)
+    REFERENCES `ghtorrent`.`commits` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
+
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`pull_request_commits`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`pull_request_commits` ;
+
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`pull_request_commits` (
+  `pull_request_id` INT(11) NOT NULL COMMENT '',
+  `commit_id` INT(11) NOT NULL COMMENT '',
+  PRIMARY KEY (`pull_request_id`, `commit_id`)  COMMENT '',
+  CONSTRAINT `pull_request_commits_ibfk_1`
+    FOREIGN KEY (`pull_request_id`)
+    REFERENCES `ghtorrent`.`pull_requests` (`id`),
+  CONSTRAINT `pull_request_commits_ibfk_2`
+    FOREIGN KEY (`commit_id`)
+    REFERENCES `ghtorrent`.`commits` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
+
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`pull_request_history`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`pull_request_history` ;
+
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`pull_request_history` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '',
+  `pull_request_id` INT(11) NOT NULL COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  `action` VARCHAR(255) NOT NULL COMMENT '',
+  `actor_id` INT(11) NULL DEFAULT NULL COMMENT '',
+  PRIMARY KEY (`id`)  COMMENT '',
+  CONSTRAINT `pull_request_history_ibfk_1`
+    FOREIGN KEY (`pull_request_id`)
+    REFERENCES `ghtorrent`.`pull_requests` (`id`),
+  CONSTRAINT `pull_request_history_ibfk_2`
+    FOREIGN KEY (`actor_id`)
+    REFERENCES `ghtorrent`.`users` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
+
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`repo_milestones`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`repo_milestones` ;
+
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`repo_milestones` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '',
+  `repo_id` INT(11) NULL DEFAULT NULL COMMENT '',
+  `name` VARCHAR(24) NOT NULL COMMENT '',
+  PRIMARY KEY (`id`)  COMMENT '',
+  CONSTRAINT `repo_milestones_ibfk_1`
+    FOREIGN KEY (`repo_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
+
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`schema_info`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`schema_info` ;
+
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`schema_info` (
+  `version` INT(11) NOT NULL DEFAULT '0' COMMENT '')
+ENGINE = MyISAM
+DEFAULT CHARACTER SET = utf8;
+
+-- -----------------------------------------------------
+-- Table `ghtorrent`.`watchers`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `ghtorrent`.`watchers` ;
+
+CREATE TABLE IF NOT EXISTS `ghtorrent`.`watchers` (
+  `repo_id` INT(11) NOT NULL COMMENT '',
+  `user_id` INT(11) NOT NULL COMMENT '',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '',
+  PRIMARY KEY (`repo_id`, `user_id`)  COMMENT '',
+  CONSTRAINT `watchers_ibfk_1`
+    FOREIGN KEY (`repo_id`)
+    REFERENCES `ghtorrent`.`projects` (`id`),
+  CONSTRAINT `watchers_ibfk_2`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `ghtorrent`.`users` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
+
+SET SQL_MODE=@OLD_SQL_MODE;
+SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
+SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;

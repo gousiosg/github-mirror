@@ -10,7 +10,7 @@ skipArchive=false
 skipTables=""
 
 ts=`date +%Y-%m-%d`
-dumpName=`echo pg-$ts.tar.gz`
+dumpName=`echo mysql-$ts.tar.gz`
 userPrvName=`echo users-private-$ts`
 
 usage()
@@ -19,8 +19,8 @@ usage()
   echo "          [-h dbhost] [-d database ] [-o output_dir]"
   echo "          [-a archive_name ] [-f skip_tables] [-c skip_archive]"
   echo
-  echo "Dump a PostgreSQL database into compressed CSV files per table"
-  echo "output_dir must be writable by the PostgreSQL user and must be an absolute path"
+  echo "Dump a MySQL database into CSV files per table"
+  echo "output_dir must be writable by the mysqld user and must be an absolute path"
   echo "    -u database user (default: $user)"
   echo "    -p database passwd (default: $passwd)"
   echo "    -h database host (default: $host)"
@@ -58,44 +58,43 @@ done
 
 echo "`date` Creating dir $out"
 mkdir -p $out
-chmod -R 777 $out
 
-# Setup PostgreSQL command line
-if ! [ -z $passwd ]; then
-  export PGPASSWORD=$passwd
+if [ -z $passwd ]; then
+  mysql="mysql -u $user -s -h $host -D $db"
+else
+  mysql="mysql -u $user --password=$passwd -s -h $host -D $db"
 fi
 
-psql="psql -U $user -t -q -h $host -d $db"
-
-tables=`echo "SELECT table_name FROM information_schema.tables WHERE table_schema='public' order by table_name;" | $psql || exit 1`
+tables=`echo "show tables" | $mysql`
 
 for table in $tables; do
   if [ ! -z $skipTables ] && [ `grep ^$table$ $skipTables` ]; then
     echo "`date`: Skipping table $table"
   elif [ $table == 'users' ]; then
     echo "`date`: Dumping table users"
-    echo "COPY (select id,login,company,created_at,type,fake,deleted,long,lat,country_code,state,city,location from users) TO PROGRAM 'gzip > $out/users.csv.gz';" | $psql || exit 1
-    echo "COPY (select login,name,email from users) TO PROGRAM 'gzip > $out/users-private.csv.gz';" | $psql || exit 1
+    echo "select id,login,company,created_at,type,fake,deleted,\`long\`,lat,country_code,state,city,location into outfile '$out/users.csv' CHARACTER SET UTF8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from users" |$mysql || exit 1
+    echo "select login,name,email into outfile '$out/users-private.csv' CHARACTER SET UTF8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from users" |$mysql || exit 1
   else
     echo "`date`: Dumping table $table"
-    echo "COPY $table TO PROGRAM 'gzip > $out/$table.csv.gz';" | $psql || exit 1
+    echo "select * into outfile '$out/$table.csv' CHARACTER SET UTF8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from $table" |$mysql || exit 1
   fi
 done
 
 echo "`date` Copying schema and index files"
-curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/indexes_and_foreign_keys.sql" > $out/indexes_and_foreign_keys.sql
+curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/indexes.sql" > $out/indexes.sql
 curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/schema.sql" > $out/schema.sql
-curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/ght-restore-pg" > $out/ght-restore-pg
-chmod +x $out/ght-restore-pg
+curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/ght-restore-mysql" > $out/ght-restore-mysql
+chmod +x $out/ght-restore-mysql
 curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/README.md" > $out/README.md
 curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/ORDER" > $out/ORDER
-chmod -R 777 $out/*
+
 if [ $skipArchive = false ]; then
   echo "`date` Creating archive $dumpName"
   cd `dirname $out`
   outBasename=`basename $out`
   files=`ls -Sr $outBasename/* | xargs`  # sort files by size, smallest first
-  tar zcvf $dumpName --exclude='users-private.csv.gz' $files || exit 1
+  tar zcvf $dumpName --exclude='users-private.csv' $files || exit 1
+  gzip $out/users-private.csv
   mv $out/users-private.csv.gz `echo $userPrvName`.csv.gz
   rm -R $out
 fi
