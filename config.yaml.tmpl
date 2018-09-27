@@ -82,9 +82,11 @@ logging:
   file: "stdout"
 
 geolocate:
-    # osm (open street maps) or bing
+    # osm (open street maps), bing or gmaps
     service: osm
     # Time to wait between geo location API requests
     wait: 2
-    # The following are only necessary if bing is used
+    # The following is only necessary if bing is used
     bing_key: foobar
+    # The following is only necessary if gmaps is used
+    gmaps_key: barfoo

@@ -94,6 +94,37 @@ end
 
 module GHTorrent
   module Geolocator
+    module GMaps
+
+      def format_url(location)
+        URI.escape("https://maps.googleapis.com/maps/api/geocode/json?key=#{config(:geolocation_gmaps_key)}&address=#{location}")
+      end
+
+      def parse_geolocation_result(location, geocoded)
+        details = geocoded['results'].first
+        city_hash = details['address_components'].find{|x| x['types'].include? 'locality'}
+        country_hash = details['address_components'].find{|x| x['types'].include? 'country'}
+        admin_area_hash = details['address_components'].select{|x| not x['types'].grep(/administrative_area/).empty?}.first
+
+        geo = {
+            :key          => location,
+            :long         => details['geometry']['location']['lng'],
+            :lat          => details['geometry']['location']['lat'],
+            :city         => unless city_hash.nil? then city_hash['long_name'] end,
+            :country      => unless country_hash.nil? then country_hash['long_name'] end,
+            :state        => unless admin_area_hash.nil? then admin_area_hash['long_name'] end,
+            :country_code => unless country_hash.nil? then country_hash['short_name'].downcase end,
+            :status       => :ok
+        }
+
+        geo
+      end
+    end
+  end
+end
+
+module GHTorrent
+  module Geolocator
 
     include GHTorrent::Settings
 
@@ -138,10 +169,12 @@ module GHTorrent
 
       if geo.empty?
 
-        if config(:geolocation_service) == 'osm'
-          self.class.send :include, GHTorrent::Geolocator::OSM
-        else
+        if config(:geolocation_service) == 'gmaps'
+          self.class.send :include, GHTorrent::Geolocator::GMaps
+        elsif config(:geolocation_service) == 'bing'
           self.class.send :include, GHTorrent::Geolocator::Bing
+        else
+          self.class.send :include, GHTorrent::Geolocator::OSM
         end
 
         begin
@@ -151,9 +184,9 @@ module GHTorrent
           p   = JSON.parse(req.read)
           geo = parse_geolocation_result(location, p)
 
-          info "Successful geolocation request. Location: #{location}, URL: #{url}"
+          info "Successful geolocation request. Location: #{location}"
         rescue StandardError => e
-          warn "Failed geolocation request. URL: #{url}"
+          warn "Failed geolocation request. Location: #{location}"
           geo       = EMPTY_LOCATION
           geo[:key] = location
         ensure
@@ -161,6 +194,9 @@ module GHTorrent
 
           if in_db_geo.nil?
             begin
+
+              geo[:updated_at] = Time.now
+
               persister.store(:geo_cache, geo)
             rescue StandardError => e
               warn "Could not save location #{location} -> #{geo}: #{e.message}"

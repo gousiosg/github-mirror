@@ -20,8 +20,10 @@ class GHTGeolocate < GHTorrent::Command
 Geolocates the given address using GHTorrent's APIs and config.
     BANNER
 
-    options.opt :engine, 'Geolocation engine to use (osm or bing)',
+    options.opt :engine, 'Geolocation engine to use (osm, bing or gmaps)',
                 :type => String
+    options.opt :cache, 'Use cached entry?',
+                :type => TrueClass, :default => false
   end
 
   def validate
@@ -31,7 +33,7 @@ Geolocates the given address using GHTorrent's APIs and config.
 
   def go
     @settings = override_config(@settings, :geolocation_service, options[:engine])
-    pp geolocate(location: ARGV[0], from_cache: false)
+    pp geolocate(location: ARGV[0], from_cache: options[:cache])
   end
 
 end

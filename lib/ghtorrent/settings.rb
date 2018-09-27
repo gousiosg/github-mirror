@@ -39,7 +39,8 @@ module GHTorrent
 
         :geolocation_service => 'geolocation.service',
         :geolocation_wait => 'geolocation.wait',
-        :geolocation_bing_key => 'geolocation.bing_key'
+        :geolocation_bing_key => 'geolocation.bing_key',
+        :geolocation_gmaps_key => 'geolocation.gmaps_key'
     }
 
     DEFAULTS = {
@@ -51,7 +52,6 @@ module GHTorrent
         :amqp_prefetch  => 1,
 
         :sql_url => 'sqlite://github.db',
-        # :sql_url => 'mysql2://ghtorrent:ghtorrent@localhost/ghtorrent',
 
         :mirror_urlbase => 'https://api.github.com/',
         :mirror_persister => 'noop',
@@ -74,7 +74,8 @@ module GHTorrent
 
         :geolocation_service => 'osm',
         :geolocation_wait => '2',
-        :geolocation_bing_key => ''
+        :geolocation_bing_key => '',
+        :geolocation_gmaps_key => ''
     }
 
     def config(key, use_default = true)
