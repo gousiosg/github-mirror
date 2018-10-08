@@ -18,12 +18,12 @@ Sequel.migration do
 
     puts 'Adding default value to updated_at'
     self.transaction(:rollback => :reraise, :isolation => :repeatable) do
-      if defined?(Sequel::MySQL)
-        self << "update projects set updated_at = now();"
+      if defined?(Sequel::SQLite)
+        self << "update projects set updated_at = CURRENT_TIMESTAMP;"
       elsif defined?(Sequel::Postgres)
         self << "update projects set updated_at = now();"
-      elsif defined?(Sequel::SQLite)
-        self << "update projects set updated_at = CURRENT_TIMESTAMP;"
+      elsif defined?(Sequel::MySQL)
+        self << "update projects set updated_at = now();"
       else
         raise StandardError("Don't know how to set default value")
       end
