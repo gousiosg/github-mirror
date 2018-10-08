@@ -14,7 +14,7 @@ CREATE TABLE "commit_comments" (
   "id" integer DEFAULT nextval('commit_comments_id_seq'::regclass) NOT NULL,
   "commit_id" integer NOT NULL,
   "user_id" integer NOT NULL,
-  "body" character varying(256),
+  "body" character varying(356),
   "line" integer,
   "position" integer,
   "comment_id" integer NOT NULL,
@@ -164,7 +164,7 @@ CREATE TABLE "projects" (
   "url" character varying(255),
   "owner_id" integer,
   "name" character varying(255) NOT NULL,
-  "description" character varying(255),
+  "description" character varying(275),
   "language" character varying(255),
   "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   "forked_from" integer,
@@ -181,7 +181,7 @@ CREATE TABLE "pull_request_comments" (
   "user_id" integer NOT NULL,
   "comment_id" text NOT NULL,
   "position" integer,
-  "body" character varying(256),
+  "body" character varying(315),
   "commit_id" integer NOT NULL,
   "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 )
@@ -239,7 +239,7 @@ DROP TABLE IF EXISTS "repo_labels" CASCADE;
 CREATE TABLE "repo_labels" (
   "id" integer DEFAULT nextval('repo_labels_id_seq'::regclass) NOT NULL,
   "repo_id" integer,
-  "name" character varying(24) NOT NULL
+  "name" character varying(26) NOT NULL
 )
 WITHOUT OIDS;
 
@@ -284,7 +284,7 @@ CREATE TABLE "users" (
   "country_code" character(3),
   "state" character varying(255),
   "city" character varying(255),
-  "location" character varying(255)
+  "location" character varying(275)
 )
 WITHOUT OIDS;
 

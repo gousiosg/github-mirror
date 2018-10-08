@@ -72,13 +72,6 @@ sed -e "s/InnoDB/$engine/"|
 grep -v "^--" |
 $mysql
 
-count=`ls -1 $dumpDir/*.csv.gz | wc -l`
-if [ $count != 0 ]; then
-   for f in $dumpDir/*.csv.gz ; do
-     gunzip $f
-   done
-fi
-
 # 2. Restore CSV files with disabled FK checks
 for f in $dumpDir/*.csv ; do
   table=`basename $f|cut -f1 -d'.'`

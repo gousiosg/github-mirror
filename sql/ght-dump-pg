@@ -75,13 +75,13 @@ for table in $tables; do
     echo "`date`: Skipping table $table"
   elif [ $table == 'users' ]; then
     echo "`date`: Dumping table users"
-    echo "COPY (select id,login,company,created_at,type,fake::INTEGER,deleted::INTEGER,long,lat,country_code,state,city,location from users) TO PROGRAM 'gzip > $out/users.csv.gz' WITH (FORMAT 'csv', FORCE_QUOTE *, QUOTE E'\"', ESCAPE '\', NULL '\N');" | $psql || exit 1
-    echo "COPY (select login,name,email from users) TO PROGRAM 'gzip > $out/users-private.csv.gz' WITH (FORMAT 'csv', FORCE_QUOTE *, QUOTE E'\"', ESCAPE '\', NULL '\N');" | $psql || exit 1
+    echo "COPY (select id,login,company,created_at,type,fake::INTEGER,deleted::INTEGER,long,lat,country_code,state,city,location from users) TO '$out/users.csv' WITH (FORMAT 'csv', FORCE_QUOTE *, QUOTE E'\"', ESCAPE '\', NULL '\N');" | $psql || exit 1
+    echo "COPY (select login,name,email from users) TO '$out/users-private.csv' WITH (FORMAT 'csv', FORCE_QUOTE *, QUOTE E'\"', ESCAPE '\', NULL '\N');" | $psql || exit 1
   else
     echo "`date`: Dumping table $table"
     columns=`echo "select case when data_type='boolean' then concat(column_name, '::', 'INTEGER') else column_name end as column_name FROM information_schema.columns where table_name='$table';" | $psql || exit 1`
     columns=`echo $columns | sed -e 's/ /,/g'`
-    echo "COPY (SELECT $columns FROM $table) TO PROGRAM 'gzip > $out/$table.csv.gz' WITH (FORMAT 'csv', FORCE_QUOTE *, QUOTE E'\"', ESCAPE '\', NULL '\N');" | $psql || exit 1
+    echo "COPY (SELECT $columns FROM $table) TO '$out/$table.csv' WITH (FORMAT 'csv', FORCE_QUOTE *, QUOTE E'\"', ESCAPE '\', NULL '\N');" | $psql || exit 1
   fi
 done
 
@@ -93,23 +93,20 @@ chmod +x $out/ght-restore-mysql
 curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/README.md" > $out/README.md
 curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/ORDER" > $out/ORDER
 
-pg_directory=`echo $out/pg_scipts`
-mkdir -p $pg_directory
-curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/pg_scripts/reset_sequences.sql" > $pg_directory/reset_sequences.sql
-curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/pg_scripts/indexes_and_foreign_keys.sql" > $pg_directory/indexes_and_foreign_keys.sql
-curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/pg_scripts/schema.sql" > $pg_directory/schema.sql
-curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/pg_scripts/ght-restore-pg" > $pg_directory/ght-restore-pg
-chmod +x $pg_directory/ght-restore-pg
-curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/pg_scripts/README.md" > $pg_directory/README.md
-curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/ORDER" > $pg_directory/ORDER
+curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/pg_reset_sequences.sql" > $out/pg_reset_sequences.sql
+curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/pg_indexes_and_foreign_keys.sql" > $out/pg_indexes_and_foreign_keys.sql
+curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/pg_schema.sql" > $out/pg_schema.sql
+curl "https://raw.githubusercontent.com/gousiosg/github-mirror/master/sql/ght-restore-pg" > $out/ght-restore-pg
+chmod +x $out/ght-restore-pg
 
 chmod -R 777 $out/*
 if [ $skipArchive = false ]; then
   echo "`date` Creating archive $dumpName"
   cd `dirname $out`
   outBasename=`basename $out`
-  excluded_file=`echo $outBasename/users-private.csv.gz`
+  excluded_file=`echo $outBasename/users-private.csv`
   tar zcvf $dumpName --exclude=$excluded_file $outBasename || exit 1
+  gzip $out/users-private.csv
   mv $out/users-private.csv.gz `echo $userPrvName`.csv.gz
   rm -R $out
 fi
