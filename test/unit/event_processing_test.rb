@@ -1,5 +1,4 @@
 require 'test_helper'
-require 'sequel/adapters/mysql2'
 
 class TestRetriever
   attr_writer :extra_commits
@@ -90,7 +89,7 @@ describe 'EventProcessing' do
       data = { 'payload' => { 'commits' => commits },
                'repo' => { 'name' => 'hamster/hello' } }
       retriever.extra_commits = extra_commits
-      Sequel::Mysql2::Dataset.any_instance.expects(:all).returns([1])
+      retriever.ght.db.dataset.class.any_instance.expects(:all).returns([1])
       shas.each do |sha|
         retriever.ght.expects(:ensure_commit).with('hello', sha, 'hamster')
       end
@@ -143,18 +142,18 @@ describe 'EventProcessing' do
     it 'must skip db insertion if project_member exists' do
       retriever.ght.expects(:ensure_repo).returns(id: 1)
       retriever.ght.expects(:ensure_user).returns(id: 1)
-      Sequel::Mysql2::Dataset.any_instance.stubs(:first).returns(1)
-      Sequel::Mysql2::Dataset.any_instance.expects(:insert).never
+      retriever.ght.db.dataset.class.any_instance.stubs(:first).returns(1)
+      retriever.ght.db.dataset.class.any_instance.expects(:insert).never
       retriever.MemberEvent(data)
     end
 
     it 'must insert data when created_at is passed' do
       retriever.ght.expects(:ensure_repo).returns(id: :project_id)
       retriever.ght.expects(:ensure_user).returns(id: :user_id)
-      Sequel::Mysql2::Dataset.any_instance.stubs(:first)
+      retriever.ght.db.dataset.class.any_instance.stubs(:first)
       retriever.ght.expects(:date).returns(created_at)
       db_data = { user_id: :user_id, repo_id: :project_id, created_at: created_at }
-      Sequel::Mysql2::Dataset.any_instance.expects(:insert).with(db_data)
+      retriever.ght.db.dataset.class.any_instance.expects(:insert).with(db_data)
       retriever.MemberEvent(data)
     end
 
@@ -162,11 +161,11 @@ describe 'EventProcessing' do
       user_created_at = Faker::Time.backward
       retriever.ght.expects(:ensure_user).returns(id: :user_id, created_at: user_created_at)
       retriever.ght.expects(:ensure_repo).returns(id: :project_id, created_at: user_created_at)
-      Sequel::Mysql2::Dataset.any_instance.stubs(:first)
+      retriever.ght.db.dataset.class.any_instance.stubs(:first)
       retriever.ght.expects(:date).returns(user_created_at)
       retriever.stubs(:max).returns(user_created_at)
       db_data = { user_id: :user_id, repo_id: :project_id, created_at: user_created_at }
-      Sequel::Mysql2::Dataset.any_instance.expects(:insert).with(db_data)
+      retriever.ght.db.dataset.class.any_instance.expects(:insert).with(db_data)
       retriever.MemberEvent(data.merge('created_at' => nil))
     end
   end

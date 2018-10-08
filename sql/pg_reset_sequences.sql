@@ -1,0 +1,9 @@
+SELECT setval('projects_id_seq', (SELECT MAX(id) FROM projects));
+SELECT setval('issues_id_seq', (SELECT MAX(id) FROM issues));
+SELECT setval('commits_id_seq', (SELECT MAX(id) FROM commits));
+SELECT setval('commit_comments_id_seq', (SELECT MAX(id) FROM commit_comments));
+SELECT setval('pull_request_history_id_seq', (SELECT MAX(id) FROM pull_request_history));
+SELECT setval('pull_requests_id_seq', (SELECT MAX(id) FROM pull_requests));
+SELECT setval('repo_labels_id_seq', (SELECT MAX(id) FROM repo_labels));
+SELECT setval('repo_milestones_id_seq', (SELECT MAX(id) FROM repo_milestones));
+SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));

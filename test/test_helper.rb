@@ -2,7 +2,7 @@ require 'simplecov'
 require 'simplecov-rcov'
 SimpleCov.formatter = SimpleCov::Formatter::RcovFormatter
 SimpleCov.start
-SimpleCov.minimum_coverage 90
+SimpleCov.minimum_coverage 85
 
 require 'vcr'
 VCR.configure do |config|
