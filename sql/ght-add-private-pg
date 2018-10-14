@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+#
+# Add personal data to the GHTorrent database
+# See http://ghtorrent.org/pers-data.html for instructions to obtain
+# the personal data
+#
+
+# defaults
+user="ghtorrent"
+passwd=""
+host="localhost"
+db="ghtorrent"
+
+usage()
+{
+  cat <<EOF 1>&2
+Usage: $0 [-u dbuser ] [-p dbpasswd ] [-h dbhost] [-d database ] dump_dir
+
+Add private user data from CSV and SQL files in dump_dir
+    -u database user (default: $user)
+    -p database passwd (default: $passwd)
+    -h database host (default: $host)
+    -d database to restore to. Must exist. (default: $db)
+
+The dump directory must contain a file named users_private.csv with the users'
+emails and names.  See http://ghtorrent.org/pers-data.html for instructions
+on how to obtain the personal data.
+EOF
+}
+
+if [ -z "$1" ]
+then
+  usage
+  exit 1
+fi
+
+while getopts "u:p:h:d:" o
+do
+  case $o in
+  u)  user=$OPTARG ;;
+  p)  passwd=$OPTARG ;;
+  h)  host=$OPTARG ;;
+  d)  db=$OPTARG ;;
+  \?)     echo "Invalid option: -$OPTARG" >&2
+    usage
+    exit 1
+    ;;
+  esac
+done
+
+# Setup PostgreSQL command line
+if ! [ -z $passwd ]; then
+  export PGPASSWORD=$passwd
+fi
+
+psql="psql -U $user -t -q -h $host -d $db"
+
+shift $(expr $OPTIND - 1)
+dumpDir="$1"
+
+if [ ! -d "$dumpDir" ]; then
+  echo "Cannot find directory to restore from" 1>&2
+  exit 1
+fi
+
+# Convert to full path
+dumpDir="$(readlink -f $dumpDir)"
+
+sqlFile="$dumpDir/pg_users_private.sql"
+
+if [ ! -r "$sqlFile" ]; then
+  echo "Cannot read $sqlFile to update DB schema" 1>&2
+  exit 1
+fi
+
+dataFile="$dumpDir/users_private.csv.gz"
+
+if [ ! -r "$dataFile" ]; then
+  echo "Cannot read $dataFile to import the data" 1>&2
+  exit 1
+fi
+
+echo "`date` Updating the database"
+sed -e 's|USERS_PRIVATE_FILE|'$dataFile'|g' $sqlFile | $psql
+
+#: ft=bash
