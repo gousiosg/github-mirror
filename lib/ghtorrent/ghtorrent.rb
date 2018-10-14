@@ -1924,9 +1924,17 @@ module GHTorrent
     # - yyyy/mm/dd hh:mm:ss {+/-}hhmm
     def date(arg)
       if arg.class != Time
-        Time.parse(arg)#.to_i
+        time_non_zero(Time.parse(arg))
       else
-        arg
+        time_non_zero(arg)
+      end
+    end
+
+    def time_non_zero(t)
+      if t.to_i <= 0
+        Time.parse('1970-01-02')
+      else
+        t
       end
     end
 
