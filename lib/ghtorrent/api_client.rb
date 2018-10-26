@@ -53,6 +53,22 @@ module GHTorrent
       parse_request_result api_request_raw(ensure_max_per_page(url), media_type)
     end
 
+    # Check whether the resource identified by the provided url has changed
+    def last_updated(url, etag)
+      begin
+        response = do_request(url, '', etag)
+      rescue OpenURI::HTTPError => e
+        response = e.io
+        if response.status.first != '304'
+          etag_request_error_message(url, e, etag)
+          raise e
+        end
+      end
+
+      return Time.parse(response.meta['last-modified']) unless response.meta['last-modified'].nil?
+      return Time.at(86400)
+    end
+
     # Determine the number of pages contained in a multi-page API response
     def num_pages(url)
       url = ensure_max_per_page(url)
@@ -139,6 +155,10 @@ module GHTorrent
             IP: #{@attach_ip}, Remaining: #{@remaining}
       MSG
       msg.strip.gsub(/\s+/, ' ').gsub("\n", ' ')
+    end
+
+    def etag_request_error_message(url, exception, etag)
+      request_error_msg(url, exception) + " etag: #{etag}"
     end
 
     # Do the actual request and return the result object
