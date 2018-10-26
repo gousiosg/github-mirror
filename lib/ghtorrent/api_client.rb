@@ -125,7 +125,14 @@ module GHTorrent
         if json.nil?
           []
         else
-          JSON.parse(json)
+          r = JSON.parse(json)
+
+          # Add the etag to the response only for individual entities
+          if result.meta['etag'] and r.class != Array
+            r['etag'] = result.meta['etag']
+          end
+
+          r
         end
       end
     end
