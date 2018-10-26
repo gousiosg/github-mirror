@@ -1,7 +1,5 @@
 require 'sequel'
 
-require 'ghtorrent/migrations/mysql_defaults'
-
 Sequel.migration do
   up do
 
