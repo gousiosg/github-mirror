@@ -6,6 +6,7 @@ require 'ghtorrent/settings'
 require 'ghtorrent/retriever'
 require 'ghtorrent/persister'
 require 'ghtorrent/geolocator'
+require 'ghtorrent/refresher'
 
 module GHTorrent
   class Mirror
@@ -15,6 +16,7 @@ module GHTorrent
     include GHTorrent::Retriever
     include GHTorrent::Persister
     include GHTorrent::Geolocator
+    include GHTorrent::Refresher
 
     attr_reader :settings, :persister, :logger
 
@@ -564,7 +566,7 @@ module GHTorrent
 
       unless currepo.nil?
         debug "Repo #{user}/#{repo} exists"
-        return currepo
+        return refresh_repo(user, repo, currepo)
       end
 
       r = retrieve_repo(user, repo, true)
@@ -585,7 +587,8 @@ module GHTorrent
                    :description => unless r['description'].nil? then r['description'][0..254] else nil end,
                    :language => r['language'],
                    :created_at => date(r['created_at']),
-                   :updated_at => Time.at(86400))
+                   :updated_at => Time.now.to_i,
+                   :etag => unless r['etag'].nil? then r['etag'] end)
 
       unless r['parent'].nil?
         parent_owner = r['parent']['owner']['login']

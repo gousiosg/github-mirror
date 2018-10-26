@@ -230,6 +230,7 @@ module GHTorrent
 
         if refresh
           persister.upsert(:repos, {'name' => r['name'], 'owner.login' => r['owner']['login']}, r)
+          info "Refreshed repo #{user} -> #{repo}"
         else
           persister.store(:repos, r)
           info "Added repo #{user} -> #{repo}"

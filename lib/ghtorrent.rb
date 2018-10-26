@@ -53,6 +53,7 @@ require 'ghtorrent/retriever'
 require 'ghtorrent/event_processing'
 require 'ghtorrent/ghtorrent'
 require 'ghtorrent/transacted_gh_torrent'
+require 'ghtorrent/refresher'
 
 # Multi-process queue clients
 require 'ghtorrent/multiprocess_queue_client'
