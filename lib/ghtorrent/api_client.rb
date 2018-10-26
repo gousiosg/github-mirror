@@ -169,9 +169,9 @@ module GHTorrent
             warn request_error_msg(url, e)
             warn "Unauthorised request with token: #{@token}"
             raise e
-          when 451 # DCMA takedown
+          when 451 # DMCA takedown
             warn request_error_msg(url, e)
-            warn "Repo was taken down (DCMA)"
+            warn "Repo was taken down (DMCA)"
             return nil
           else # Server error or HTTP conditions that Github does not report
             warn request_error_msg(url, e)
@@ -205,7 +205,7 @@ module GHTorrent
       return :none
     end
 
-    def do_request(url, media_type)
+    def do_request(url, media_type, etag = nil)
       @attach_ip  ||= config(:attach_ip)
       @token      ||= config(:github_token)
       @user_agent ||= config(:user_agent)
@@ -215,27 +215,24 @@ module GHTorrent
       @req_limit  ||= config(:req_limit)
       media_type = 'application/json' unless media_type.size > 0
 
-      open_func ||=
-          case @auth_type
-            when :none
-              lambda {|url| open(url, 'User-Agent' => @user_agent,
-                                      'Accept' => media_type)}
-            when :token
-              # As per: https://developer.github.com/v3/auth/#via-oauth-tokens
-              lambda {|url| open(url, 'User-Agent' => @user_agent,
-                                      'Authorization' => "token #{@token}",
-                                      'Accept' => media_type)}
-          end
+      headers = {
+          'User-Agent' => @user_agent,
+          'Accept' => media_type
+      }
+
+      headers = headers.merge({'Authorization' => "token #{@token}"}) if auth_method(@token) == :token
+      headers = headers.merge({'If-None-Match' => etag}) if etag
 
       result = if @attach_ip.nil? or @attach_ip.eql? '0.0.0.0'
-          open_func.call(url)
-        else
-          attach_to(@attach_ip) do
-            open_func.call(url)
-          end
+        open(url, headers)
+      else
+        attach_to(@attach_ip) do
+          open(url, headers)
         end
+      end
       @remaining = result.meta['x-ratelimit-remaining'].to_i
       @reset = result.meta['x-ratelimit-reset'].to_i
+
       result
     end
 
