@@ -587,7 +587,7 @@ module GHTorrent
                    :description => unless r['description'].nil? then r['description'][0..254] else nil end,
                    :language => r['language'],
                    :created_at => date(r['created_at']),
-                   :updated_at => Time.now.to_i,
+                   :updated_at => date(Time.now),
                    :etag => unless r['etag'].nil? then r['etag'] end)
 
       unless r['parent'].nil?
@@ -1016,11 +1016,12 @@ module GHTorrent
 
       created_at = case
                      when (not date_added.nil?)
-                       date_added
+                       date(date_added)
                      when (not retrieved.nil? and not retrieved['created_at'].nil?)
-                       retrieved['created_at']
+                       date(retrieved['created_at'])
                      else
-                       max(project[:created_at], new_watcher[:created_at])
+                       max(date(project[:created_at]),
+                           date(new_watcher[:created_at]))
                    end
 
       if watcher_exist.nil?
@@ -1043,7 +1044,7 @@ module GHTorrent
       w = watchers.first(:user_id => new_watcher[:id],
                      :repo_id => project[:id])
 
-      if w[:created_at]  < Time.parse(created_at)
+      if w[:created_at]  < created_at
         watchers.filter(:user_id => new_watcher[:id],
                         :repo_id => project[:id])\
                 .update(:created_at => date(created_at))
