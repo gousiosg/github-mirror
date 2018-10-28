@@ -83,9 +83,7 @@ module GHTorrent
 
     def upsert(entity, query = {}, new_entry)
       super
-      r = del(entity, query)
-      store(entity, new_entry)
-      r
+      mongo[entity].update_one(query, new_entry, {:upsert => :true})
     end
 
     def get_underlying_connection
