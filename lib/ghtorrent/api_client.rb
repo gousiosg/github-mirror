@@ -56,7 +56,9 @@ module GHTorrent
     # Check whether the resource identified by the provided url has changed
     def last_updated(url, etag)
       begin
+        ts = Time.now
         response = do_request(url, '', etag)
+        info "Successful etag request. URL: #{url}, Etag: #{etag}, Remaining: #{@remaining}, Total: #{Time.now.to_ms - ts.to_ms} ms"
       rescue OpenURI::HTTPError => e
         response = e.io
         if response.status.first != '304'
