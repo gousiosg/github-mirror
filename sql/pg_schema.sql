@@ -284,7 +284,7 @@ CREATE TABLE "users" (
   "country_code" character(3),
   "state" character varying(255),
   "city" character varying(255),
-  "location" character varying(275)
+  "location" character text
 )
 WITHOUT OIDS;
 
