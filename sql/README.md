@@ -89,6 +89,7 @@ Create a PostgreSQL user with permissions to create new schemata, for example:
 CREATE DATABASE ghtorrent_restore;
 CREATE USER ghtorrentuser WITH PASSWORD 'ghtorrentpassword';
 GRANT ALL PRIVILEGES ON DATABASE "ghtorrent_restore" to ghtorrentuser;
+ALTER USER ghtorrentuser WITH SUPERUSER;
 ```
 ### Run the restore process
 
