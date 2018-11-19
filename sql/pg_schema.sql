@@ -14,7 +14,7 @@ CREATE TABLE "commit_comments" (
   "id" integer DEFAULT nextval('commit_comments_id_seq'::regclass) NOT NULL,
   "commit_id" integer NOT NULL,
   "user_id" integer NOT NULL,
-  "body" character varying(356),
+  "body" text,
   "line" integer,
   "position" integer,
   "comment_id" integer NOT NULL,
@@ -164,7 +164,7 @@ CREATE TABLE "projects" (
   "url" character varying(255),
   "owner_id" integer,
   "name" character varying(255) NOT NULL,
-  "description" character varying(275),
+  "description" text,
   "language" character varying(255),
   "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   "forked_from" integer,
@@ -181,7 +181,7 @@ CREATE TABLE "pull_request_comments" (
   "user_id" integer NOT NULL,
   "comment_id" text NOT NULL,
   "position" integer,
-  "body" character varying(315),
+  "body" text,
   "commit_id" integer NOT NULL,
   "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 )
@@ -284,7 +284,7 @@ CREATE TABLE "users" (
   "country_code" character(3),
   "state" character varying(255),
   "city" character varying(255),
-  "location" character varying(275)
+  "location" character text
 )
 WITHOUT OIDS;
 
