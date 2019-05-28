@@ -53,7 +53,7 @@ module GHTorrent
         end
 
         unless options[:only_stage].nil?
-          Trollop::die("Not a valid function: #{options[:only_stage]}") unless stages.include? options[:only_stage]
+          Optimist::die("Not a valid function: #{options[:only_stage]}") unless stages.include? options[:only_stage]
         end
 
       end

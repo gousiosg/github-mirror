@@ -21,9 +21,9 @@ overriden when entry is written in MongoDB
 
   def validate
     super
-    Trollop::die 'Missing required argument URL' if ARGV.size == 0
+    Optimist::die 'Missing required argument URL' if ARGV.size == 0
     uri = URI(ARGV[0])
-    Trollop::die "Argument #{ARGV[0]} not a HTTPS URL" if uri.scheme != 'https'
+    Optimist::die "Argument #{ARGV[0]} not a HTTPS URL" if uri.scheme != 'https'
   end
 
 

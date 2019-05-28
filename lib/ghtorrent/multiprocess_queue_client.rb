@@ -57,7 +57,7 @@ Values in the config.yaml file set with the -c command are overridden.
 
   def validate
     super
-    Trollop::die 'Argument mapping-file is required' unless not args[0].nil?
+    Optimist::die 'Argument mapping-file is required' unless not args[0].nil?
   end
 
   def go

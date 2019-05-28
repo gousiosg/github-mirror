@@ -37,7 +37,7 @@ class RefreshPullReqHistory
 
   def validate
     super
-    Trollop::die 'Three arguments required' unless args[2] && !args[2].empty?
+    Optimist::die 'Three arguments required' unless args[2] && !args[2].empty?
   end
 
   def run(command)
