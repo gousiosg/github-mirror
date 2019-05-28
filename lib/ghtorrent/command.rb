@@ -1,5 +1,5 @@
 require 'rubygems'
-require 'trollop'
+require 'optimist'
 require 'bunny'
 require 'etc'
 
@@ -79,7 +79,7 @@ module GHTorrent
     # Specify and parse top-level command line options.
     def process_options
       command = self
-      @options = Trollop::options(command.args) do
+      @options = Optimist::options(command.args) do
 
         command.prepare_options(self)
 
@@ -107,7 +107,7 @@ Standard options:
     end
 
     # This method should be overriden by subclasses in order to specify,
-    # using trollop, the supported command line options
+    # using optimist, the supported command line options
     def prepare_options(options)
     end
 
@@ -117,23 +117,23 @@ Standard options:
     def validate
       if options[:config].nil?
         unless (File.exist?("config.yaml"))
-          Trollop::die "No config file in default location (#{Dir.pwd}). You
+          Optimist::die "No config file in default location (#{Dir.pwd}). You
                         need to specify the #{:config} parameter. Read the
                         documentation on how to create a config.yaml file."
         end
       else
-        Trollop::die "Cannot find file #{options[:config]}" \
+        Optimist::die "Cannot find file #{options[:config]}" \
           unless File.exist?(options[:config])
       end
 
       unless @options[:user].nil?
         if not Process.uid == 0
-          Trollop::die "Option --user (-u) can only be specified by root"
+          Optimist::die "Option --user (-u) can only be specified by root"
         end
           begin
             Etc.getpwnam(@options[:user])
           rescue ArgumentError
-            Trollop::die "No such user: #{@options[:user]}"
+            Optimist::die "No such user: #{@options[:user]}"
           end
       end
     end

@@ -18,7 +18,7 @@ as deleted if it cannot be accessed on GitHub.
 
   def validate
     super
-    Trollop::die "Takes two arguments" if ARGV.size == 1
+    Optimist::die "Takes two arguments" if ARGV.size == 1
   end
 
   def settings

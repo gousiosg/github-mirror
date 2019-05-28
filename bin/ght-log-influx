@@ -2,7 +2,7 @@
 #
 
 require 'rubygems'
-require 'trollop'
+require 'optimist'
 require 'influxdb'
 require 'pp'
 require 'time'
@@ -176,7 +176,7 @@ def parse_log_line(line)
   end
 end
 
-opts = Trollop::options do
+opts = Optimist::options do
   banner <<-END
   Store GHTorrent log output to InfluxDB. Reads from STDIN.
   Writes to a UDP port only.

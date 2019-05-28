@@ -28,7 +28,7 @@ Geolocates the given address using GHTorrent's APIs and config.
 
   def validate
     super
-    Trollop::die("Missing search string") if ARGV[0].nil?
+    Optimist::die("Missing search string") if ARGV[0].nil?
   end
 
   def go

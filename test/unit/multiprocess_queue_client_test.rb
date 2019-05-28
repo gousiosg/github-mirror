@@ -63,7 +63,7 @@ describe 'MultiprocessQueueClient' do
   describe 'validate' do
     it 'must call trolltop.die' do
       GHTorrent::Command.any_instance.expects(:validate)
-      Trollop.expects(:die)
+      Optimist.expects(:die)
 
       client.stubs(:args).returns([])
       client.validate

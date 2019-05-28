@@ -23,8 +23,8 @@ An efficient way to get all data for a single repo
   def validate
     super
     validate_options
-    Trollop::die("Missing owner") if ARGV[0].nil?
-    Trollop::die("Missing repo") if ARGV[1].nil?
+    Optimist::die("Missing owner") if ARGV[0].nil?
+    Optimist::die("Missing repo") if ARGV[1].nil?
   end
 
   def go

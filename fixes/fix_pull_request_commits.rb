@@ -22,7 +22,7 @@ in the provided project.
 
   def validate
     super
-    Trollop::die "Either takes no arguments or two" if ARGV.size == 1
+    Optimist::die "Either takes no arguments or two" if ARGV.size == 1
   end
 
 
@@ -50,13 +50,13 @@ in the provided project.
                user_entry = ght.transaction { ght.ensure_user(ARGV[0], false, false) }
 
                if user_entry.nil?
-                 Trollop::die "Cannot find user #{ARGV[0]}"
+                 Optimist::die "Cannot find user #{ARGV[0]}"
                end
 
                repo_entry = ght.transaction{ ght.ensure_repo(ARGV[0], ARGV[1]) }
 
                if repo_entry.nil?
-                 Trollop::die "Cannot find repository #{ARGV[0]}/#{ARGV[1]}"
+                 Optimist::die "Cannot find repository #{ARGV[0]}/#{ARGV[1]}"
                end
                {"owner" => ARGV[0], "repo" => ARGV[1]}
              else

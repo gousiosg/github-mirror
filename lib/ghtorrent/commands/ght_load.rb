@@ -52,16 +52,16 @@ Loads data from a MongoDB collection or a file to a queue for further processing
     case
       when filter.is_a?(Array)
         options[:filter].each { |x|
-          Trollop::die "not a valid filter #{x}" unless is_filter_valid?(x)
+          Optimist::die "not a valid filter #{x}" unless is_filter_valid?(x)
         }
       when filter == []
         # Noop
       else
-        Trollop::die 'A filter can only be a string'
+        Optimist::die 'A filter can only be a string'
     end
 
     if options[:file_given]
-      Trollop::die "File does not exist: #{options[:file]}" unless File.exists?(options[:file])
+      Optimist::die "File does not exist: #{options[:file]}" unless File.exists?(options[:file])
     end
   end
 
