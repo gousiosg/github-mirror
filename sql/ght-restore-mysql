@@ -9,7 +9,8 @@ engine="MyISAM"
 
 usage()
 {
-  cat <<EOF 1>&2
+
+cat <<EOF 1>&2
 Usage: $0 [-u dbuser ] [-p dbpasswd ] [-h dbhost] [-d database ] dump_dir
 
 Restore a database from CSV and SQL files in dump_dir
@@ -19,6 +20,7 @@ Restore a database from CSV and SQL files in dump_dir
     -d database to restore to. Must exist. (default: $db)
     -e db engine: MyISAM for fast import and querying speed
                   InnoDB for normal operations (default: $engine)
+    -c create the database and user"
 EOF
 }
 
@@ -28,20 +30,34 @@ then
   exit 1
 fi
 
-while getopts "u:p:h:d:e:" o
+while getopts "u:p:h:d:e:c" o
 do
   case $o in
   u)  user=$OPTARG ;;
-  p)  passwd=$OPTARG ;;
+  p)  passwd=$OPTARG ; set_passwd="IDENTIFIED BY '$passwd'" ;;
   h)  host=$OPTARG ;;
   d)  db=$OPTARG ;;
   e)  engine=$OPTARG ;;
+  c)  create=1 ;;
   \?)     echo "Invalid option: -$OPTARG" >&2
     usage
     exit 1
     ;;
   esac
 done
+
+# Create the database and user if requested
+if [ -n "$create_db" ] ; then
+  echo "When prompted, enter the database's root password."
+  cat <<EOF |
+  CREATE DATABASE IF NOT EXISTS $db;
+  CREATE USER IF NOT EXISTS '$user'@'$host' $set_passwd;
+  GRANT ALL PRIVILEGES ON $db.* TO '$user'@'$host';
+  FLUSH PRIVILEGES;
+EOF
+  mysql -u root -p
+fi
+
 
 # Setup MySQL command line
 if [ -z $passwd ]; then
@@ -93,5 +109,17 @@ while read idx; do
   echo "`date` $idx"
   echo $idx | $mysql || exit 1
 done
+
+# Restrict database permissions
+if [ -n "$create_db" ] ; then
+  echo "When prompted, enter the database's root password."
+  cat <<EOF |
+  REVOKE ALL ON $db.* FROM '$user'@'$host';
+  GRANT SELECT ON $db.* TO '$user'@'$host';
+  FLUSH PRIVILEGES;
+EOF
+  mysql -u root -p
+fi
+
 
 #: ft=bash
