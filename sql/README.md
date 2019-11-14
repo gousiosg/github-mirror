@@ -81,6 +81,16 @@ chmod +x ght-add-private
 ./ght-add-private -u ghtorrentuser -d ghtorrent_restore -p ghtorrentpassword .
 ```
 
+### Protect the database's integrity
+To protect the database from accidental modifications,
+consider revoking all modification permissions from the user you created.
+
+```sql
+revoke all privileges on ghtorrent_restore.* from 'ghtorrentuser'@'localhost';
+grant select on ghtorrent_restore.* to 'ghtorrentuser'@'*';
+flush privileges;
+```
+
 ## <a name="restoring-to-postgresql-database"></a>Restoring to PostgreSQL database
 ### Create a PostgreSQL user
 Create a PostgreSQL user with permissions to create new schemata, for example:

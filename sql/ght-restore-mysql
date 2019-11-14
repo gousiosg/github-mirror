@@ -9,16 +9,19 @@ engine="MyISAM"
 
 usage()
 {
-  echo "Usage: $0 [-u dbuser ] [-p dbpasswd ] [-h dbhost] [-d database ] dump_dir"
-  echo
-  echo "Restore a database from CSV and SQL files in dump_dir"
-  echo "    -u database user (default: $user)"
-  echo "    -p database passwd (default: $passwd)"
-  echo "    -h database host (default: $host)"
-  echo "    -d database to restore to. Must exist. (default: $db)"
-  echo "    -e db engine: MyISAM for fast import and querying speed"
-  echo "                  InnoDB for normal operations (default: $engine)"
-  echo "    -c create the database and user"
+
+cat <<EOF 1>&2
+Usage: $0 [-u dbuser ] [-p dbpasswd ] [-h dbhost] [-d database ] dump_dir
+
+Restore a database from CSV and SQL files in dump_dir
+    -u database user (default: $user)
+    -p database passwd (default: $passwd)
+    -h database host (default: $host)
+    -d database to restore to. Must exist. (default: $db)
+    -e db engine: MyISAM for fast import and querying speed
+                  InnoDB for normal operations (default: $engine)
+    -c create the database and user"
+EOF
 }
 
 if [ -z $1 ]
@@ -66,23 +69,22 @@ fi
 shift $(expr $OPTIND - 1)
 dumpDir=$1
 
-if [ ! -e $dumpDir ]; then
-  echo "Cannot find directory to restore from"
+if [ ! -d $dumpDir ]; then
+  echo "Cannot find directory to restore from" 1>&2
   exit 1
 fi
 
 # Convert to full path
 dumpDir="`pwd`/$dumpDir"
 
-if [ ! -e $dumpDir/schema.sql ]; then
-  echo "Cannot find $dumpDir/schema.sql to create DB schema"
+if [ ! -r $dumpDir/schema.sql ]; then
+  echo "Cannot read $dumpDir/schema.sql to create DB schema" 1>&2
   exit 1
 fi
 
 # 1. Create db schema
 echo "`date` Creating the DB schema"
-cat $dumpDir/schema.sql |
-sed -e "s/\`ghtorrent\`/\`$db\`/" |
+sed -e "s/\`ghtorrent\`/\`$db\`/" $dumpDir/schema.sql |
 sed -e "s/InnoDB/$engine/"|
 grep -v "^--" |
 $mysql
@@ -95,14 +97,13 @@ for f in $dumpDir/*.csv ; do
 done
 
 # 3. Create indexes
-if [ ! -e $dumpDir/indexes.sql ]; then
-  echo "Cannot find $dumpDir/indexes.sql to create DB indexes"
+if [ ! -r $dumpDir/indexes.sql ]; then
+  echo "Cannot read $dumpDir/indexes.sql to create DB indexes" 1>&2
   exit 1
 fi
 
 echo "`date` Creating indexes"
-cat $dumpDir/indexes.sql |
-sed -e "s/\`ghtorrent\`/\`$db\`/" |
+sed -e "s/\`ghtorrent\`/\`$db\`/" $dumpDir/indexes.sql |
 grep -v "^--" |
 while read idx; do
   echo "`date` $idx"
