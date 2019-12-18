@@ -1,8 +1,6 @@
-require File.expand_path('../lib/version', __FILE__)
-
 Gem::Specification.new do |s|
   s.name          = 'ghtorrent'
-  s.version       = GHTorrent::VERSION
+  s.version       = '0.12.1'
   s.date          = Time.now.strftime('%Y-%m-%d')
   s.summary       = 'Mirror and process Github data'
   s.description   = 'A library and a collection of associated programs
@@ -21,9 +19,9 @@ Gem::Specification.new do |s|
                              'bin/*',
                              '[A-Z]*',
                              'lib/ghtorrent/country_codes.txt'])
-  s.required_ruby_version = '~> 2.0'
+  s.required_ruby_version = '~> 2.5'
 
-  s.add_runtime_dependency 'mongo', '~> 2.4', '>= 2.4.3'
+  s.add_runtime_dependency 'mongo', '~> 2.6'
   s.add_runtime_dependency 'trollop', '~> 2.0', '>= 2.0.0'
   s.add_runtime_dependency 'sequel', '~> 4.5', '>= 4.5.0'
   s.add_runtime_dependency 'bunny', '~> 2.3', '>= 2.3.0'
@@ -31,23 +29,17 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'sqlite3', '1.3.13'
   s.add_development_dependency 'influxdb', '0.3.5'
 
-  s.add_development_dependency "minitest", "~> 4.7.3"
-  s.add_development_dependency 'm', '~> 1.5.0'
-  s.add_development_dependency 'simplecov'
-  s.add_development_dependency 'simplecov-rcov'
-  s.add_development_dependency 'mocha'
-  s.add_development_dependency 'factory_girl'
-  s.add_development_dependency 'faker'
-  s.add_development_dependency 'byebug'
-  s.add_development_dependency 'vcr'
-  s.add_development_dependency 'webmock'
-  s.add_development_dependency 'minitest-around'
-  s.add_development_dependency 'rake'
-  begin
-    require 'changelog'
-    s.post_install_message = CHANGELOG.new.version_changes
-  rescue LoadError
-    warn 'You have to have changelog gem installed for post install message'
-  end
+  s.add_development_dependency "minitest", '~> 5.0'
+  s.add_development_dependency 'm',  '~> 1.5', '>= 1.5.0' 
+  s.add_development_dependency 'simplecov', '~> 0.16'
+  s.add_development_dependency 'simplecov-rcov', '~> 0.2'
+  s.add_development_dependency 'mocha', '~> 1.10'
+  s.add_development_dependency 'factory_girl', '~> 4.1'
+  s.add_development_dependency 'faker', '~> 2.9'
+  s.add_development_dependency 'byebug', '~> 10.0'
+  s.add_development_dependency 'vcr', '~> 4'
+  s.add_development_dependency 'webmock', '~> 3.7'
+  s.add_development_dependency 'minitest-around', '~> 0.5'
+  s.add_development_dependency 'rake', '~> 13'
 
 end
