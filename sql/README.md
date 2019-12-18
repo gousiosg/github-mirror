@@ -91,6 +91,34 @@ grant select on ghtorrent_restore.* to 'ghtorrentuser'@'*';
 flush privileges;
 ```
 
+### Configuring MySQL to restore fast
+
+GHTorrent is a very big dataset that could bring even handomely configured servers
+down to their knees. The default configuration options for MySQL (at least on
+Debian/Ubuntu) are good for normal operation, but are too safe for fast restores.
+
+In general, MyISAM restores are much faster, so if you would only want to
+use MySQL for quering, you should probably use MyISAM. In this case, just
+disabling the binary log should be fast enough.
+
+```sql
+skip-log-bin
+```
+
+If you would prefer InnoDB, we have found that the following config options
+significantly increase the restoration speed.
+
+```sql
+innodb-doublewrite=OFF
+innodb-fast-shutdown=0
+innodb_flush_method = noflush
+innodb_buffer_pool_size = 32GB '''or 80% of the server's RAM
+skip-log-bin
+```
+
+Remember to set those back to defaults; _the configuration above will lead
+to certain data loss in case of an unclear shutdown_.
+
 ## <a name="restoring-to-postgresql-database"></a>Restoring to PostgreSQL database
 ### Create a PostgreSQL user
 Create a PostgreSQL user with permissions to create new schemata, for example:
