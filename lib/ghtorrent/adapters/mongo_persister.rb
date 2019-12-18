@@ -1,4 +1,5 @@
 require 'mongo'
+require 'uri'
 require 'ghtorrent/adapters/base_adapter'
 require 'ghtorrent/bson_orderedhash'
 
@@ -123,9 +124,9 @@ module GHTorrent
             end
 
       constring = if uname.nil?
-                    "mongodb://#{host}:#{port}#{replicas}/#{db}?ssl=#{ssl}"
+                    URI::encode("mongodb://#{host}:#{port}#{replicas}/#{db}?ssl=#{ssl}")
                   else
-                    "mongodb://#{uname}:#{passwd}@#{host}:#{port}#{replicas}/#{db}?ssl=#{ssl}"
+                    URI::encode("mongodb://#{uname}:#{passwd}@#{host}:#{port}#{replicas}/#{db}?ssl=#{ssl}")
                   end
 
       Mongo::Logger.logger.level = Logger::WARN
