@@ -123,14 +123,13 @@ module GHTorrent
                 false
             end
 
-      constring = if uname.nil?
-                    URI::encode("mongodb://#{host}:#{port}#{replicas}/#{db}?ssl=#{ssl}")
-                  else
-                    URI::encode("mongodb://#{uname}:#{passwd}@#{host}:#{port}#{replicas}/#{db}?ssl=#{ssl}")
-                  end
 
       Mongo::Logger.logger.level = Logger::WARN
-      @mongo = Mongo::Client.new(constring)
+      @mongo = Mongo::Client.new(["#{host}:#{port}"], 
+				 :database => db, 
+				 :password => passwd, 
+				 :user => uname, 
+				 :auth_source => 'admin')
 
       dbs = @mongo.list_databases
       if dbs.find { |x| x['name'] == db }.nil?
