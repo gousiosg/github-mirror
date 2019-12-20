@@ -108,13 +108,13 @@ module GHTorrent
       host = config(:mongo_host)
       port = config(:mongo_port)
       db = config(:mongo_db)
-
       replicas = config(:mongo_replicas)
-      replicas = if replicas.nil? then
-                   ''
-                 else
-                   ',' + replicas.strip.gsub(' ', ',')
-                 end
+
+      hosts = if replicas.nil? then
+                ["#{host}:#{port}"]
+              else
+                ["#{host}:#{port}"] + replicas.strip.split(/ /)
+              end
 
       ssl = case config(:mongo_ssl)
               when 'true', 'True', 't', true
@@ -123,13 +123,22 @@ module GHTorrent
                 false
             end
 
-
       Mongo::Logger.logger.level = Logger::WARN
-      @mongo = Mongo::Client.new(["#{host}:#{port}"], 
+      @mongo = Mongo::Client.new(hosts,
 				 :database => db, 
 				 :password => passwd, 
 				 :user => uname, 
-				 :auth_source => 'admin')
+				 :auth_source => 'admin',
+         :read => {
+           :mode => :secondary_preferred
+         },
+         :retry_reads => true,
+         :retry_writes => true,
+         :write_concern => {
+           :w => "majority",
+           :j => true
+         }
+      )
 
       dbs = @mongo.list_databases
       if dbs.find { |x| x['name'] == db }.nil?
