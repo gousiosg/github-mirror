@@ -587,8 +587,7 @@ module GHTorrent
                    :description => unless r['description'].nil? then r['description'][0..254] else nil end,
                    :language => r['language'],
                    :created_at => date(r['created_at']),
-                   :updated_at => date(Time.now),
-                   :etag => unless r['etag'].nil? then r['etag'] end)
+                   :updated_at => date(Time.now))
 
       unless r['parent'].nil?
         parent_owner = r['parent']['owner']['login']

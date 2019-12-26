@@ -53,15 +53,17 @@ module GHTorrent
       parse_request_result api_request_raw(ensure_max_per_page(url), media_type)
     end
 
-    # Check whether the resource identified by the provided url has changed
+    # Return the last modified time for the resource identified by the provided
+    # URL, as returned from GitHub.
     def last_updated(url, etag)
       begin
         ts = Time.now
-        response = do_request(url, '', etag)
-        info "Successful etag request. URL: #{url}, Etag: #{etag}, Remaining: #{@remaining}, Total: #{Time.now.to_ms - ts.to_ms} ms"
+        response = do_request(url, '', fmt_etag(etag))
+        info "Successful etag request. URL: #{url}, HTTP: #{response.status.first}, old_etag: #{fmt_etag(etag)}, new_etag: #{fmt_etag(response.meta['etag'])}, Remaining: #{@remaining}, Total: #{Time.now.to_ms - ts.to_ms} ms"
       rescue OpenURI::HTTPError => e
         response = e.io
         if response.status.first != '304'
+          info "Successful etag request. URL: #{url}, HTTP: 304, etag: #{fmt_etag(etag)}, Remaining: #{@remaining}, Total: #{Time.now.to_ms - ts.to_ms} ms"
           etag_request_error_message(url, e, etag)
           raise e
         end
@@ -131,12 +133,16 @@ module GHTorrent
 
           # Add the etag to the response only for individual entities
           if result.meta['etag'] and r.class != Array
-            r['etag'] = result.meta['etag']
+            r['etag'] = fmt_etag(result.meta['etag'])
           end
 
           r
         end
       end
+    end
+
+    def fmt_etag(etag)
+      etag.tr('W"/','') unless etag.nil?
     end
 
     def fmt_token(token)
