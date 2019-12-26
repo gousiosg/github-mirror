@@ -3,12 +3,12 @@ DROP TABLE IF EXISTS users_private;
 
 CREATE TABLE users_private (
   login character varying(255) NOT NULL,
-  name character varying(255),
-  email character varying(255)
+  name text,
+  email text
 );
 ALTER TABLE ONLY users_private ADD CONSTRAINT users_private_pkey PRIMARY KEY (login);
 
-COPY users_private FROM PROGRAM 'zcat < USERS_PRIVATE_FILE' WITH (FORMAT 'csv', QUOTE E'"', ESCAPE '\', NULL '\N');
+COPY users_private FROM 'USERS_PRIVATE_FILE' WITH (FORMAT 'csv', QUOTE E'"', ESCAPE '\', NULL '\N', ENCODING 'UTF8');
 
 CREATE UNIQUE INDEX users_private_login ON users_private (login ASC);
 

@@ -6,6 +6,7 @@ ALTER TABLE ONLY users ADD CONSTRAINT users_login_key UNIQUE (login);
 
 CREATE INDEX "followers_follower_id" ON "followers" ("follower_id");
 CREATE INDEX "project_commits_commit_id" ON "project_commits" ("commit_id");
+CREATE INDEX "project_commits_project_id" ON "project_commits" ("project_id");
 CREATE INDEX "project_languages_project_id" ON "project_languages" ("project_id");
 CREATE INDEX "projects_name" ON "projects" ("name");
 
