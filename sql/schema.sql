@@ -47,13 +47,17 @@ CREATE TABLE IF NOT EXISTS `ghtorrent`.`projects` (
   `forked_from` INT(11) NULL DEFAULT NULL COMMENT '',
   `deleted` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '',
   `updated_at` TIMESTAMP NOT NULL DEFAULT '1970-01-01 00:00:01' COMMENT '',
+  `forked_commit_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)  COMMENT '',
   CONSTRAINT `projects_ibfk_1`
     FOREIGN KEY (`owner_id`)
     REFERENCES `ghtorrent`.`users` (`id`),
   CONSTRAINT `projects_ibfk_2`
     FOREIGN KEY (`forked_from`)
-    REFERENCES `ghtorrent`.`projects` (`id`))
+    REFERENCES `ghtorrent`.`projects` (`id`),
+  CONSTRAINT `projects_ibfk_4` 
+    FOREIGN KEY (`forked_commit_id`) 
+    REFERENCES `commits` (`id`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
 SET time_zone=@OLD_TIME_ZONE;
