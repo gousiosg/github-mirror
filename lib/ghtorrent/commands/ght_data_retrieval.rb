@@ -51,7 +51,7 @@ If event_id is provided, only this event is processed.
     event = persister.find(:events, {'id' => evt_id}).first
     event.delete '_id'
     data = JSON.parse(event.to_json)
-    debug "Processing event: #{data['type']}-#{data['id']}"
+    info "Processing event: #{data['type']}-#{data['id']}"
     data
   end
 

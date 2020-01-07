@@ -103,8 +103,8 @@ module GHTorrent
         return if r.nil?
         parent_owner = r['parent']['owner']['login']
         parent_repo  = r['parent']['name']
-        ensure_fork_commits(user, repo, parent_owner, parent_repo)
-        return
+        commits = ensure_fork_commits(user, repo, parent_owner, parent_repo)
+        return commits
       end
 
       num_retrieved = 0
@@ -578,7 +578,13 @@ module GHTorrent
 
       if r['owner']['login'] != curuser[:login]
         info "Repo changed owner from #{curuser[:login]} to #{r['owner']['login']}"
+        user = r['owner']['login']
         curuser = ensure_user(r['owner']['login'], false, false)
+      end
+
+      if r['name'] != repo
+        info "Repo changed name from #{repo} to #{r['name']}"
+        repo = r['name']
       end
 
       repos.insert(:url => r['url'],
@@ -602,14 +608,17 @@ module GHTorrent
           repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => parent[:id])
           info "Repo #{user}/#{repo} is a fork of #{parent_owner}/#{parent_repo}"
 
-          unless ensure_fork_point(user, repo).nil?
+          fork_commit = ensure_fork_point(user, repo)
+          if fork_commit.nil?
             warn "Could not find fork point for #{user}/#{repo}, fork of #{parent_owner}/#{parent_repo}"
+          else
+            debug "#{user}/#{repo} was forked at #{fork_commit[:sha]} from #{parent_owner}/#{parent_repo}"
           end
         end
       end
 
       if recursive and not ensure_repo_recursive(user, repo)
-        warn "Could retrieve #{user}/#{repo} recursively"
+        warn "Could not retrieve #{user}/#{repo} recursively"
         return nil
       end
 
@@ -640,7 +649,7 @@ module GHTorrent
       end
 
       ts = Time.now
-      langs.keys.each do |lang|
+      langs.keys.select{|x| x != 'etag'}.each do |lang|
         db[:project_languages].insert(
           :project_id => currepo[:id],
           :language   => lang.downcase,
@@ -656,7 +665,6 @@ module GHTorrent
     # until we reach a commit that has been registered with the parent
     # repository. Then, copy all remaining parent commits to this repo.
     def ensure_fork_commits(owner, repo, parent_owner, parent_repo)
-
       currepo = ensure_repo(owner, repo)
 
       if currepo.nil?
@@ -700,6 +708,8 @@ module GHTorrent
 
         sha   = master_branch
         found = false
+        added_commits = []
+
         while not found
           commits = retrieve_commits(repo, sha, owner, 1)
 
@@ -714,14 +724,18 @@ module GHTorrent
           end
 
           for c in commits
-            ensure_commit(repo, c['sha'], owner)
+            commit = ensure_commit(repo, c['sha'], owner)
             sha = c['sha']
             if c['sha'] == fork_commit[:sha]
               found = true
               break
+            else
+              added_commits << commit
             end
           end
         end
+
+        return added_commits
       end
 
       if strategy == :all
@@ -753,7 +767,6 @@ module GHTorrent
 
     # Retrieve and return the commit at which the provided fork was forked at
     def ensure_fork_point(owner, repo)
-
       fork = ensure_repo(owner, repo, false)
 
       if fork[:forked_from].nil?
