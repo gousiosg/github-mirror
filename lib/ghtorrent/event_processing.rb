@@ -221,8 +221,11 @@ module GHTorrent
       repo = data['repo']['name'].split(/\//)[1]
       return unless data['payload']['ref_type'] == 'repository'
 
-      ght.ensure_repo(owner, repo)
-      ght.ensure_repo_recursive(owner, repo)
+      repo_entry = ght.ensure_repo(owner, repo)
+      unless repo_entry.nil?
+        repo_owner = ght.db[:users].first(:id => repo_entry[:owner_id])
+        ght.ensure_repo_recursive(repo_owner[:login], repo_entry[:name])
+      end
     end
   end
 end

@@ -585,6 +585,9 @@ module GHTorrent
       if r['name'] != repo
         info "Repo changed name from #{repo} to #{r['name']}"
         repo = r['name']
+
+        currepo = repos.first(:owner_id => curuser[:id], :name => repo)
+        return currepo unless currepo.nil?
       end
 
       repos.insert(:url => r['url'],
