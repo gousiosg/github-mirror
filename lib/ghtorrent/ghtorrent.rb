@@ -74,7 +74,7 @@ module GHTorrent
       end
 
       stored = store_commit(c, repo, user)
-      ensure_parents(c)
+      ensure_parents(c, user, repo)
       if not c['commit']['comment_count'].nil? \
          and c['commit']['comment_count'] > 0
         ensure_commit_comments(user, repo, sha) if comments
@@ -141,7 +141,7 @@ module GHTorrent
     ##
     # Get the parents for a specific commit. The commit must be first stored
     # in the database.
-    def ensure_parents(commit)
+    def ensure_parents(commit, owner, repo)
       commits = db[:commits]
       parents = db[:commit_parents]
       commit['parents'].map do |p|
@@ -156,7 +156,7 @@ module GHTorrent
               warn "Could not retrieve commit_parent #{url[4]}/#{url[5]} -> #{url[7]} to #{this[:sha]}"
               next
             end
-            parent = store_commit(c, url[5], url[4])
+            parent = store_commit(c, repo, owner)
           end
 
           if parent.nil?
@@ -700,10 +700,10 @@ module GHTorrent
 
       if strategy == :fork_point
 
-      if fork_commit.nil? or fork_commit.empty?
+        if fork_commit.nil? or fork_commit.empty?
           warn "Could not find fork commit for repo #{owner}/#{repo}. Will not retrieve commits."
           return []
-      end
+        end
 
         # Retrieve commits up to fork point (fork_commit strategy)
         info "Retrieving commits for #{owner}/#{repo} until fork commit #{fork_commit[:sha]}"
@@ -765,6 +765,7 @@ module GHTorrent
           end
         end
         info "Finished copying commits from #{parent_owner}/#{parent_repo} -> #{owner}/#{repo}: #{copied} total"
+        return to_copy
       end
 
     end
