@@ -692,15 +692,16 @@ module GHTorrent
 
       fork_commit = ensure_fork_point(owner, repo)
 
-      if fork_commit.nil? or fork_commit.empty?
-        warn "Could not find fork commit for repo #{owner}/#{repo}. Retrieving all commits."
-        return ensure_commits(owner, repo, fork_all: true)
-      end
-
       debug "Retrieving commits for fork #{owner}/#{repo}: strategy is #{strategy}"
-      return if strategy == :none
+      return [] if strategy == :none
 
       if strategy == :fork_point
+
+      if fork_commit.nil? or fork_commit.empty?
+          warn "Could not find fork commit for repo #{owner}/#{repo}. Will not retrieve commits."
+          return []
+      end
+
         # Retrieve commits up to fork point (fork_commit strategy)
         info "Retrieving commits for #{owner}/#{repo} until fork commit #{fork_commit[:sha]}"
         master_branch = retrieve_default_branch(parent_owner, parent_repo)
