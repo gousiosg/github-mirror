@@ -8,7 +8,7 @@ module GHTorrent
     def refresh_repo(owner, repo, db_entry)
 
       now = Time.now
-      return db_entry if now.to_i - db_entry[:updated_at].to_i < 3600 * 24
+      return db_entry if now.to_i - db_entry[:updated_at].to_i < 3600 * 24 * 10 # 10 days
 
         fresh_repo = retrieve_repo(owner, repo, true)
 
