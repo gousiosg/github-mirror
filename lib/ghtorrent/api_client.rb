@@ -258,6 +258,13 @@ module GHTorrent
       headers = headers.merge({'Authorization' => "token #{@token}"}) if auth_method(@token) == :token
       headers = headers.merge({'If-None-Match' => etag}) if etag
 
+      # Only way to encode square brackets in standard Ruby
+      if url =~ %r{\[|\]}
+        protocol, host, path = url.split(%r{/+}, 3)
+        path = path.gsub('[', '%5B').gsub(']', '%5D')
+        url = "#{protocol}//#{host}/#{path}"
+      end
+
       result = if @attach_ip.nil? or @attach_ip.eql? '0.0.0.0'
         open(url, headers)
       else

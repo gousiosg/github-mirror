@@ -305,9 +305,9 @@ module GHTorrent
     # If the user can be retrieved, it is returned as a Hash. Otherwise,
     # the result is nil
     def ensure_user(user, followers = true, orgs = true)
-      # Github only supports alpa-nums and dashes in its usernames.
+      # Github only supports alpanums, dashes and square brackets in usernames.
       # All other sympbols are treated as emails.
-      if not user.match(/^[\w\-]*$/)
+      if not user.match(/^[\w\-\[\]]*$/)
         begin
           name, email = user.split("<")
           email = email.split(">")[0]
@@ -1252,7 +1252,7 @@ module GHTorrent
         debug 'Accompanying issue for ' + pr_log_msg(retrieved) + ' exists'
       end
 
-      if history
+      if history && !pull_req_user.nil?
         # Actions on pull requests
         opener = pull_req_user[:login]
         ensure_pull_request_history(pull_req[:id], date(retrieved['created_at']),
