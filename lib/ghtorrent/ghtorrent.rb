@@ -110,8 +110,11 @@ module GHTorrent
       num_retrieved = 0
       commits = ['foo'] # Dummy entry for simplifying the loop below
       commit_acc = []
-      until commits.empty?
+      commit_pages = 0
+
+      until commits.empty? or commit_pages >= config(:mirror_history_pages_back)
         commits = retrieve_commits(repo, sha, user, 1)
+        commit_pages += 1
 
         # This means that we retrieved the last commit page again
         if commits.size == 1 and commits[0]['sha'] == sha
