@@ -250,42 +250,53 @@ module GHTorrent
         # We do not have the user in the database yet
         added = ensure_user(login, false, false)
 
-        # A commit user can be found by email but not
-        # by the user name he used to commit. This probably means that the
-        # user has probably changed his user name. Treat the user's by-email
-        # description as valid.
-        if added.nil? and not byemail.nil?
-          warn "Found user #{byemail[:login]} with same email #{email} as non existing user #{login}. Assigning user #{login} to #{byemail[:login]}"
-          return users.first(:login => byemail[:login])
-        end
-
-        # This means that the user's login has been associated with a
-        # Github user by the time the commit was done (and hence Github was
-        # able to associate the commit to an account), but afterwards the
-        # user has deleted his account (before GHTorrent processed it).
-        # On absense of something better to do, try to find the user by email
-        # and return a "fake" user entry.
         if added.nil?
-          warn "User account for user #{login} deleted from Github"
-          return ensure_user("#{name}<#{email}>", false, false)
-        end
-
-        if byemail.nil?
-          users.filter(:login => login).update(:name => name) if added[:name].nil?
-          users.filter(:login => login).update(:email => email) if added[:email].nil?
+          if byemail.nil?
+            # This means that the user's login has been associated with a
+            # Github user by the time the commit was done (and hence Github was
+            # able to associate the commit to an account), but afterwards the
+            # user has deleted his account (before GHTorrent processed it).
+            # On absense of something better to do, try to find the user by email
+            # and return a "fake" user entry.
+            warn "User account for user #{login} deleted from Github"
+            return ensure_user("#{name}<#{email}>", false, false)
+          else
+            # A commit user can be found by email but not
+            # by the user name he used to commit. This probably means that the
+            # user has probably changed his user name. Treat the user's by-email
+            # description as valid.
+            warn "Found user #{byemail[:login]} with same email #{email} as non existing user #{login}. Assigning user #{login} to #{byemail[:login]}"
+            return users.first(:login => byemail[:login])
+          end
         else
-          # There is a previous entry for the user, currently identified by
-          # email. This means that the user has updated his account and now
-          # Github is able to associate his commits with his git credentials.
-          # As the previous entry might have already associated records, just
-          # delete the new one and update the existing with any extra data.
-          users.filter(:login => login).delete
-          users.filter(:email => email).update(
+          if byemail.nil?
+            users.filter(:login => login).update(:name => name) if added[:name].nil?
+            users.filter(:login => login).update(:email => email) if added[:email].nil?
+          else
+            # There is a previous entry for the user, currently identified by
+            # email. This means that the user has updated their account and now
+            # Github is able to associate their commits with their git credentials.
+            # As the previous entry might have already associated records, just
+            # delete the new one and update the existing with any extra data.
+            info "Users #{login} and #{email} are the same. Attempting merge."
+            users.filter(:login => login).delete
+            users.filter(:email => email).update(
               :login => login,
+              :name => if added[:name].nil? then byemail[:name] else added[:name] end,
               :company => added[:company],
               :location => added[:location],
-              :created_at => added[:created_at]
-          )
+              :email => email,
+              :fake => false,
+              :deleted => false,
+              :type => user_type('USR'),
+              :long => added[:long],
+              :lat => added[:lat],
+              :country_code => added[:country_code],
+              :state => added[:state],
+              :city => added[:city],
+              :created_at => date(added[:created_at])
+            )
+          end
         end
       else
         users.filter(:login => login).update(:name => name) if dbuser[:name].nil?
@@ -1872,7 +1883,7 @@ module GHTorrent
       start_time = Time.now
       begin
         db.transaction(:rollback => :reraise, :isolation => :repeatable,
-                        :retry_on => @retry_on_error, :num_retries => 3) do
+                        :retry_on => @retry_on_error, :num_retries => 1) do
           result = yield block
         end
         total = Time.now.to_ms - start_time.to_ms
