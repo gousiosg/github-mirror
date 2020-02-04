@@ -113,7 +113,7 @@ module GHTorrent
       hosts = if replicas.nil? then
                 ["#{host}:#{port}"]
               else
-                ["#{host}:#{port}"] + replicas.strip.split(/ /)
+                ["#{host}:#{port}"] + replicas
               end
 
       ssl = case config(:mongo_ssl)
