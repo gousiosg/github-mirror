@@ -204,9 +204,9 @@ ARGF.each do |line|
     next if logs.empty?
 
     logs.each do |p|
-      puts p
-      influx.write_point(p[:series], p.select{|x| x != :series})
-
+      unless p[:series].nil?
+        influx.write_point(p[:series], p.select{|x| x != :series})
+      end
     end
   rescue StandardError => e
     puts e.backtrace
