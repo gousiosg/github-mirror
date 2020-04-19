@@ -42,7 +42,16 @@ if ! [ -z $passwd ]; then
   export PGPASSWORD=$passwd
 fi
 
-psql="psql -U $user -t -q -h $host -d $db"
+# Run psql with the specified arguments exitting on first error
+# If no arguments are specified, then input is set to come from stdin
+run_psql()
+{
+  stdin=''
+  if [ -z "$1" ] ; then
+    stdin='-f -'
+  fi
+  psql -U $user -t -q -h $host -d $db -c '\set ON_ERROR_STOP 1' $stdin "$@"
+}
 
 shift $(expr $OPTIND - 1)
 dumpDir=$1
@@ -62,13 +71,13 @@ fi
 
 # 1. Create db schema
 echo "`date` Creating the DB schema"
-cat $dumpDir/pg_schema.sql | $psql
+run_psql <$dumpDir/pg_schema.sql
 
 # 2. Restore CSV files with disabled FK checks
 for f in $dumpDir/*.csv ; do
   table=`basename $f|cut -f1 -d'.'`
   echo "`date` Restoring table $table"
-  echo "COPY $table FROM '$f' WITH (FORMAT 'csv', QUOTE E'\"', ESCAPE '\', NULL '\N');" | $psql || exit 1
+  echo "COPY $table FROM '$f' WITH (FORMAT 'csv', QUOTE E'\"', ESCAPE '\', NULL '\N');" | run_psql || exit 1
 done
 
 # 3. Reset sequences
@@ -81,7 +90,7 @@ echo "`date` Resetting sequences"
 cat $dumpDir/pg_reset_sequences.sql |
 while read idx; do
   echo "`date` $idx"
-  echo $idx | $psql || exit 1
+  echo $idx | run_psql || exit 1
 done
 
 # 4. Create indexes
@@ -94,7 +103,7 @@ echo "`date` Creating indexes"
 cat $dumpDir/pg_indexes_and_foreign_keys.sql |
 while read idx; do
   echo "`date` $idx"
-  echo $idx | $psql || exit 1
+  echo $idx | run_psql || exit 1
 done
 
 #: ft=bash
