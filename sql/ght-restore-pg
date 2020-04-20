@@ -77,7 +77,15 @@ run_psql <$dumpDir/pg_schema.sql
 for f in $dumpDir/*.csv ; do
   table=`basename $f|cut -f1 -d'.'`
   echo "`date` Restoring table $table"
-  echo "COPY $table FROM '$f' WITH (FORMAT 'csv', QUOTE E'\"', ESCAPE '\', NULL '\N');" | run_psql || exit 1
+  if [ $table = commits ] ; then
+    # For commits.csv convert the mySQL null dates to NULL records
+    sed 's/"0000-00-00 00:00:00"/\\N/g' $f |
+      run_psql -c "COPY commits FROM STDIN WITH (FORMAT 'csv', QUOTE E'\\\"', ESCAPE '\\', NULL '\\N');" || exit 1
+  else
+    # For the other tables have the server import directly from the local
+    # file, without having the data travel through the client
+    echo "COPY $table FROM '$f' WITH (FORMAT 'csv', QUOTE E'\"', ESCAPE '\', NULL '\N');" | run_psql || exit 1
+  fi
 done
 
 # 3. Reset sequences

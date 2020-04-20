@@ -43,7 +43,7 @@ CREATE TABLE "commits" (
   "author_id" integer,
   "committer_id" integer,
   "project_id" integer,
-  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+  "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 )
 WITHOUT OIDS;
 
