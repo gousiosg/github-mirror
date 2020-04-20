@@ -1,4 +1,6 @@
 -- Table: users_private
+\set ON_ERROR_STOP 1
+
 DROP TABLE IF EXISTS users_private;
 
 CREATE TABLE users_private (
