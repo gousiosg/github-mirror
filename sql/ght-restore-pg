@@ -71,7 +71,7 @@ fi
 
 # 1. Create db schema
 echo "`date` Creating the DB schema"
-run_psql <$dumpDir/pg_schema.sql
+run_psql <$dumpDir/pg_schema.sql || exit 1
 
 # 2. Restore CSV files with disabled FK checks
 for f in $dumpDir/*.csv ; do
