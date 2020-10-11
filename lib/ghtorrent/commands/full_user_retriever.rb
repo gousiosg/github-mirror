@@ -59,14 +59,15 @@ module GHTorrent
 
         # Update geo location information
         geo = geolocate(location: on_github['location'])
+        debug "Geolocation for user: #{login} returned #{geo}"
 
         ght.db.from(:users).where(:login => login).update(
             # Geolocation info
-            Sequel.qualify('users', 'long')         => geo['long'].to_f,
-            Sequel.qualify('users', 'lat')          => geo['lat'].to_f,
-            Sequel.qualify('users', 'country_code') => geo['country_code'],
-            Sequel.qualify('users', 'state')        => geo['state'],
-            Sequel.qualify('users', 'city')         => geo['city'],
+            Sequel.qualify('users', 'long')         => geo[:long].to_f,
+            Sequel.qualify('users', 'lat')          => geo[:lat].to_f,
+            Sequel.qualify('users', 'country_code') => geo[:country_code],
+            Sequel.qualify('users', 'state')        => geo[:state],
+            Sequel.qualify('users', 'city')         => geo[:city],
             Sequel.qualify('users', 'location')     => on_github['location'],
 
             # user details
@@ -75,7 +76,10 @@ module GHTorrent
             Sequel.qualify('users', 'email')   => on_github['email'],
             Sequel.qualify('users', 'deleted') => false,
             Sequel.qualify('users', 'fake')    => false,
-            Sequel.qualify('users', 'type')    => user_type(on_github['type'])
+            Sequel.qualify('users', 'type')    => user_type(on_github['type']),
+
+            # update timestamp
+            Sequel.qualify('users', 'updated_at') => date(Time.now)
         )
 
         user = user_entry[:login]
@@ -96,6 +100,23 @@ module GHTorrent
 
         info "User #{login} updated"
       end
+
+      def date(arg)
+        if arg.class != Time
+          time_non_zero(Time.parse(arg))
+        else
+          time_non_zero(arg)
+        end
+      end
+
+      def time_non_zero(t)
+        if t.to_i <= 0
+          Time.parse('1970-01-02')
+        else
+          t
+        end
+      end
+
     end
   end
  end

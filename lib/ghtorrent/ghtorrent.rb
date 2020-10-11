@@ -294,8 +294,7 @@ module GHTorrent
               :country_code => added[:country_code],
               :state => added[:state],
               :city => added[:city],
-              :created_at => date(added[:created_at])
-            )
+              :created_at => date(added[:created_at]),
           end
         end
       else
@@ -387,7 +386,7 @@ module GHTorrent
                      :country_code => geo[:country_code],
                      :state => geo[:state],
                      :city => geo[:city],
-                     :created_at => date(u['created_at']))
+                     :created_at => date(u['created_at']),
 
         info "Added user #{user}"
 
@@ -514,7 +513,7 @@ module GHTorrent
                        :login => login,
                        :fake => true,
                        :deleted => false,
-                       :created_at => Time.now)
+                       :created_at => date(Time.now),
           info "Added user fake #{login} -> #{email}"
           users.first(:login => login)
         else
@@ -532,7 +531,7 @@ module GHTorrent
                          :city => geo[:city],
                          :fake => false,
                          :deleted => false,
-                         :created_at => date(u['created_at']))
+                         :created_at => date(u['created_at']),
             info "Added user #{u['login']} (#{email}) through search API query"
           else
             in_db.update(:name => u['name'],
@@ -545,7 +544,7 @@ module GHTorrent
                          :city => geo[:city],
                          :fake => false,
                          :deleted => false,
-                         :created_at => date(u['created_at']))
+                         :created_at => date(u['created_at']),
             debug "User #{u['login']} with email #{email} exists"
           end
           users.first(:login => u['login'])
