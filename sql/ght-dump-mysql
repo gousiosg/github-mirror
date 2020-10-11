@@ -76,7 +76,8 @@ for table in $tables; do
     echo "select login,name,email into outfile '$out/users-private.csv' CHARACTER SET UTF8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from users" |$mysql || exit 1
   else
     echo "`date`: Dumping table $table"
-    echo "select * into outfile '$out/$table.csv' CHARACTER SET UTF8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from $table" |$mysql || exit 1
+    echo "select * into outfile '$out/$table.csv' CHARACTER SET UTF8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from $table"
+    #echo "select * into outfile '$out/$table.csv' CHARACTER SET UTF8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' from $table" |$mysql || exit 1
   fi
 done
 
