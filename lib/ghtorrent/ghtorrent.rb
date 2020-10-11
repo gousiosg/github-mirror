@@ -295,6 +295,7 @@ module GHTorrent
               :state => added[:state],
               :city => added[:city],
               :created_at => date(added[:created_at]),
+              :updated_at => date(Time.now))
           end
         end
       else
@@ -387,6 +388,7 @@ module GHTorrent
                      :state => geo[:state],
                      :city => geo[:city],
                      :created_at => date(u['created_at']),
+                     :updated_at => date(Time.now))
 
         info "Added user #{user}"
 
@@ -514,6 +516,7 @@ module GHTorrent
                        :fake => true,
                        :deleted => false,
                        :created_at => date(Time.now),
+                       :updated_at => date(Time.now))
           info "Added user fake #{login} -> #{email}"
           users.first(:login => login)
         else
@@ -532,6 +535,7 @@ module GHTorrent
                          :fake => false,
                          :deleted => false,
                          :created_at => date(u['created_at']),
+                         :updated_at => date(Time.now))
             info "Added user #{u['login']} (#{email}) through search API query"
           else
             in_db.update(:name => u['name'],
@@ -545,6 +549,7 @@ module GHTorrent
                          :fake => false,
                          :deleted => false,
                          :created_at => date(u['created_at']),
+                         :updated_at => date(Time.now))
             debug "User #{u['login']} with email #{email} exists"
           end
           users.first(:login => u['login'])
@@ -1446,7 +1451,8 @@ module GHTorrent
       fork_owner = fork_name.split(/\//)[0]
       fork_name = fork_name.split(/\//)[1]
 
-      r = ensure_repo(fork_owner, fork_name, true)
+      #r = ensure_repo(fork_owner, fork_name, true)
+      r = ensure_repo(fork_owner, fork_name)
 
       if r.nil?
         warn "Could not add #{fork_owner}/#{fork_name} as fork of #{owner}/#{repo}"
