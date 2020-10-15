@@ -1702,29 +1702,56 @@ module GHTorrent
 
       curcomment = db[:issue_comments].first(:issue_id => issue[:id],
                                           :comment_id => comment_id)
+      retrieved = retrieve_issue_comment(owner, repo, issue_id, comment_id)
+
+      if retrieved.nil?
+        warn "Could not retrieve issue_comment #{issue_comment_str}"
+        return
+      end
+
+      reactions = retrieved['reactions']
+
       if curcomment.nil?
-
-        retrieved = retrieve_issue_comment(owner, repo, issue_id, comment_id)
-
-        if retrieved.nil?
-          warn "Could not retrieve issue_comment #{issue_comment_str}"
-          return
-        end
-
         user = ensure_user(retrieved['user']['login'], false, false)
+        reactions = retrieved['reactions']
 
         db[:issue_comments].insert(
             :comment_id => comment_id,
             :issue_id => issue[:id],
             :user_id => unless user.nil? then user[:id] end,
-            :created_at => date(retrieved['created_at'])
+            :created_at => date(retrieved['created_at']),
+            :like => reactions['+1'],
+            :dislike => reactions['-1'],
+            :laugh => reactions['laugh'],
+            :confused => reactions['confused'],
+            :heart => reactions['heart'],
+            :hooray => reactions['hooray']
         )
 
         info "Added issue_comment #{issue_comment_str}"
         db[:issue_comments].first(:issue_id => issue[:id],
                                    :comment_id => comment_id)
       else
-        debug "Issue comment #{issue_comment_str} exists"
+        if ! (curcomment[:like] == reactions['+1']) or
+           ! (curcomment[:dislike] == reactions['-1']) or
+           ! (curcomment[:laugh] == reactions['laugh']) or
+           ! (curcomment[:confused] == reactions['confused']) or
+           ! (curcomment[:heart] == reactions['heart']) or
+           ! (curcomment[:hooray] == reactions['hooray'])
+          info "Updating issue comment reactions..."
+
+          retrieved = retrieve_issue_comment(owner, repo, issue_id, comment_id)
+          reactions = retrieved['reactions']
+          db[:issue_comments].filter(:issue_id => issue[:id],
+                                     :comment_id => comment_id).update(:like => reactions['+1'],
+                                                                       :dislike => reactions['-1'],
+                                                                       :laugh => reactions['laugh'],
+                                                                       :confused => reactions['confused'],
+                                                                       :heart => reactions['heart'],
+                                                                       :hooray => reactions['hooray'])
+        else
+          info "Comment reactions current"
+        end
         curcomment
       end
     end

@@ -497,7 +497,9 @@ module GHTorrent
 
     def retrieve_issue_comments(owner, repo, issue_id)
       url = ghurl "repos/#{owner}/#{repo}/issues/#{issue_id}/comments"
-      retrieved_comments = paged_api_request url
+
+      retrieved_comments = paged_api_request(url, config(:mirror_history_pages_back),
+                                             nil, 'application/vnd.github.squirrel-girl-preview')
 
       comments = retrieved_comments.each { |x|
         x['owner'] = owner
@@ -523,7 +525,8 @@ module GHTorrent
                                                  'issue_id' => issue_id,
                                                  'id' => comment_id}).first
       if comment.nil?
-        r = api_request(ghurl "repos/#{owner}/#{repo}/issues/comments/#{comment_id}")
+        r = api_request(ghurl("repos/#{owner}/#{repo}/issues/comments/#{comment_id}"),
+                        media_type = 'application/vnd.github.squirrel-girl-preview') # volatile: https://developer.github.com/v3/issues/comments/#reactions-summary
 
         if r.nil? or r.empty?
           warn "Could not find issue_comment #{owner}/#{repo} #{issue_id}->#{comment_id}. Deleted?"
