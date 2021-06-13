@@ -29,17 +29,4 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'sqlite3', '1.3.13'
   s.add_development_dependency 'influxdb', '0.3.5'
 
-  s.add_development_dependency "minitest", '~> 5.0'
-  s.add_development_dependency 'm',  '~> 1.5', '>= 1.5.0' 
-  s.add_development_dependency 'simplecov', '~> 0.16'
-  s.add_development_dependency 'simplecov-rcov', '~> 0.2'
-  s.add_development_dependency 'mocha', '~> 1.10'
-  s.add_development_dependency 'factory_girl', '~> 4.1'
-  s.add_development_dependency 'faker', '~> 2.9'
-  s.add_development_dependency 'byebug', '~> 10.0'
-  s.add_development_dependency 'vcr', '~> 4'
-  s.add_development_dependency 'webmock', '~> 3.7'
-  s.add_development_dependency 'minitest-around', '~> 0.5'
-  s.add_development_dependency 'rake', '~> 13'
-
 end
