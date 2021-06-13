@@ -130,7 +130,7 @@ module GHTorrent
 				 :user => uname, 
 				 :auth_source => 'admin',
          :read => {
-           :mode => :secondary_preferred
+           :mode => :secondary
          },
          :retry_reads => true,
          :retry_writes => true,
