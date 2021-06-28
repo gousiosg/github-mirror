@@ -53,7 +53,7 @@ module GHTorrent
                   api_request(url)
                  end
 
-        if byname.nil? or byname['users'].nil? or byname['users'].empty?
+        if byname.nil? or byname.empty? or byname['users'].nil? or byname['users'].empty?
           nil
         else
           user = byname['users'].find do |u|
