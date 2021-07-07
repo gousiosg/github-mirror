@@ -679,7 +679,7 @@ module GHTorrent
 
         page_range.each do |page|
           items = api_request(ghurl(url, page), media_type)
-          break if items.nil?
+          break if items.nil? or items.empty?
 
           items.each do |x|
             x['repo'] = repo
@@ -691,7 +691,7 @@ module GHTorrent
 
             unless exists
               x = api_request(x['url'], media_type)
-              break if x.nil?
+              break if x.nil? or x.empty?
               x['repo'] = repo
               x['owner'] = user
               persister.store(entity, x)
